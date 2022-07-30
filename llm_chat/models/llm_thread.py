@@ -31,7 +31,7 @@ class LLMThread(models.Model):
         domain="[('provider_id', '=', provider_id), ('model_use', 'in', ['chat', 'multimodal'])]",
         ondelete="restrict",
     )
-    message_ids = fields.One2many("llm.message", "thread_id", string="Messages")
+    message_ids = fields.One2many("mail.message", "thread_id", string="Messages")
     active = fields.Boolean(default=True)
 
     @api.model_create_multi
@@ -123,34 +123,24 @@ class LLMThread(models.Model):
             yield {"error": str(e)}
 
 
-class LLMMessage(models.Model):
-    _name = "llm.message"
-    _description = "LLM Chat Message"
+class MailMessage(models.Model):
+    _inherit = "mail.message"
     _order = "create_date ASC"
-
-    thread_id = fields.Many2one(
-        "llm.thread",
-        string="Thread",
-        required=True,
-        ondelete="cascade",
-    )
-    role = fields.Selection(
+    # TODO extend subtypes to include "llm"
+    llm_role = fields.Selection(
         [
             ("system", "System"),
             ("user", "User"),
             ("assistant", "Assistant"),
             ("tool", "Tool"),
         ],
-        required=True,
         default="user",
     )
-    content = fields.Text(required=True)
-    create_date = fields.Datetime(readonly=True)
 
     def to_provider_message(self):
         """Convert to provider-compatible message format"""
         return {
-            "role": self.role,
+            "role": self.llm_role,
             "content": self.content,
         }
 
