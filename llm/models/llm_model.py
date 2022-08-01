@@ -15,6 +15,14 @@ class LLMModel(models.Model):
 
     name = fields.Char(required=True)
     provider_id = fields.Many2one("llm.provider", required=True, ondelete="cascade")
+    publisher_id = fields.Many2one(
+        "llm.publisher",
+        string="Publisher",
+        ondelete="restrict",
+        tracking=True,
+        help="The organization or entity that published this model",
+    )
+
     model_use = fields.Selection(
         MODEL_USE,
         required=True,

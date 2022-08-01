@@ -1,5 +1,4 @@
-# views/llm_provider_views.xml
-        <?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Provider Form View -->
     <record id="llm_provider_view_form" model="ir.ui.view">
@@ -28,7 +27,9 @@
                         </button>
                     </div>
                     <div class="oe_title">
-                        <h1><field name="name" placeholder="Provider Name"/></h1>
+                        <h1>
+                            <field name="name" placeholder="Provider Name"/>
+                        </h1>
                     </div>
                     <group>
                         <group>
