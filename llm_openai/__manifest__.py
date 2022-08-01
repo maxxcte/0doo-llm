@@ -7,7 +7,7 @@
     """,
     "category": "Technical",
     "version": "16.0.1.0.0",
-    "depends": ["llm_base"],
+    "depends": ["llm"],
     "external_dependencies": {
         "python": ["openai"],
     },

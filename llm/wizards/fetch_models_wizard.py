@@ -1,4 +1,3 @@
-# models/wizards/fetch_models_wizard.py
 from odoo import api, fields, models
 
 class FetchModelsLine(models.TransientModel):
@@ -37,47 +36,42 @@ class FetchModelsWizard(models.TransientModel):
             res['provider_id'] = provider.id
 
             # Fetch available models from provider
-            try:
-                models_data = provider.list_models()
-                lines = []
+            models_data = provider.list_models()
+            lines = []
 
-                for model_data in models_data:
-                    name = model_data.get('name')
-                    if not name:
-                        continue
+            for model_data in models_data:
+                name = model_data.get('name')
+                if not name:
+                    continue
 
-                    # Determine model use based on capabilities
-                    capabilities = model_data.get('details', {}).get('capabilities', ['chat'])
-                    model_use = 'chat'  # default
-                    if 'embedding' in capabilities:
-                        model_use = 'embedding'
-                    elif 'multimodal' in capabilities:
-                        model_use = 'multimodal'
+                # Determine model use based on capabilities
+                capabilities = model_data.get('details', {}).get('capabilities', ['chat'])
+                model_use = 'chat'  # default
+                if 'embedding' in capabilities:
+                    model_use = 'embedding'
+                elif 'multimodal' in capabilities:
+                    model_use = 'multimodal'
 
-                    # Check if model already exists
-                    existing = self.env['llm.model'].search([
-                        ('name', '=', name),
-                        ('provider_id', '=', provider.id)
-                    ])
+                # Check if model already exists
+                existing = self.env['llm.model'].search([
+                    ('name', '=', name),
+                    ('provider_id', '=', provider.id)
+                ])
 
-                    status = 'new'
-                    if existing:
-                        status = 'modified' if existing.details != model_data.get('details') else 'existing'
+                status = 'new'
+                if existing:
+                    status = 'modified' if existing.details != model_data.get('details') else 'existing'
 
-                    lines.append((0, 0, {
-                        'name': name,
-                        'model_use': model_use,
-                        'status': status,
-                        'details': model_data.get('details'),
-                        'existing_model_id': existing.id if existing else False,
-                        'selected': status in ['new', 'modified']
-                    }))
+                lines.append((0, 0, {
+                    'name': name,
+                    'model_use': model_use,
+                    'status': status,
+                    'details': model_data.get('details'),
+                    'existing_model_id': existing.id if existing else False,
+                    'selected': status in ['new', 'modified']
+                }))
 
-                res['line_ids'] = lines
-
-            except Exception as e:
-                # Handle error gracefully in the UI
-                pass
+            res['line_ids'] = lines
 
         return res
 

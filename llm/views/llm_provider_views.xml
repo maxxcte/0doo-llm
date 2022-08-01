@@ -8,7 +8,7 @@
             <form>
                 <header>
                     <button
-                            name="%(action_fetch_models_wizard)d"
+                            name="%(llm.action_fetch_models_wizard)d"
                             string="Fetch Models"
                             type="action"
                             class="oe_highlight"/>

@@ -17,6 +17,7 @@
     "data": [
         "security/llm_security.xml",
         "security/ir.model.access.csv",
+        "wizards/fetch_models_views.xml",
         "views/llm_provider_views.xml",
         "views/llm_model_views.xml",
         "views/llm_publisher_views.xml",

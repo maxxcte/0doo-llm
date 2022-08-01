@@ -23,9 +23,11 @@ class LLMProvider(models.Model):
     api_base = fields.Char()
     model_ids = fields.One2many("llm.model", "provider_id", string="Models")
 
-    _client = None
+    @property
+    def client(self):
+        """Get client instance using dispatch pattern"""
+        return self._dispatch("get_client")
 
-    # Service dispatch methods
     def _dispatch(self, method, *args, **kwargs):
         """Dispatch method call to appropriate service implementation"""
         if not self.service:
@@ -51,13 +53,6 @@ class LLMProvider(models.Model):
     def _get_available_services(self):
         """Hook method for registering provider services"""
         return []
-
-    # Common interface methods
-    def client(self):
-        """Get client instance for the provider"""
-        if not self._client:
-            self._client = self._dispatch("get_client")
-        return self._client
 
     def chat(self, messages, model=None, stream=False):
         """Send chat messages using this provider"""
