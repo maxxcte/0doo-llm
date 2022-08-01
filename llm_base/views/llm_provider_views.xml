@@ -1,0 +1,79 @@
+# views/llm_provider_views.xml
+        <?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Provider Form View -->
+    <record id="llm_provider_view_form" model="ir.ui.view">
+        <field name="name">llm.provider.view.form</field>
+        <field name="model">llm.provider</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button
+                            name="%(action_fetch_models_wizard)d"
+                            string="Fetch Models"
+                            type="action"
+                            class="oe_highlight"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button
+                                name="toggle_active"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-archive">
+                            <field
+                                    name="active"
+                                    widget="boolean_button"
+                                    options="{'terminology': 'archive'}"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Provider Name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="service"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group>
+                            <field name="api_key" password="True"/>
+                            <field name="api_base" placeholder="http://localhost:11434"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Models" name="models">
+                            <field name="model_ids" context="{'active_test': False}">
+                                <tree editable="bottom">
+                                    <field name="name"/>
+                                    <field name="model_use"/>
+                                    <field name="default"/>
+                                    <field name="active"/>
+                                    <field name="details" widget="json_inline"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Provider Action -->
+    <record id="llm_provider_action" model="ir.actions.act_window">
+        <field name="name">LLM Providers</field>
+        <field name="res_model">llm.provider</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first LLM provider!
+            </p>
+            <p>
+                Configure providers like OpenAI, Anthropic, or Ollama to enable AI features.
+            </p>
+        </field>
+    </record>
+</odoo>
