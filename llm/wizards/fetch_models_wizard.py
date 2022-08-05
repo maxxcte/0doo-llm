@@ -4,14 +4,14 @@ class FetchModelsLine(models.TransientModel):
     _name = 'llm.fetch.models.line'
     _description = 'LLM Fetch Models Line'
 
-    wizard_id = fields.Many2one('llm.fetch.models.wizard', required=True)
-    name = fields.Char(required=True)
+    wizard_id = fields.Many2one('llm.fetch.models.wizard', required=True, ondelete='cascade')
+    name = fields.Char(string='Model Name', required=True)
     model_use = fields.Selection([
         ('embedding', 'Embedding'),
         ('completion', 'Completion'),
         ('chat', 'Chat'),
         ('multimodal', 'Multimodal'),
-    ], required=True)
+    ], required=True, default='chat')
     status = fields.Selection([
         ('new', 'New'),
         ('existing', 'Existing'),
@@ -31,56 +31,67 @@ class FetchModelsWizard(models.TransientModel):
     @api.model
     def default_get(self, fields_list):
         res = super().default_get(fields_list)
-        if self._context.get('active_id'):
-            provider = self.env['llm.provider'].browse(self._context['active_id'])
-            res['provider_id'] = provider.id
 
-            # Fetch available models from provider
-            models_data = provider.list_models()
-            lines = []
+        if not self._context.get('active_id'):
+            return res
 
-            for model_data in models_data:
-                name = model_data.get('name')
-                if not name:
-                    continue
+        provider = self.env['llm.provider'].browse(self._context['active_id'])
+        res['provider_id'] = provider.id
 
-                # Determine model use based on capabilities
-                capabilities = model_data.get('details', {}).get('capabilities', ['chat'])
-                model_use = 'chat'  # default
-                if 'embedding' in capabilities:
-                    model_use = 'embedding'
-                elif 'multimodal' in capabilities:
-                    model_use = 'multimodal'
+        # Fetch models from provider
+        models_data = list(provider.list_models())
+        lines = []
 
-                # Check if model already exists
-                existing = self.env['llm.model'].search([
-                    ('name', '=', name),
-                    ('provider_id', '=', provider.id)
-                ])
+        for model_data in models_data:
+            details = model_data.get('details', {})
 
-                status = 'new'
-                if existing:
-                    status = 'modified' if existing.details != model_data.get('details') else 'existing'
+            # Use model id as name if name not provided
+            name = model_data.get('name') or details.get('id')
+            if not name:
+                continue
 
-                lines.append((0, 0, {
-                    'name': name,
-                    'model_use': model_use,
-                    'status': status,
-                    'details': model_data.get('details'),
-                    'existing_model_id': existing.id if existing else False,
-                    'selected': status in ['new', 'modified']
-                }))
+            # Determine model use based on capabilities and name
+            capabilities = details.get('capabilities', ['chat'])
+            model_use = 'chat'  # default
 
+            if any(cap in capabilities for cap in ['embedding', 'text-embedding']) or 'embedding' in name.lower():
+                model_use = 'embedding'
+            elif any(cap in capabilities for cap in ['multimodal', 'vision']):
+                model_use = 'multimodal'
+
+            # Check for existing model
+            existing = self.env['llm.model'].search([
+                ('name', '=', name),
+                ('provider_id', '=', provider.id)
+            ], limit=1)
+
+            status = 'new'
+            if existing:
+                status = 'modified' if existing.details != details else 'existing'
+
+            line_vals = {
+                'name': name,
+                'model_use': model_use,
+                'status': status,
+                'details': details,
+                'existing_model_id': existing.id if existing else False,
+                'selected': status in ['new', 'modified']
+            }
+
+            lines.append((0, 0, line_vals))
+
+        if lines:
             res['line_ids'] = lines
 
         return res
 
     def action_confirm(self):
         self.ensure_one()
+        Model = self.env['llm.model']
 
-        for line in self.line_ids.filtered(lambda l: l.selected):
+        for line in self.line_ids.filtered(lambda l: l.selected and l.name):
             values = {
-                'name': line.name,
+                'name': line.name.strip(),
                 'provider_id': self.provider_id.id,
                 'model_use': line.model_use,
                 'details': line.details,
@@ -90,6 +101,6 @@ class FetchModelsWizard(models.TransientModel):
             if line.existing_model_id:
                 line.existing_model_id.write(values)
             else:
-                self.env['llm.model'].create(values)
+                Model.create(values)
 
         return {'type': 'ir.actions.act_window_close'}
