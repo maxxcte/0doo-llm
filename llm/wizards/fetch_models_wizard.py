@@ -1,8 +1,13 @@
-from odoo import api, fields, models
+# llm/wizards/fetch_models_wizard.py
 
-class FetchModelsLine(models.TransientModel):
+from odoo import api, fields, models, _
+from odoo.exceptions import UserError
+
+
+class ModelLine(models.TransientModel):
     _name = 'llm.fetch.models.line'
-    _description = 'LLM Fetch Models Line'
+    _description = 'LLM Model Import Line'
+    _rec_name = 'name'
 
     wizard_id = fields.Many2one('llm.fetch.models.wizard', required=True, ondelete='cascade')
     name = fields.Char(string='Model Name', required=True)
@@ -21,50 +26,86 @@ class FetchModelsLine(models.TransientModel):
     details = fields.Json()
     existing_model_id = fields.Many2one('llm.model')
 
+    _sql_constraints = [
+        ('unique_model_per_wizard',
+         'UNIQUE(wizard_id, name)',
+         'Each model can only be listed once per import.')
+    ]
+
+
 class FetchModelsWizard(models.TransientModel):
     _name = 'llm.fetch.models.wizard'
-    _description = 'Fetch LLM Models Wizard'
+    _description = 'Import LLM Models'
 
-    provider_id = fields.Many2one('llm.provider', required=True)
-    line_ids = fields.One2many('llm.fetch.models.line', 'wizard_id', string='Models')
+    provider_id = fields.Many2one(
+        'llm.provider',
+        required=True,
+        readonly=True
+    )
+    line_ids = fields.One2many(
+        'llm.fetch.models.line',
+        'wizard_id',
+        string='Models'
+    )
+    model_count = fields.Integer(
+        compute='_compute_model_count',
+        string='Models Found'
+    )
+    new_count = fields.Integer(
+        compute='_compute_model_count',
+        string='New Models'
+    )
+    modified_count = fields.Integer(
+        compute='_compute_model_count',
+        string='Modified Models'
+    )
+
+    @api.depends('line_ids', 'line_ids.status')
+    def _compute_model_count(self):
+        """Compute various model counts for display"""
+        for wizard in self:
+            wizard.model_count = len(wizard.line_ids)
+            wizard.new_count = len(wizard.line_ids.filtered(lambda l: l.status == 'new'))
+            wizard.modified_count = len(wizard.line_ids.filtered(lambda l: l.status == 'modified'))
 
     @api.model
     def default_get(self, fields_list):
+        """Fetch models and prepare wizard data"""
         res = super().default_get(fields_list)
 
         if not self._context.get('active_id'):
             return res
 
+        # Get provider and validate
         provider = self.env['llm.provider'].browse(self._context['active_id'])
+        if not provider.exists():
+            raise UserError(_('Provider not found.'))
+
         res['provider_id'] = provider.id
 
-        # Fetch models from provider
-        models_data = list(provider.list_models())
+        # Prepare model lines
         lines = []
+        existing_models = {
+            model.name: model
+            for model in self.env['llm.model'].search([
+                ('provider_id', '=', provider.id)
+            ])
+        }
 
-        for model_data in models_data:
+        # Fetch and process models
+        for model_data in provider.list_models():
             details = model_data.get('details', {})
-
-            # Use model id as name if name not provided
             name = model_data.get('name') or details.get('id')
+
             if not name:
                 continue
 
-            # Determine model use based on capabilities and name
+            # Determine model use and capabilities
             capabilities = details.get('capabilities', ['chat'])
-            model_use = 'chat'  # default
+            model_use = self._determine_model_use(name, capabilities)
 
-            if any(cap in capabilities for cap in ['embedding', 'text-embedding']) or 'embedding' in name.lower():
-                model_use = 'embedding'
-            elif any(cap in capabilities for cap in ['multimodal', 'vision']):
-                model_use = 'multimodal'
-
-            # Check for existing model
-            existing = self.env['llm.model'].search([
-                ('name', '=', name),
-                ('provider_id', '=', provider.id)
-            ], limit=1)
-
+            # Check against existing models
+            existing = existing_models.get(name)
             status = 'new'
             if existing:
                 status = 'modified' if existing.details != details else 'existing'
@@ -85,11 +126,25 @@ class FetchModelsWizard(models.TransientModel):
 
         return res
 
+    @staticmethod
+    def _determine_model_use(name, capabilities):
+        """Helper to determine model use based on name and capabilities"""
+        if any(cap in capabilities for cap in ['embedding', 'text-embedding']) or 'embedding' in name.lower():
+            return 'embedding'
+        elif any(cap in capabilities for cap in ['multimodal', 'vision']):
+            return 'multimodal'
+        return 'chat'  # default
+
     def action_confirm(self):
+        """Process selected models and create/update records"""
         self.ensure_one()
         Model = self.env['llm.model']
 
-        for line in self.line_ids.filtered(lambda l: l.selected and l.name):
+        selected_lines = self.line_ids.filtered(lambda l: l.selected and l.name)
+        if not selected_lines:
+            raise UserError(_('Please select at least one model to import.'))
+
+        for line in selected_lines:
             values = {
                 'name': line.name.strip(),
                 'provider_id': self.provider_id.id,
@@ -103,4 +158,15 @@ class FetchModelsWizard(models.TransientModel):
             else:
                 Model.create(values)
 
-        return {'type': 'ir.actions.act_window_close'}
+        # Return success message
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('Success'),
+                'message': _('%d models have been imported/updated.', len(selected_lines)),
+                'sticky': False,
+                'type': 'success',
+                'next': {'type': 'ir.actions.act_window_close'},
+            }
+        }
