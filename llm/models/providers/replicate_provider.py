@@ -5,33 +5,6 @@ import replicate
 from odoo import models
 
 
-def serialize_datetime(obj):
-    """Helper function to serialize datetime objects to ISO format strings."""
-    if isinstance(obj, datetime):
-        return obj.isoformat()
-    return obj
-
-
-def serialize_model_data(data: dict) -> dict:
-    """
-    Recursively process dictionary to serialize datetime objects
-    and handle any other non-serializable types.
-    """
-    return {
-        key: serialize_datetime(value)
-        if isinstance(value, datetime)
-        else serialize_model_data(value)
-        if isinstance(value, dict)
-        else [
-            serialize_model_data(item)
-            if isinstance(item, dict)
-            else serialize_datetime(item)
-            for item in value
-        ]
-        if isinstance(value, list)
-        else value
-        for key, value in data.items()
-    }
 
 
 class ReplicateProvider(models.Model):

@@ -1,5 +1,6 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from datetime import datetime
 
 
 class LLMProvider(models.Model):
@@ -95,3 +96,42 @@ class LLMProvider(models.Model):
             raise ValueError(f"No {model_use} model found for provider {self.name}")
 
         return default_models[0]
+
+    @staticmethod
+    def serialize_datetime(obj):
+        """Helper function to serialize datetime objects to ISO format strings."""
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return obj
+
+    @staticmethod
+    def serialize_model_data(data: dict) -> dict:
+        """
+        Recursively process dictionary to serialize datetime objects
+        and handle any other non-serializable types.
+
+        Args:
+            data (dict): Dictionary potentially containing datetime objects
+
+        Returns:
+            dict: Processed dictionary with datetime objects converted to ISO strings
+        """
+        if not isinstance(data, dict):
+            return LLMProvider.serialize_datetime(data)
+
+        return {
+            key: LLMProvider.serialize_datetime(value)
+            if isinstance(value, datetime)
+            else LLMProvider.serialize_model_data(value)
+            if isinstance(value, dict)
+            else [
+                LLMProvider.serialize_model_data(item)
+                if isinstance(item, dict)
+                else LLMProvider.serialize_datetime(item)
+                for item in value
+            ]
+            if isinstance(value, list)
+            else value
+            for key, value in data.items()
+        }
+
