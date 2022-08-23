@@ -8,8 +8,6 @@ MODEL_USE = [
 ]
 
 
-
-
 class LLMModel(models.Model):
     _name = "llm.model"
     _description = "LLM Model"

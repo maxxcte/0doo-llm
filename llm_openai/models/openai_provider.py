@@ -1,6 +1,6 @@
 from openai import OpenAI
 
-from odoo import models, api
+from odoo import api, models
 
 
 class LLMProvider(models.Model):
@@ -13,10 +13,7 @@ class LLMProvider(models.Model):
 
     def openai_get_client(self):
         """Get OpenAI client instance"""
-        return OpenAI(
-                api_key=self.api_key,
-                base_url=self.api_base or None
-            )
+        return OpenAI(api_key=self.api_key, base_url=self.api_base or None)
 
     def openai_chat(self, messages, model=None, stream=False):
         """Send chat messages using OpenAI"""
@@ -45,10 +42,7 @@ class LLMProvider(models.Model):
         """Generate embeddings using OpenAI"""
         model = self.get_model(model, "embedding")
 
-        response = self.client.embeddings.create(
-            model=model.name,
-            input=texts
-        )
+        response = self.client.embeddings.create(model=model.name, input=texts)
         return [r.embedding for r in response.data]
 
     def openai_models(self):
@@ -68,6 +62,6 @@ class LLMProvider(models.Model):
                 "details": {
                     "id": model.id,
                     "capabilities": capabilities,
-                    **model.model_dump()
-                }
+                    **model.model_dump(),
+                },
             }

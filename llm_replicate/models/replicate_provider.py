@@ -1,6 +1,6 @@
 import replicate
 
-from odoo import models, api
+from odoo import api, models
 
 
 class LLMProvider(models.Model):
@@ -13,9 +13,7 @@ class LLMProvider(models.Model):
 
     def replicate_get_client(self):
         """Get Replicate client instance"""
-        return replicate.Client(
-            api_token=self.api_key
-        )
+        return replicate.Client(api_token=self.api_key)
 
     def replicate_chat(self, messages, model=None, stream=False):
         """Send chat messages using Replicate"""
@@ -25,24 +23,19 @@ class LLMProvider(models.Model):
         # Most Replicate models expect a simple prompt string
         prompt = "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages)
 
-        response = self.client.run(
-            model.name,
-            input={"prompt": prompt}
-        )
+        response = self.client.run(model.name, input={"prompt": prompt})
 
         if not stream:
             # Replicate responses can vary by model, handle common formats
-            content = "".join(response) if isinstance(response, (list, tuple)) else str(response)
-            yield {
-                "role": "assistant",
-                "content": content
-            }
+            content = (
+                "".join(response)
+                if isinstance(response, (list, tuple))
+                else str(response)
+            )
+            yield {"role": "assistant", "content": content}
         else:
             for chunk in response:
-                yield {
-                    "role": "assistant",
-                    "content": str(chunk)
-                }
+                yield {"role": "assistant", "content": str(chunk)}
 
     def replicate_embedding(self, texts, model=None):
         """Generate embeddings using Replicate"""
@@ -51,10 +44,7 @@ class LLMProvider(models.Model):
         if not isinstance(texts, list):
             texts = [texts]
 
-        response = self.client.run(
-            model.name,
-            input={"sentences": texts}
-        )
+        response = self.client.run(model.name, input={"sentences": texts})
 
         # Ensure we return a list of embeddings
         if len(texts) == 1:
@@ -71,7 +61,7 @@ class LLMProvider(models.Model):
 
             # Process models in current page
             for model in page.results:
-                details = self.serialize_model_data(model.dict())
+                details = LLMProvider.serialize_model_data(model.dict())
                 capabilities = []
 
                 # Infer capabilities from model metadata
@@ -79,7 +69,9 @@ class LLMProvider(models.Model):
                     capabilities.append("chat")
                 if "embedding" in model.id.lower():
                     capabilities.append("embedding")
-                if any(kw in model.id.lower() for kw in ["vision", "image", "multimodal"]):
+                if any(
+                    kw in model.id.lower() for kw in ["vision", "image", "multimodal"]
+                ):
                     capabilities.append("multimodal")
 
                 if not capabilities:
@@ -87,10 +79,7 @@ class LLMProvider(models.Model):
 
                 details["capabilities"] = capabilities
 
-                yield {
-                    "name": model.id,
-                    "details": details
-                }
+                yield {"name": model.id, "details": details}
 
             # Check if there are more pages
             cursor = page.next
