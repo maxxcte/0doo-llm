@@ -1,7 +1,6 @@
-from datetime import datetime
-
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from datetime import datetime
 
 
 class LLMProvider(models.Model):
@@ -135,3 +134,4 @@ class LLMProvider(models.Model):
             else value
             for key, value in data.items()
         }
+

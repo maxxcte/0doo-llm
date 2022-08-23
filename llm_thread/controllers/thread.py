@@ -9,9 +9,9 @@ _logger = logging.getLogger(__name__)
 
 class LLMThreadController(http.Controller):
     @http.route("/llm/thread/data", type="json", auth="user")
-    def get_thread_data(self, thread_id):
+    def get_thread_data(self, thread_id, order='asc'):
         thread = request.env["llm.thread"].browse(int(thread_id))
-        return thread.get_thread_data()
+        return thread.get_thread_data(order=order)
 
     @http.route("/llm/thread/post_message", type="json", auth="user")
     def post_message(self, thread_id, content, role="user"):

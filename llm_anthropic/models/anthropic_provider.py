@@ -1,6 +1,6 @@
 from anthropic import Anthropic
 
-from odoo import api, models
+from odoo import models, api
 
 
 class LLMProvider(models.Model):
@@ -29,9 +29,10 @@ class LLMProvider(models.Model):
             if msg["role"] == "system":
                 system_content = msg["content"]
             elif msg["role"] in ["user", "assistant"]:
-                formatted_messages.append(
-                    {"role": msg["role"], "content": msg["content"]}
-                )
+                formatted_messages.append({
+                    "role": msg["role"],
+                    "content": msg["content"]
+                })
 
         # Add system message as a parameter if present
         params = {
@@ -46,11 +47,17 @@ class LLMProvider(models.Model):
         response = self.client.messages.create(**params)
 
         if not stream:
-            yield {"role": "assistant", "content": response.content[0].text}
+            yield {
+                "role": "assistant",
+                "content": response.content[0].text
+            }
         else:
             for chunk in response:
                 if chunk.type == "content_block_delta":
-                    yield {"role": "assistant", "content": chunk.delta.text}
+                    yield {
+                        "role": "assistant",
+                        "content": chunk.delta.text
+                    }
 
     def anthropic_models(self):
         """List available Anthropic models using API endpoint"""
@@ -62,6 +69,7 @@ class LLMProvider(models.Model):
             if "multimodal" in model.id.lower() or "claude-3" in model.id.lower():
                 capabilities.append("multimodal")
 
+
             yield {
                 "name": model.id,
                 "details": {
@@ -69,5 +77,5 @@ class LLMProvider(models.Model):
                     "display_name": model.display_name,
                     "capabilities": capabilities,
                     "created_at": str(model.created_at),
-                },
+                }
             }
