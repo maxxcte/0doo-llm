@@ -16,6 +16,7 @@
     "data": [
         "security/llm_thread_security.xml",
         "security/ir.model.access.csv",
+        "views/llm_model_views.xml",
         "views/llm_thread_views.xml",
     ],
     "assets": {
