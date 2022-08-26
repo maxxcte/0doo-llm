@@ -38,7 +38,7 @@
               class="o_LLMMessage_text"
               style="white-space: pre-wrap;"
             >
-                            <t t-esc="message.content" />
+                            <t t-out="processedContent" />
                         </div>
 
                         <!-- Action buttons -->

@@ -3,7 +3,7 @@
 import { Component } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { registry } from "@web/core/registry";
-
+import { markup } from "@odoo/owl";
 /**
  * Simplified message component for displaying LLM chat messages
  */
@@ -89,6 +89,14 @@ export class LLMMessage extends Component {
         sticky: false,
       });
     }
+  }
+
+  /**
+   * @returns {string} Processed message content
+   */
+  get processedContent() {
+    // Decode HTML entities and return raw content
+    return markup(this.message.content);
   }
 }
 
