@@ -1,7 +1,9 @@
-from odoo import api, fields, models
 import logging
 
+from odoo import api, fields, models
+
 _logger = logging.getLogger(__name__)
+
 
 class LLMThread(models.Model):
     _name = "llm.thread"
@@ -42,7 +44,7 @@ class LLMThread(models.Model):
         comodel_name="mail.message",
         inverse_name="res_id",
         string="Messages",
-        domain=lambda self: [('model', '=', self._name)],
+        domain=lambda self: [("model", "=", self._name)],
     )
 
     @api.model_create_multi
@@ -95,13 +97,15 @@ class LLMThread(models.Model):
         """Post a message to the thread"""
         _logger.debug("Posting message - role: %s, content: %s", role, content)
 
-        message = self.env["mail.message"].create({
-            "model": self._name,
-            "res_id": self.id,
-            "body": content,
-            "message_type": "comment",
-            "llm_role": role,
-        })
+        message = self.env["mail.message"].create(
+            {
+                "model": self._name,
+                "res_id": self.id,
+                "body": content,
+                "message_type": "comment",
+                "llm_role": role,
+            }
+        )
         return message
 
     def get_chat_messages(self, limit=None):
@@ -136,15 +140,19 @@ class LLMThread(models.Model):
             _logger.error("Error getting AI response: %s", str(e))
             yield {"error": str(e)}
 
+
 class MailMessage(models.Model):
     _inherit = "mail.message"
 
-    llm_role = fields.Selection([
-        ("system", "System"),
-        ("user", "User"),
-        ("assistant", "Assistant"),
-        ("tool", "Tool"),
-    ], default="user")
+    llm_role = fields.Selection(
+        [
+            ("system", "System"),
+            ("user", "User"),
+            ("assistant", "Assistant"),
+            ("tool", "Tool"),
+        ],
+        default="user",
+    )
 
     def to_provider_message(self):
         """Convert to provider-compatible message format"""

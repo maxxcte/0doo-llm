@@ -8,12 +8,13 @@
             <form>
                 <header>
                     <button
-                            string="Open Chat"
-                            name="action_open_chat"
-                            type="object"
-                            class="oe_highlight"
-                            icon="fa-comments"/>
-                    <field name="active" widget="boolean_toggle"/>
+            string="Open Chat"
+            name="action_open_chat"
+            type="object"
+            class="oe_highlight"
+            icon="fa-comments"
+          />
+                    <field name="active" widget="boolean_toggle" />
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
@@ -21,31 +22,34 @@
                     </div>
                     <div class="oe_title">
                         <h1>
-                            <field name="name" placeholder="Chat Title"/>
+                            <field name="name" placeholder="Chat Title" />
                         </h1>
                     </div>
                     <group>
                         <group>
-                            <field name="user_id"/>
-                            <field name="provider_id"/>
-                            <field name="model_id"/>
+                            <field name="user_id" />
+                            <field name="provider_id" />
+                            <field name="model_id" />
                         </group>
                     </group>
                     <notebook>
                         <page string="Messages" name="messages">
                             <field name="message_ids">
                                 <tree>
-                                    <field name="create_date"/>
-                                    <field name="llm_role"/>
-                                    <field name="body"/>
+                                    <field name="create_date" />
+                                    <field name="llm_role" />
+                                    <field name="body" />
                                 </tree>
                             </field>
                         </page>
                     </notebook>
                 </sheet>
                 <div class="oe_chatter">
-                    <field name="message_follower_ids"/>
-                    <field name="message_ids" options="{'post_refresh': 'recipients'}"/>
+                    <field name="message_follower_ids" />
+                    <field
+            name="message_ids"
+            options="{'post_refresh': 'recipients'}"
+          />
                 </div>
             </form>
         </field>
@@ -57,17 +61,18 @@
         <field name="model">llm.thread</field>
         <field name="arch" type="xml">
             <tree>
-                <field name="name"/>
-                <field name="user_id"/>
-                <field name="provider_id"/>
-                <field name="model_id"/>
-                <field name="write_date"/>
+                <field name="name" />
+                <field name="user_id" />
+                <field name="provider_id" />
+                <field name="model_id" />
+                <field name="write_date" />
                 <button
-                        name="action_open_chat"
-                        type="object"
-                        string="Open Chat"
-                        class="btn btn-primary btn-sm"
-                        icon="fa-comments"/>
+          name="action_open_chat"
+          type="object"
+          string="Open Chat"
+          class="btn btn-primary btn-sm"
+          icon="fa-comments"
+        />
             </tree>
         </field>
     </record>
@@ -78,32 +83,37 @@
         <field name="model">llm.thread</field>
         <field name="arch" type="xml">
             <search>
-                <field name="name"/>
-                <field name="user_id"/>
-                <field name="provider_id"/>
-                <field name="model_id"/>
-                <separator/>
+                <field name="name" />
+                <field name="user_id" />
+                <field name="provider_id" />
+                <field name="model_id" />
+                <separator />
                 <filter
-                        string="My Threads"
-                        name="my_threads"
-                        domain="[('user_id', '=', uid)]"/>
+          string="My Threads"
+          name="my_threads"
+          domain="[('user_id', '=', uid)]"
+        />
                 <filter
-                        string="Archived"
-                        name="inactive"
-                        domain="[('active', '=', False)]"/>
+          string="Archived"
+          name="inactive"
+          domain="[('active', '=', False)]"
+        />
                 <group expand="0" string="Group By">
                     <filter
-                            string="User"
-                            name="group_by_user"
-                            context="{'group_by': 'user_id'}"/>
+            string="User"
+            name="group_by_user"
+            context="{'group_by': 'user_id'}"
+          />
                     <filter
-                            string="Provider"
-                            name="group_by_provider"
-                            context="{'group_by': 'provider_id'}"/>
+            string="Provider"
+            name="group_by_provider"
+            context="{'group_by': 'provider_id'}"
+          />
                     <filter
-                            string="Model"
-                            name="group_by_model"
-                            context="{'group_by': 'model_id'}"/>
+            string="Model"
+            name="group_by_model"
+            context="{'group_by': 'model_id'}"
+          />
                 </group>
             </search>
         </field>
@@ -127,9 +137,10 @@
 
     <!-- Menu Items -->
     <menuitem
-            id="menu_llm_thread"
-            name="Chat Threads"
-            action="llm_thread_action"
-            parent="llm.menu_llm_root"
-            sequence="20"/>
+    id="menu_llm_thread"
+    name="Chat Threads"
+    action="llm_thread_action"
+    parent="llm.menu_llm_root"
+    sequence="20"
+  />
 </odoo>
