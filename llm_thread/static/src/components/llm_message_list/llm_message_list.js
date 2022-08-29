@@ -10,7 +10,7 @@ import {
 import { useService } from "@web/core/utils/hooks";
 import { registry } from "@web/core/registry";
 import { Transition } from "@web/core/transition";
-import { useUpdate } from '@mail/component_hooks/use_update';
+import { useUpdate } from "@mail/component_hooks/use_update";
 import { LLMMessage } from "../llm_message/llm_message";
 
 const SCROLL_THRESHOLD = 100; // pixels from bottom to trigger auto-scroll

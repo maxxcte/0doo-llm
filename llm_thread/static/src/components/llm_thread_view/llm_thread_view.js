@@ -252,7 +252,7 @@ export class LLMThreadView extends Component {
 
       const data = await this.rpc("/llm/thread/data", {
         thread_id: this.threadId,
-        order: this.props.order || 'asc', // Pass order parameter from props or default to ascending order (oldest first)
+        order: this.props.order || "asc", // Pass order parameter from props or default to ascending order (oldest first)
       });
 
       this.state.thread = data;
