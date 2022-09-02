@@ -5,30 +5,30 @@ import { registry } from "@web/core/registry";
 import { useModels } from '@mail/component_hooks/use_models';
 import '@mail/components/discuss/discuss';
 
-const { onWillDestroy } = owl;
-
 export class LLMDiscussComponent extends DiscussContainer {
     /**
      * @override
      */
     setup() {
+        console.log('[LLMDiscussComponent] Setting up component');
         useModels();
         super.setup();
-        onWillDestroy(() => this._willDestroy());
         
         // Create a separate discuss instance for LLM
         this.env.services.messaging.modelManager.messagingCreatedPromise.then(async () => {
+            console.log('[LLMDiscussComponent] Messaging service initialized');
             const { action } = this.props;
             
             // Create a new discuss view specifically for LLM
             this.discuss = this.messaging.discuss;
+            console.log('[LLMDiscussComponent] Got discuss instance:', this.discuss);
             
             // Create the LLM category and update discuss
             const categoryLLM = this.messaging.models['DiscussSidebarCategory'].insert({
                 discussAsLLM: this.discuss,
-                name: "LLM Threads",
-                serverStateKey: 'is_category_llm_open',
+                serverStateKey: 'is_discuss_sidebar_category_llm_open',
             });
+            console.log('[LLMDiscussComponent] Created LLM category:', categoryLLM);
 
             this.discuss.update({
                 discussView: {
@@ -37,9 +37,12 @@ export class LLMDiscussComponent extends DiscussContainer {
                 isLLMMode: true, // Enable LLM mode from the start
                 categoryLLM, // Set the LLM category
             });
+            console.log('[LLMDiscussComponent] Updated discuss with LLM mode');
 
             // Initialize with LLM threads
             await this.messaging.initializedPromise;
+            console.log('[LLMDiscussComponent] Messaging fully initialized');
+            
             if (!this.discuss.isInitThreadHandled) {
                 this.discuss.update({ 
                     isInitThreadHandled: true,
@@ -54,10 +57,17 @@ export class LLMDiscussComponent extends DiscussContainer {
                     )
                     .sort((a, b) => b.lastMessage?.datetime?.unix() - a.lastMessage?.datetime?.unix());
                 
+                console.log('[LLMDiscussComponent] Found LLM threads:', llmThreads.length);
+                
                 if (llmThreads.length > 0) {
+                    console.log('[LLMDiscussComponent] Opening first LLM thread:', llmThreads[0]);
                     this.discuss.openThread(llmThreads[0]);
+                } else {
+                    console.log('[LLMDiscussComponent] No LLM threads found');
                 }
             }
+        }).catch(error => {
+            console.error('[LLMDiscussComponent] Error during initialization:', error);
         });
     }
 
@@ -77,3 +87,4 @@ Object.assign(LLMDiscussComponent, {
 
 // Register the client action
 registry.category("actions").add("llm_thread.action_llm_discuss", LLMDiscussComponent);
+console.log('[LLMDiscussComponent] Registered client action');
