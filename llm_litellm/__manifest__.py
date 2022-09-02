@@ -18,7 +18,10 @@
         "python": ["requests"],
     },
     "data": [
+        "security/push_models_security.xml",
         "data/llm_publisher.xml",
+        "views/provider_views.xml",
+        "wizards/push_models_wizard_views.xml",
     ],
     "license": "LGPL-3",
     "installable": True,
