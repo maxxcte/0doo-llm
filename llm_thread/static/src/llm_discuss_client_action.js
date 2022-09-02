@@ -15,43 +15,57 @@ export class LLMDiscussComponent extends DiscussContainer {
         useModels();
         super.setup();
         onWillDestroy(() => this._willDestroy());
+        
+        // Create a separate discuss instance for LLM
         this.env.services.messaging.modelManager.messagingCreatedPromise.then(async () => {
             const { action } = this.props;
-            // Use LLM thread as default if not specified
-            const initActiveId = 
-                (action.context && action.context.active_id) ||
-                (action.params && action.params.default_active_id) ||
-                'llm.thread';
             
+            // Create a new discuss view specifically for LLM
             this.discuss = this.messaging.discuss;
+            
+            // Create the LLM category and update discuss
+            const categoryLLM = this.messaging.models['DiscussSidebarCategory'].insert({
+                discussAsLLM: this.discuss,
+                name: "LLM Threads",
+                serverStateKey: 'is_category_llm_open',
+            });
+
             this.discuss.update({
                 discussView: {
                     actionId: action.id,
                 },
-                initActiveId,
-                isLLMMode: true,
+                isLLMMode: true, // Enable LLM mode from the start
+                categoryLLM, // Set the LLM category
             });
 
+            // Initialize with LLM threads
             await this.messaging.initializedPromise;
             if (!this.discuss.isInitThreadHandled) {
-                this.discuss.update({ isInitThreadHandled: true });
-                if (!this.discuss.activeThread) {
-                    this.discuss.openInitThread();
+                this.discuss.update({ 
+                    isInitThreadHandled: true,
+                });
+                
+                // Load LLM threads instead of default inbox
+                const llmThreads = this.messaging.models['Thread']
+                    .all()
+                    .filter(thread => 
+                        thread.model === 'llm.thread' &&
+                        thread.isPinned
+                    )
+                    .sort((a, b) => b.lastMessage?.datetime?.unix() - a.lastMessage?.datetime?.unix());
+                
+                if (llmThreads.length > 0) {
+                    this.discuss.openThread(llmThreads[0]);
                 }
             }
         });
-        
-        LLMDiscussComponent.currentInstance = this;
     }
 
+    /**
+     * @override
+     */
     get messaging() {
         return this.env.services.messaging.modelManager.messaging;
-    }
-
-    _willDestroy() {
-        if (this.discuss && LLMDiscussComponent.currentInstance === this) {
-            this.discuss.close();
-        }
     }
 }
 

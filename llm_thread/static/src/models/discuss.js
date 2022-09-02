@@ -1,35 +1,32 @@
 /** @odoo-module **/
 import { registerPatch } from '@mail/model/model_core';
+import { attr, one } from '@mail/model/model_field';
+import { clear } from '@mail/model/model_field_command';
 
 registerPatch({
     name: 'Discuss',
     fields: {
-        // Add new field to control LLM mode
         isLLMMode: attr({
             default: false,
         }),
-        // Override orderedCategories to show only LLM category in LLM mode
-        orderedCategories: {
+        categoryLLM: one('DiscussSidebarCategory', {
+            default: {},
+            inverse: 'discussAsLLM',
+        }),
+        activeThread: {
             compute() {
+                if (!this.thread) {
+                    return clear();
+                }
                 if (this.isLLMMode) {
-                    return this.categoryLLM ? [this.categoryLLM] : [];
+                    if (this.thread.model === 'llm.thread' && this.thread.isPinned) {
+                        return this.thread;
+                    }
+                    return clear();
                 }
                 return this._super();
             }
-        },
-        // Add LLM category
-        categoryLLM: one('DiscussSidebarCategory', {
-            compute() {
-                if (!this.discussView || !this.isLLMMode) {
-                    return clear();
-                }
-                return this.messaging.models['DiscussSidebarCategory'].insert({
-                    discussViewOwner: this.discussView,
-                    serverStateKey: 'is_category_llm_open',
-                    name: "LLM Threads",
-                });
-            }
-        })
+        }
     }
 });
 
@@ -37,22 +34,97 @@ registerPatch({
 registerPatch({
     name: 'DiscussSidebarCategory',
     fields: {
-        categoryItems: {
+        discussAsLLM: one('Discuss', {
+            identifying: true,
+            inverse: 'categoryLLM',
+        }),
+        name: {
             compute() {
-                const discuss = this.discussViewOwner.discuss;
-                if (discuss.isLLMMode && discuss.categoryLLM === this) {
-                    return this.messaging.models['Thread']
-                        .all()
-                        .filter(thread => 
-                            thread.model === 'llm.thread' &&
-                            thread.isPinned
-                        )
-                        .map(thread => 
-                            this.messaging.models['DiscussSidebarCategoryItem'].insert({
-                                category: this,
-                                thread,
-                            })
-                        );
+                if (this.discussAsLLM) {
+                    return this.env._t("LLM Threads");
+                }
+                return this._super();
+            }
+        },
+        supportedChannelTypes: {
+            compute() {
+                if (this.discussAsLLM) {
+                    return ['llm_thread'];
+                }
+                return this._super();
+            }
+        },
+        autocompleteMethod: {
+            compute() {
+                if (this.discussAsLLM) {
+                    return 'llm_thread';
+                }
+                return this._super();
+            }
+        },
+        hasAddCommand: {
+            compute() {
+                if (this.discussAsLLM) {
+                    return true;
+                }
+                return this._super();
+            }
+        },
+        hasViewCommand: {
+            compute() {
+                if (this.discussAsLLM) {
+                    return false;
+                }
+                return this._super();
+            }
+        },
+        serverStateKey: {
+            compute() {
+                if (this.discussAsLLM) {
+                    return 'is_discuss_sidebar_category_llm_open';
+                }
+                return this._super();
+            }
+        },
+        orderedCategoryItems: {
+            compute() {
+                if (this.discussAsLLM) {
+                    return this.categoryItemsOrderedByLastAction;
+                }
+                return this._super();
+            }
+        },
+        categoryItemsOrderedByLastAction: {
+            compute() {
+                if (this.discussAsLLM) {
+                    return this.categoryItems;
+                }
+                return this._super();
+            }
+        },
+        commandAddTitleText: {
+            compute() {
+                if (this.discussAsLLM) {
+                    return this.env._t("Start an LLM Thread");
+                }
+                return this._super();
+            }
+        },
+        newItemPlaceholderText: {
+            compute() {
+                if (this.discussAsLLM) {
+                    return this.env._t("Find or start an LLM thread...");
+                }
+                return this._super();
+            }
+        },
+        isServerOpen: {
+            compute() {
+                if (!this.messaging.currentUser || !this.messaging.currentUser.res_users_settings_id) {
+                    return clear();
+                }
+                if (this.discussAsLLM) {
+                    return this.messaging.currentUser.res_users_settings_id.is_discuss_sidebar_category_llm_open;
                 }
                 return this._super();
             }
