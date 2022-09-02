@@ -143,4 +143,19 @@
     parent="llm.menu_llm_root"
     sequence="20"
   />
+  
+    <!-- Client action for LLM Discuss -->
+    <record id="action_llm_discuss" model="ir.actions.client">
+        <field name="name">LLM Discuss</field>
+        <field name="tag">llm_thread.action_llm_discuss</field>
+        <field name="params" eval="&quot;{ 'default_active_id': 'llm.thread' }&quot;"/>
+    </record>
+
+    <!-- Menu item -->
+    <menuitem
+        id="menu_llm_discuss"
+        name="LLM Discuss"
+        action="action_llm_discuss"
+        parent="llm.menu_llm_root"
+        sequence="10"/>
 </odoo>

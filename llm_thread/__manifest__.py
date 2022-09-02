@@ -36,6 +36,11 @@
             "llm_thread/static/src/components/llm_thread_view/llm_thread_view.xml",
             "llm_thread/static/src/components/llm_chat_dialog/llm_chat_dialog.js",
             "llm_thread/static/src/components/llm_chat_dialog/llm_chat_dialog.xml",
+            # Model patches
+            'llm_thread/static/src/models/discuss.js',
+            'llm_thread/static/src/models/discuss_sidebar_category.js',
+            # Components
+            'llm_thread/static/src/llm_discuss_client_action.js',
         ],
     },
     "license": "LGPL-3",
