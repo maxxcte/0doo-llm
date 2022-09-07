@@ -40,9 +40,3 @@ class LLMThread(models.Model):
         tracking=True,
     )
     active = fields.Boolean(default=True, tracking=True)
-    message_ids = fields.One2many(
-        comodel_name="mail.message",
-        inverse_name="res_id",
-        string="Messages",
-        domain=lambda self: [("model", "=", self._name)],
-    )

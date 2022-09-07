@@ -1,0 +1,44 @@
+.o_LLMChatThreadList {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow-y: auto;
+    background-color: $o-view-background-color;
+    
+    &.o-empty {
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .o_LLMChatThreadList_threads {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .o_LLMChatThreadList_thread {
+        display: flex;
+        align-items: center;
+        padding: 10px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid $border-color;
+        
+        &:hover {
+            background-color: rgba($o-brand-primary, 0.05);
+        }
+        
+        &.o-active {
+            background-color: rgba($o-brand-primary, 0.1);
+        }
+    }
+    
+    .o_LLMChatThreadList_threadName {
+        font-size: 14px;
+        color: $o-main-text-color;
+    }
+    
+    .o_LLMChatThreadList_empty {
+        color: $o-main-color-muted;
+        font-style: italic;
+    }
+}

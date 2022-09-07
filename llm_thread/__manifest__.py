@@ -19,6 +19,23 @@
         "views/llm_thread_views.xml",
         
     ],
+    "assets": {
+        "web.assets_backend": [
+            # Models
+            'llm_thread/static/src/models/llm_chat.js',
+            'llm_thread/static/src/models/llm_chat_view.js',
+            'llm_thread/static/src/models/messaging.js',
+            'llm_thread/static/src/models/thread.js',
+            'llm_thread/static/src/models/main.js',
+            
+            # Components
+            'llm_thread/static/src/components/llm_chat_thread_list/llm_chat_thread_list.js',
+            'llm_thread/static/src/components/llm_chat_thread_list/llm_chat_thread_list.xml',
+            
+            # Styles
+            ('after', 'web/static/src/scss/pre_variables.scss', 'llm_thread/static/src/components/llm_chat_thread_list/llm_chat_thread_list.scss'),
+        ],
+    },
     "license": "LGPL-3",
     "installable": True,
 }

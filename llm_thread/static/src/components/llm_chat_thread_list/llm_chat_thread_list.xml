@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatThreadList" owl="1">
+        <div class="o_LLMChatThreadList" t-att-class="{ 'o-empty': !threads.length }">
+            <t t-if="threads.length">
+                <div class="o_LLMChatThreadList_threads">
+                    <t t-foreach="threads" t-as="thread" t-key="thread.localId">
+                        <div class="o_LLMChatThreadList_thread"
+                             t-att-class="{ 'o-active': llmChat.activeThread === thread }"
+                             t-on-click="(ev) => this.onClickThread(ev, thread)">
+                            <span class="o_LLMChatThreadList_threadName" t-esc="thread.name"/>
+                        </div>
+                    </t>
+                </div>
+            </t>
+            <t t-else="">
+                <div class="o_LLMChatThreadList_empty">
+                    <span>No conversations yet</span>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>
