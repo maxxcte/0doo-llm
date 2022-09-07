@@ -7,13 +7,6 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button
-            string="Open Chat"
-            name="action_open_chat"
-            type="object"
-            class="oe_highlight"
-            icon="fa-comments"
-          />
                     <field name="active" widget="boolean_toggle" />
                 </header>
                 <sheet>
@@ -66,13 +59,6 @@
                 <field name="provider_id" />
                 <field name="model_id" />
                 <field name="write_date" />
-                <button
-          name="action_open_chat"
-          type="object"
-          string="Open Chat"
-          class="btn btn-primary btn-sm"
-          icon="fa-comments"
-        />
             </tree>
         </field>
     </record>
@@ -137,25 +123,10 @@
 
     <!-- Menu Items -->
     <menuitem
-    id="menu_llm_thread"
-    name="Chat Threads"
-    action="llm_thread_action"
-    parent="llm.menu_llm_root"
-    sequence="20"
-  />
-  
-    <!-- Client action for LLM Discuss -->
-    <record id="action_llm_discuss" model="ir.actions.client">
-        <field name="name">LLM Discuss</field>
-        <field name="tag">llm_thread.action_llm_discuss</field>
-        <field name="params" eval="&quot;{ 'default_active_id': 'llm.thread' }&quot;"/>
-    </record>
-
-    <!-- Menu item -->
-    <menuitem
-        id="menu_llm_discuss"
-        name="LLM Discuss"
-        action="action_llm_discuss"
+        id="menu_llm_thread"
+        name="Chat Threads"
+        action="llm_thread_action"
         parent="llm.menu_llm_root"
-        sequence="10"/>
+        sequence="20"
+    />
 </odoo>
