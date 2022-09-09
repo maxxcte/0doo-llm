@@ -26,13 +26,11 @@ export class LLMChat extends Component {
             }
             this.llmChat = this.messaging.llmChat;
             
-            // Create LLMChatView
-            const values = {
-                actionId: action.id,
-                llmChat: this.llmChat,
-            };
-            this.messaging.update({
-                llmChatView: values,
+            // Create LLMChatView and link it to LLMChat
+            this.llmChat.update({
+                llmChatView: {
+                    actionId: action.id,
+                }
             });
             
             // Wait for messaging to be initialized
