@@ -1,0 +1,23 @@
+.o_LLMChat {
+    height: 100%;
+    background-color: $o-view-background-color;
+    
+    .o_LLMChat_sidebar {
+        width: 300px;
+        border-right: 1px solid $border-color;
+        height: 100%;
+        overflow: hidden;
+    }
+    
+    .o_LLMChat_content {
+        flex: 1;
+        height: 100%;
+        overflow: hidden;
+    }
+    
+    .o_LLMChat_noThread {
+        height: 100%;
+        color: $o-main-color-muted;
+        font-style: italic;
+    }
+}

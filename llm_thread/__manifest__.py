@@ -29,10 +29,16 @@
             'llm_thread/static/src/models/main.js',
             
             # Components
+            'llm_thread/static/src/components/llm_chat/llm_chat.js',
+            'llm_thread/static/src/components/llm_chat/llm_chat.xml',
             'llm_thread/static/src/components/llm_chat_thread_list/llm_chat_thread_list.js',
             'llm_thread/static/src/components/llm_chat_thread_list/llm_chat_thread_list.xml',
             
+            # Client Actions
+            'llm_thread/static/src/llm_chat_client_action.js',
+            
             # Styles
+            ('after', 'web/static/src/scss/pre_variables.scss', 'llm_thread/static/src/components/llm_chat/llm_chat.scss'),
             ('after', 'web/static/src/scss/pre_variables.scss', 'llm_thread/static/src/components/llm_chat_thread_list/llm_chat_thread_list.scss'),
         ],
     },
