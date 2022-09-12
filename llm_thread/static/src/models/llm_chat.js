@@ -23,12 +23,12 @@ registerModel({
     },
     recordMethods: {
         async loadThreads() {
-            const result = await this.env.services.rpc({
+            const result = await this.messaging.rpc({
                 model: 'llm.thread',
                 method: 'search_read',
-                args: [],
                 kwargs: {
-                    fields: ['name', 'state', 'last_message', 'message_ids', 'create_uid', 'create_date'],
+                    domain: [], // Empty domain to fetch all threads
+                    fields: ['name', 'message_ids', 'create_uid', 'create_date'],
                     order: 'create_date desc',
                 },
             });
@@ -38,10 +38,8 @@ registerModel({
                 id: thread.id,
                 model: 'llm.thread',
                 name: thread.name,
-                messageCount: thread.message_ids ? thread.message_ids.length : 0,
                 message_needaction_counter: 0, // We don't use needaction for LLM threads
                 creator: thread.create_uid ? { id: thread.create_uid } : undefined,
-                lastSeenByCurrentPartnerMessageId: thread.message_ids ? thread.message_ids[thread.message_ids.length - 1] : 0,
                 isServerPinned: true, // Always pin LLM threads
             }));
             
