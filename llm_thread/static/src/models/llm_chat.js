@@ -52,12 +52,6 @@ registerModel({
             }
         },
         
-        close() {
-            if (this.llmChatView) {
-                this.llmChatView.update({ llmChat: clear() });
-            }
-        },
-        
         /**
          * @param {integer} threadId 
          */

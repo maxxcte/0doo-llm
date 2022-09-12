@@ -65,8 +65,9 @@ export class LLMChat extends Component {
      * Handle cleanup when component is destroyed
      */
     _willDestroy() {
-        if (this.llmChat && LLMChat.currentInstance === this) {
-            this.llmChat.close();
+        if (LLMChat.currentInstance === this) {
+            // Just remove the reference, don't try to clear required fields
+            LLMChat.currentInstance = null;
         }
     }
 }
