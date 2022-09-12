@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatThread" owl="1">
+        <div class="o_LLMChatThread d-flex flex-column h-100">
+            <!-- Header -->
+            <div class="o_LLMChatThread_header border-bottom p-3">
+                <h3 class="mb-0" t-esc="thread.name"/>
+            </div>
+            
+            <!-- Messages -->
+            <div class="o_LLMChatThread_content flex-grow-1 p-3 overflow-auto">
+                <t t-if="state.isLoading">
+                    <div class="d-flex justify-content-center align-items-center h-100">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </t>
+                <t t-else="">
+                    <t t-foreach="messages" t-as="message" t-key="message.id">
+                        <div class="o_LLMChatThread_message mb-3">
+                            <div class="d-flex align-items-start">
+                                <!-- Avatar -->
+                                <img t-if="message.author.avatarUrl" 
+                                     class="o_LLMChatThread_messageAvatar rounded-circle me-2"
+                                     t-att-src="message.author.avatarUrl"
+                                     width="32" height="32"/>
+                                <div t-else="" class="o_LLMChatThread_messageAvatar rounded-circle me-2 bg-primary text-white d-flex align-items-center justify-content-center"
+                                     style="width: 32px; height: 32px;">
+                                    <t t-esc="message.author.nameOrDisplayName[0].toUpperCase()"/>
+                                </div>
+                                
+                                <!-- Message content -->
+                                <div class="o_LLMChatThread_messageContent flex-grow-1">
+                                    <div class="d-flex align-items-baseline">
+                                        <span class="fw-bold me-2" t-esc="message.author.nameOrDisplayName"/>
+                                        <small class="text-muted" t-esc="message.datetime"/>
+                                    </div>
+                                    <div class="mt-1" t-esc="message.body"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+            </div>
+            
+            <!-- Input -->
+            <div class="o_LLMChatThread_composer border-top p-3">
+                <div class="position-relative">
+                    <textarea class="form-control"
+                              rows="3"
+                              placeholder="Type a message..."
+                              t-on-input="_onInputChange"
+                              t-on-keydown="_onSend"
+                              t-model="state.newMessage"
+                              t-att-disabled="state.isSending"/>
+                    <div t-if="state.isSending" class="position-absolute top-50 end-0 translate-middle-y me-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Sending...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

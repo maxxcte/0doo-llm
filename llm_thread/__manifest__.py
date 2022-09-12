@@ -1,38 +1,36 @@
 {
     "name": "LLM Thread",
-    "summary": "Message thread support for LLM conversations",
+    "summary": "LLM Chat Threads",
     "description": """
-        Extends the LLM integration module with conversation threading capabilities:
-        - Persistent chat history
-        - Real-time streaming responses
-        - Message management
-        - Thread organization
-        - Chat export
+LLM Chat Threads for Odoo
+========================
+This module adds support for LLM chat threads.
     """,
-    "category": "Technical",
+    "category": "Productivity",
     "version": "16.0.1.0.0",
-    "depends": ["llm", "mail"],
+    "depends": ["base", "mail", "web", "llm"],
     "external_dependencies": {},
     "data": [
         "security/llm_thread_security.xml",
         "security/ir.model.access.csv",
         "views/llm_thread_views.xml",
-        
     ],
     "assets": {
         "web.assets_backend": [
             # Models
+            'llm_thread/static/src/models/main.js',
+            'llm_thread/static/src/models/messaging.js',
             'llm_thread/static/src/models/llm_chat.js',
             'llm_thread/static/src/models/llm_chat_view.js',
-            'llm_thread/static/src/models/messaging.js',
             'llm_thread/static/src/models/thread.js',
-            'llm_thread/static/src/models/main.js',
             
             # Components
             'llm_thread/static/src/components/llm_chat/llm_chat.js',
             'llm_thread/static/src/components/llm_chat/llm_chat.xml',
             'llm_thread/static/src/components/llm_chat_thread_list/llm_chat_thread_list.js',
             'llm_thread/static/src/components/llm_chat_thread_list/llm_chat_thread_list.xml',
+            'llm_thread/static/src/components/llm_chat_thread/llm_chat_thread.js',
+            'llm_thread/static/src/components/llm_chat_thread/llm_chat_thread.xml',
             
             # Client Actions
             'llm_thread/static/src/llm_chat_client_action.js',
@@ -44,4 +42,6 @@
     },
     "license": "LGPL-3",
     "installable": True,
+    "application": True,
+    "auto_install": False,
 }

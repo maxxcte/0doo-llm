@@ -4,8 +4,9 @@ import { useModels } from '@mail/component_hooks/use_models';
 import { registerMessagingComponent } from '@mail/utils/messaging_component';
 import { getMessagingComponent } from '@mail/utils/messaging_component';
 
-// Import thread list component
+// Import subcomponents
 import '@llm_thread/components/llm_chat_thread_list/llm_chat_thread_list';
+import '@llm_thread/components/llm_chat_thread/llm_chat_thread';
 
 const { Component, onWillDestroy } = owl;
 
@@ -81,6 +82,7 @@ Object.assign(LLMChat, {
     },
     components: { 
         LLMChatThreadList: getMessagingComponent('LLMChatThreadList'),
+        LLMChatThread: getMessagingComponent('LLMChatThread'),
     },
     template: 'llm_thread.LLMChat',
 });

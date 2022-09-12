@@ -1,23 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="llm_thread.LLMChatThreadList" owl="1">
-        <div class="o_LLMChatThreadList" t-att-class="{ 'o-empty': !threads.length }">
-            <t t-if="threads.length">
-                <div class="o_LLMChatThreadList_threads">
-                    <t t-foreach="threads" t-as="thread" t-key="thread.localId">
-                        <div class="o_LLMChatThreadList_thread"
-                             t-att-class="{ 'o-active': llmChat.activeThread === thread }"
-                             t-on-click="(ev) => this.onClickThread(ev, thread)">
-                            <span class="o_LLMChatThreadList_threadName" t-esc="thread.name"/>
+        <div class="o_LLMChatThreadList d-flex flex-column h-100">
+            <!-- Header with New Chat button -->
+            <div class="o_LLMChatThreadList_header border-bottom p-3">
+                <button class="btn btn-primary w-100" 
+                        t-on-click="_onNewThread"
+                        t-att-disabled="state.isLoading">
+                    <t t-if="state.isLoading">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
                         </div>
+                        Creating...
                     </t>
-                </div>
-            </t>
-            <t t-else="">
-                <div class="o_LLMChatThreadList_empty">
-                    <span>No conversations yet</span>
-                </div>
-            </t>
+                    <t t-else="">
+                        New Chat
+                    </t>
+                </button>
+            </div>
+            
+            <!-- Thread List -->
+            <div class="o_LLMChatThreadList_content flex-grow-1 overflow-auto">
+                <t t-if="threads.length === 0">
+                    <div class="p-3 text-center text-muted">
+                        No chats yet. Start a new chat!
+                    </div>
+                </t>
+                <t t-else="">
+                    <div class="list-group list-group-flush" t-att-class="{ 'pe-none': state.isLoading }">
+                        <t t-foreach="threads" t-as="thread" t-key="thread.id">
+                            <button class="list-group-item list-group-item-action d-flex align-items-center p-3"
+                                    t-on-click="() => this._onThreadClick(thread)"
+                                    t-att-class="{ active: thread === activeThread }">
+                                <!-- Thread info -->
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center">
+                                        <span class="fw-bold" t-esc="thread.name"/>
+                                        <t t-if="state.isLoading and thread === activeThread">
+                                            <div class="spinner-border spinner-border-sm ms-2" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </t>
+                                    </div>
+                                    <small class="text-muted" t-esc="thread.create_date"/>
+                                </div>
+                            </button>
+                        </t>
+                    </div>
+                </t>
+            </div>
         </div>
     </t>
 </templates>

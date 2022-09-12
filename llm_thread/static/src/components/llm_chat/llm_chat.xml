@@ -1,22 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="llm_thread.LLMChat" owl="1">
-        <div class="o_LLMChat d-flex">
+        <div class="o_LLMChat d-flex h-100">
             <!-- Thread List Section -->
-            <div class="o_LLMChat_sidebar">
+            <div class="o_LLMChat_sidebar border-end" style="width: 300px;">
                 <LLMChatThreadList/>
             </div>
             
             <!-- Chat Section -->
-            <div class="o_LLMChat_content">
+            <div class="o_LLMChat_content flex-grow-1">
                 <t t-if="llmChat.activeThread">
-                    <!-- TODO: Add LLMChatThread component here -->
-                    <div class="p-3">
-                        <h3 t-esc="llmChat.activeThread.name"/>
-                    </div>
+                    <LLMChatThread thread="llmChat.activeThread"/>
                 </t>
                 <t t-else="">
-                    <div class="o_LLMChat_noThread d-flex align-items-center justify-content-center">
+                    <div class="o_LLMChat_noThread d-flex align-items-center justify-content-center h-100">
                         <span>Select a conversation to start chatting</span>
                     </div>
                 </t>
