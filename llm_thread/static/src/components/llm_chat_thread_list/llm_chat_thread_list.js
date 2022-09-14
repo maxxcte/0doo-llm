@@ -16,24 +16,10 @@ export class LLMChatThreadList extends Component {
     }
     
     /**
-     * @returns {LLMChat}
+     * @returns {LLMChatView}
      */
-    get llmChat() {
-        return this.messaging.llmChat;
-    }
-    
-    /**
-     * @returns {Thread[]}
-     */
-    get threads() {
-        return this.llmChat.threads || [];
-    }
-    
-    /**
-     * @returns {Thread}
-     */
-    get activeThread() {
-        return this.llmChat.activeThread;
+    get llmChatView() {
+        return this.props.record;
     }
     
     /**
@@ -45,7 +31,7 @@ export class LLMChatThreadList extends Component {
         
         this.state.isLoading = true;
         try {
-            await this.llmChat.selectThread(thread.id);
+            await this.llmChatView.llmChat.selectThread(thread.id);
         } catch (error) {
             this.env.services.notification.notify({
                 title: 'Error',
@@ -56,38 +42,10 @@ export class LLMChatThreadList extends Component {
             this.state.isLoading = false;
         }
     }
-    
-    /**
-     * Create a new thread
-     */
-    async _onNewThread() {
-        if (this.state.isLoading) return;
-        
-        this.state.isLoading = true;
-        try {
-            // Create new thread
-            const thread = await this.messaging.rpc({
-                model: 'llm.thread',
-                method: 'create',
-                args: [{ name: 'New Chat' }],
-            });
-            
-            // Reload threads and select the new one
-            await this.llmChat.loadThreads();
-            await this.llmChat.selectThread(thread);
-        } catch (error) {
-            this.env.services.notification.notify({
-                title: 'Error',
-                message: 'Failed to create new thread',
-                type: 'danger',
-            });
-        } finally {
-            this.state.isLoading = false;
-        }
-    }
 }
 
 Object.assign(LLMChatThreadList, {
+    props: { record: Object },
     template: 'llm_thread.LLMChatThreadList',
 });
 

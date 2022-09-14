@@ -2,33 +2,16 @@
 <templates xml:space="preserve">
     <t t-name="llm_thread.LLMChatThreadList" owl="1">
         <div class="o_LLMChatThreadList d-flex flex-column h-100">
-            <!-- Header with New Chat button -->
-            <div class="o_LLMChatThreadList_header border-bottom p-3">
-                <button class="btn btn-primary w-100" 
-                        t-on-click="_onNewThread"
-                        t-att-disabled="state.isLoading">
-                    <t t-if="state.isLoading">
-                        <div class="spinner-border spinner-border-sm me-2" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        Creating...
-                    </t>
-                    <t t-else="">
-                        New Chat
-                    </t>
-                </button>
-            </div>
-            
             <!-- Thread List -->
             <div class="o_LLMChatThreadList_content flex-grow-1 overflow-auto">
-                <t t-if="threads.length === 0">
+                <t t-if="llmChatView.llmChat.threads.length === 0">
                     <div class="p-3 text-center text-muted">
                         No chats yet. Start a new chat!
                     </div>
                 </t>
                 <t t-else="">
                     <div class="list-group list-group-flush" t-att-class="{ 'pe-none': state.isLoading }">
-                        <t t-foreach="threads" t-as="thread" t-key="thread.id">
+                        <t t-foreach="llmChatView.llmChat.threads" t-as="thread" t-key="thread.id">
                             <button class="list-group-item list-group-item-action d-flex align-items-center p-3"
                                     t-on-click="() => this._onThreadClick(thread)"
                                     t-att-class="{ active: thread === activeThread }">

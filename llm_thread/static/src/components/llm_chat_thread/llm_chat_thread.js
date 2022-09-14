@@ -25,7 +25,7 @@ export class LLMChatThread extends Component {
      * @returns {Thread}
      */
     get thread() {
-        return this.props.thread;
+        return this.props.record;
     }
     
     /**
@@ -101,7 +101,7 @@ export class LLMChatThread extends Component {
 
 Object.assign(LLMChatThread, {
     props: {
-        thread: Object,
+        record: Object,
     },
     template: 'llm_thread.LLMChatThread',
 });
