@@ -38,12 +38,13 @@ export class LLMChatContainer extends Component {
             // Wait for messaging to be initialized
             await this.messaging.initializedPromise;
             
-            // Load threads and handle initial thread
+            // Load threads first
             await this.llmChat.loadThreads();
             
+            // Then handle initial thread
             if (!this.llmChat.isInitThreadHandled) {
                 this.llmChat.update({ isInitThreadHandled: true });
-                if (!this.llmChat.activeThread && initActiveId) {
+                if (!this.llmChat.activeThread) {
                     this.llmChat.openInitThread();
                 }
             }

@@ -18,6 +18,14 @@ registerModel({
          * Opens thread from init active id if the thread exists.
          */
         openInitThread() {
+            if (!this.initActiveId) {
+                // If no initial thread specified, select the first thread
+                if (this.threads.length > 0) {
+                    this.selectThread(this.threads[0].id);
+                }
+                return;
+            }
+
             const [model, id] = typeof this.initActiveId === 'number'
                 ? ['llm.thread', this.initActiveId]
                 : this.initActiveId.split('_');
@@ -26,6 +34,10 @@ registerModel({
                 model,
             });
             if (!thread) {
+                // If specified thread not found, select first thread
+                if (this.threads.length > 0) {
+                    this.selectThread(this.threads[0].id);
+                }
                 return;
             }
             this.selectThread(thread.id);
@@ -81,11 +93,6 @@ registerModel({
             
             // Update threads in the store
             this.update({ threads: threadData });
-            
-            // Set active thread if none selected
-            if (!this.activeThread && threadData.length > 0) {
-                this.update({ activeThread: threadData[0] });
-            }
         },
         
         /**
@@ -98,6 +105,7 @@ registerModel({
                 await thread.fetchData(['messages']);
             }
         },
+
         open() {
             this.update({ llmChatView: {} });
         },
