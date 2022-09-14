@@ -6,22 +6,14 @@ import { clear } from '@mail/model/model_field_command';
 
 registerModel({
     name: 'LLMChat',
-    fields: {
-        llmChatView: one('LLMChatView', {
-            inverse: 'llmChat',
-            isCausal: true,
-        }),
-        isInitThreadHandled: attr({
-            default: false,
-        }),
-        activeThread: one('Thread', {
-            inverse: 'activeLLMChat',
-        }),
-        threads: many('Thread', {
-            inverse: 'llmChat',
-        }),
-    },
     recordMethods: {
+        /**
+         * @param {Thread} thread
+         * @returns {string}
+         */
+        threadToActiveId(thread) {
+            return `${thread.model}_${thread.id}`;
+        },
         async loadThreads() {
             const result = await this.messaging.rpc({
                 model: 'llm.thread',
@@ -45,6 +37,7 @@ registerModel({
             
             // Update threads in the store
             this.update({ threads: threadData });
+            console.log('threadData', this.threads);
             
             // Set active thread if none selected
             if (!this.activeThread && threadData.length > 0) {
@@ -63,5 +56,28 @@ registerModel({
                 await thread.fetchData(['messages']);
             }
         },
+    },
+    fields: {
+        activeId: attr({
+            compute() {
+                if (!this.activeThread) {
+                    return clear();
+                }
+                return this.threadToActiveId(this.activeThread);
+            },
+        }),
+        llmChatView: one('LLMChatView', {
+            inverse: 'llmChat',
+            isCausal: true,
+        }),
+        isInitThreadHandled: attr({
+            default: false,
+        }),
+        activeThread: one('Thread', {
+            inverse: 'activeLLMChat',
+        }),
+        threads: many('Thread', {
+            inverse: 'llmChat',
+        }),
     },
 });

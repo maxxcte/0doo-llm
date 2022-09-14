@@ -30,7 +30,7 @@ export class LLMChat extends Component {
                 });
             }
             this.llmChat = this.messaging.llmChat;
-            
+            console.log("Action ID ",action.id);
             // Create LLMChatView and link it to LLMChat
             this.llmChat.update({
                 llmChatView: {

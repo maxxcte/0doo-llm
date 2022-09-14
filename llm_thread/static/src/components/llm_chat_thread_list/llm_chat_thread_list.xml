@@ -42,7 +42,6 @@
                                             </div>
                                         </t>
                                     </div>
-                                    <small class="text-muted" t-esc="thread.create_date"/>
                                 </div>
                             </button>
                         </t>
