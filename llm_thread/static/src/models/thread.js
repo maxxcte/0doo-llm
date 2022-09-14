@@ -9,7 +9,7 @@ registerPatch({
         llmChat: one('LLMChat', {
             inverse: 'threads',
         }),
-        llmChatAsActive: one('LLMChat', {
+        activeLLMChat: one('LLMChat', {
             inverse: 'activeThread',
         }),
     },

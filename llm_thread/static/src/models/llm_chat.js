@@ -15,7 +15,7 @@ registerModel({
             default: false,
         }),
         activeThread: one('Thread', {
-            inverse: 'llmChatAsActive',
+            inverse: 'activeLLMChat',
         }),
         threads: many('Thread', {
             inverse: 'llmChat',
