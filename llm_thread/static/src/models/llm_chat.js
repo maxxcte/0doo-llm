@@ -99,10 +99,14 @@ registerModel({
          * @param {integer} threadId 
          */
         async selectThread(threadId) {
-            const thread = this.threads.find(t => t.id === threadId);
+            const thread = this.messaging.models['Thread'].findFromIdentifyingData({
+                id: threadId,
+                model: 'llm.thread'
+            });
+            
             if (thread) {
+                // Update active thread - ThreadCache will handle message loading
                 this.update({ activeThread: thread });
-                await thread.fetchData(['messages']);
             }
         },
 
@@ -155,5 +159,15 @@ registerModel({
         threads: many('Thread', {
             inverse: 'llmChat',
         }),
+        threadCache: one('ThreadCache', {
+            compute() {
+                if (!this.activeThread) {
+                    return clear();
+                }
+                return { 
+                    thread: this.activeThread 
+                };
+            }
+        })
     },
 });

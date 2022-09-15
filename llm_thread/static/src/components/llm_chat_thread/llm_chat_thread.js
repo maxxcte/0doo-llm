@@ -15,10 +15,6 @@ export class LLMChatThread extends Component {
             isLoading: true,
             isSending: false,
         });
-        
-        onWillStart(async () => {
-            await this._loadMessages();
-        });
     }
     
     /**
@@ -32,25 +28,8 @@ export class LLMChatThread extends Component {
      * @returns {Message[]}
      */
     get messages() {
-        return this.thread.messages || [];
-    }
-    
-    /**
-     * Load messages for the thread
-     */
-    async _loadMessages() {
-        this.state.isLoading = true;
-        try {
-            await this.thread.fetchData(['messages']);
-        } catch (error) {
-            this.env.services.notification.notify({
-                title: 'Error',
-                message: 'Failed to load messages',
-                type: 'danger',
-            });
-        } finally {
-            this.state.isLoading = false;
-        }
+        // Use ThreadCache's orderedMessages
+        return this.thread.cache?.orderedMessages || [];
     }
     
     /**
