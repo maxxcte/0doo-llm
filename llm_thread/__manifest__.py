@@ -34,6 +34,9 @@ This module adds support for LLM chat threads.
             'llm_thread/static/src/components/llm_chat_container/llm_chat_container.js',
             'llm_thread/static/src/components/llm_chat_container/llm_chat_container.xml',
             'llm_thread/static/src/components/llm_chat_container/llm_chat_container.scss',
+            'llm_thread/static/src/components/llm_chat_sidebar/llm_chat_sidebar.js',
+            'llm_thread/static/src/components/llm_chat_sidebar/llm_chat_sidebar.xml',
+            'llm_thread/static/src/components/llm_chat_sidebar/llm_chat_sidebar.scss',
             # Client Actions
             'llm_thread/static/src/llm_chat_client_action.js',
             

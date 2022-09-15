@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatSidebar" owl="1">
+        <div class="o_LLMChatSidebar d-flex flex-column h-100">
+            <!-- New Chat Button -->
+            <div class="o_LLMChatSidebar_header border-bottom p-3">
+                <button class="btn btn-primary w-100" disabled="disabled">
+                    New Chat
+                </button>
+            </div>
+            
+            <!-- Thread List -->
+            <div class="o_LLMChatSidebar_content flex-grow-1 overflow-auto">
+                <LLMChatThreadList record="llmChatView"/>
+            </div>
+        </div>
+    </t>
+</templates>

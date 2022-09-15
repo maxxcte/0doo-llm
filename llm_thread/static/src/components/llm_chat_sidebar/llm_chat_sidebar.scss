@@ -1,0 +1,13 @@
+.o_LLMChatSidebar {
+    background-color: $o-view-background-color;
+    border-right: $border-width solid $border-color;
+    width: 300px;
+    
+    .o_LLMChatSidebar_header {
+        background-color: $o-view-background-color;
+    }
+    
+    .o_LLMChatSidebar_content {
+        background-color: $o-view-background-color;
+    }
+}

@@ -4,7 +4,7 @@
         <div class="o_LLMChat d-flex h-100">
             <!-- Thread List Section -->
             <div class="o_LLMChat_sidebar border-end" style="width: 300px;">
-                <LLMChatThreadList record="llmChatView"/>
+                <LLMChatSidebar record="llmChatView"/>
             </div>
             
             <!-- Chat Section -->
