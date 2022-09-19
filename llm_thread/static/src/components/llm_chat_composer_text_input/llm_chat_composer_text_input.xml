@@ -5,7 +5,7 @@
             <div class="o_LLMChatComposerTextInput position-relative bg-view" t-on-paste="composerView.onPasteTextInput" t-ref="root">
                 <textarea 
                     class="o_LLMChatComposerTextInput_textarea form-control"
-                    t-att-placeholder="composerView.composer.placeholder"
+                    t-att-placeholder="composerView.composer.placeholderLLMChat"
                     t-on-click="composerView.onClickTextarea"
                     t-on-focusin="composerView.onFocusinTextarea"
                     t-on-focusout="composerView.onFocusoutTextarea"
