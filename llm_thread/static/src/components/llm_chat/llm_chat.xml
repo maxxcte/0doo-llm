@@ -10,7 +10,7 @@
             <!-- Chat Section -->
             <div class="o_LLMChat_content flex-grow-1">
                 <t t-if="llmChatView.llmChat.activeThread">
-                    <LLMChatThread record="llmChatView.llmChat.activeThread"/>
+                    <LLMChatThread record="llmChatView.llmChat.activeThread" threadView="llmChatView.threadView"/>
                 </t>
                 <t t-else="">
                     <div class="o_LLMChat_noThread d-flex align-items-center justify-content-center h-100">

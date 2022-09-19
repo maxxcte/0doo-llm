@@ -5,6 +5,12 @@ import { registerMessagingComponent } from '@mail/utils/messaging_component';
 const { Component } = owl;
 
 export class LLMChatThread extends Component {
+    
+
+    get threadView() {
+        return this.props.threadView;
+    }
+
     /**
      * @returns {Thread}
      */
@@ -24,6 +30,7 @@ export class LLMChatThread extends Component {
 Object.assign(LLMChatThread, {
     props: {
         record: Object,
+        threadView: Object,
     },
     template: 'llm_thread.LLMChatThread',
 });

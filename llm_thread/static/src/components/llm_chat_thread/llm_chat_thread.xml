@@ -41,6 +41,10 @@
                             </div>
                         </div>
                     </t>
+                    <!-- Chat Composer -->
+                    <div class="mt-3">
+                        <LLMChatComposer record="threadView.composerView"/>
+                    </div>
                 </t>
             </div>
         </div>

@@ -1,0 +1,36 @@
+.o_LLMChatComposerTextInput {
+    flex: 1 1 auto;
+    
+    &_textarea {
+        resize: none;
+        border-radius: 20px !important;
+        min-height: 40px;
+        max-height: 120px;
+        padding: 8px 16px;
+        border: 1px solid $border-color;
+        background-color: $white;
+        font-size: 14px;
+        line-height: 1.5;
+        
+        &:focus {
+            border-color: $primary;
+            box-shadow: 0 0 0 2px rgba($primary, 0.2);
+        }
+    }
+    
+    &_mirroredTextarea {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        visibility: hidden;
+        pointer-events: none;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow: hidden;
+        height: 0;
+        padding: 8px 16px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+}

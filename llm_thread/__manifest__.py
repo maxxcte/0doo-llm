@@ -37,6 +37,13 @@ This module adds support for LLM chat threads.
             'llm_thread/static/src/components/llm_chat_sidebar/llm_chat_sidebar.js',
             'llm_thread/static/src/components/llm_chat_sidebar/llm_chat_sidebar.xml',
             'llm_thread/static/src/components/llm_chat_sidebar/llm_chat_sidebar.scss',
+            'llm_thread/static/src/components/llm_chat_composer/llm_chat_composer.js',
+            'llm_thread/static/src/components/llm_chat_composer/llm_chat_composer.xml',
+            'llm_thread/static/src/components/llm_chat_composer/llm_chat_composer.scss',
+            'llm_thread/static/src/components/llm_chat_composer_text_input/llm_chat_composer_text_input.js',
+            'llm_thread/static/src/components/llm_chat_composer_text_input/llm_chat_composer_text_input.xml',
+            'llm_thread/static/src/components/llm_chat_composer_text_input/llm_chat_composer_text_input.scss',
+            
             # Client Actions
             'llm_thread/static/src/llm_chat_client_action.js',
             

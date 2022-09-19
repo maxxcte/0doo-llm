@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatComposer" owl="1">
+        <div class="o_LLMChatComposer">
+            <div class="o_LLMChatComposer_container">
+                <LLMChatComposerTextInput 
+                    record="composerView"
+                />
+                <button 
+                    class="o_LLMChatComposer_button"
+                    t-on-click="_onClickSend"
+                    t-att-disabled="isDisabled"
+                >
+                    <i class="fa fa-paper-plane"/>
+                </button>
+            </div>
+        </div>
+    </t>
+</templates>

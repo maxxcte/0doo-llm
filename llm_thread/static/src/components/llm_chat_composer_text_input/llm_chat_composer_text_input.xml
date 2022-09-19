@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatComposerTextInput" owl="1">
+        <t t-if="composerView">
+            <div class="o_LLMChatComposerTextInput position-relative" t-ref="root">
+                <textarea 
+                    class="o_LLMChatComposerTextInput_textarea form-control"
+                    t-att-placeholder="composerView.composer.placeholder"
+                    t-on-click="composerView.onClickTextarea"
+                    t-on-focusin="composerView.onFocusinTextarea"
+                    t-on-focusout="composerView.onFocusoutTextarea"
+                    t-on-keydown="_onKeydown"
+                    t-on-input="_onInput"
+                    t-ref="textarea"
+                />
+                <!--
+                    from ComposerTextInput for `mail` module: This is an invisible textarea used to compute the composer
+                     height based on the text content. We need it to downsize
+                     the textarea properly without flicker.
+                -->
+                <textarea 
+                    class="o_LLMChatComposerTextInput_mirroredTextarea"
+                    t-ref="mirroredTextarea"
+                    disabled="1"
+                />
+            </div>
+        </t>
+    </t>
+</templates>
