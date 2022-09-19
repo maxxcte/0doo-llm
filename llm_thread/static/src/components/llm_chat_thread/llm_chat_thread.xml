@@ -17,30 +17,8 @@
                     </div>
                 </t>
                 <t t-else="">
-                    <t t-foreach="messages" t-as="message" t-key="message.id">
-                        <div class="o_LLMChatThread_message mb-3">
-                            <div class="d-flex align-items-start">
-                                <!-- Avatar -->
-                                <img t-if="message.author.avatarUrl" 
-                                     class="o_LLMChatThread_messageAvatar rounded-circle me-2"
-                                     t-att-src="message.author.avatarUrl"
-                                     width="32" height="32"/>
-                                <div t-else="" class="o_LLMChatThread_messageAvatar rounded-circle me-2 bg-primary text-white d-flex align-items-center justify-content-center"
-                                     style="width: 32px; height: 32px;">
-                                    <t t-esc="message.author.nameOrDisplayName[0].toUpperCase()"/>
-                                </div>
-                                
-                                <!-- Message content -->
-                                <div class="o_LLMChatThread_messageContent flex-grow-1">
-                                    <div class="d-flex align-items-baseline">
-                                        <span class="fw-bold me-2" t-esc="message.author.nameOrDisplayName"/>
-                                        <small class="text-muted" t-esc="message.datetime"/>
-                                    </div>
-                                    <div class="mt-1" t-esc="message.body"/>
-                                </div>
-                            </div>
-                        </div>
-                    </t>
+                    <!-- Message List -->
+                    <LLMChatMessageList record="threadView.messageListView"/>
                     <!-- Chat Composer -->
                     <div class="mt-3">
                         <LLMChatComposer record="threadView.composerView"/>

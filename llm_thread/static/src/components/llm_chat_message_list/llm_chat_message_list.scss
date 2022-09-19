@@ -1,0 +1,104 @@
+.o_LLMMessageList {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    height: 100%;
+    padding: 1rem;
+    background-color: var(--LLMChat-bg, #f8f9fa);
+
+    &.o-empty {
+        align-items: center;
+        justify-content: center;
+    }
+
+    // Loading More button
+    &_loadMore {
+        align-self: center;
+        margin: 1rem 0;
+        padding: 0.5rem 2rem;
+        background-color: var(--LLMChat-btn-bg, #e9ecef);
+        border: none;
+        border-radius: 20px;
+        
+        &:hover {
+            background-color: var(--LLMChat-btn-hover-bg, #dee2e6);
+        }
+    }
+
+    // Empty state
+    &_empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        color: var(--LLMChat-empty-color, #6c757d);
+        text-align: center;
+
+        &Icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        &Text {
+            font-size: 1.1rem;
+        }
+    }
+
+    // Error state
+    &_error {
+        margin: 1rem;
+        text-align: center;
+
+        .btn-link {
+            color: inherit;
+            text-decoration: underline;
+        }
+    }
+
+    // New messages separator
+    &_newMessagesSeparator {
+        display: flex;
+        align-items: center;
+        margin: 1rem 0;
+        color: var(--LLMChat-separator-color, #0d6efd);
+        font-weight: 600;
+        
+        &::before,
+        &::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background-color: currentColor;
+            opacity: 0.2;
+        }
+
+        &::before {
+            margin-right: 1rem;
+        }
+
+        &::after {
+            margin-left: 1rem;
+        }
+    }
+
+    // Message spacing
+    &_message {
+        margin-bottom: 1rem;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+}
+
+// Fade transition
+.o-fade-enter-active,
+.o-fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.o-fade-enter-from,
+.o-fade-leave-to {
+    opacity: 0;
+}
