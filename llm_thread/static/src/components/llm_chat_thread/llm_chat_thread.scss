@@ -1,0 +1,10 @@
+.o_LLMChatThread {
+    &_content {
+        height: 0; // This forces the content to take remaining space
+        padding: 1rem;
+    }
+
+    &_composer {
+        background-color: var(--white, #ffffff);
+    }
+}
