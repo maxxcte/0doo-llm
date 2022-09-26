@@ -34,7 +34,7 @@ export class LLMChatComposer extends Component {
      * Intercept send button click
      * @private
      */
-    _onClickSend() {
+    async _onClickSend() {
         if (this.isDisabled) {
             return;
         }
@@ -50,7 +50,11 @@ export class LLMChatComposer extends Component {
         // 3. Trigger LLM processing
         
         // Call original send handler
-        this.composerView.onClickSend();
+        await this.composerView.sendMessage();
+        this.composerView.update({
+            doFocus: true,
+        });
+        console.log('Message sent');
     }
 }
 
