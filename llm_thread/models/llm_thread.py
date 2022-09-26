@@ -1,7 +1,6 @@
 import logging
 
 from odoo import api, fields, models
-from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -41,39 +40,72 @@ class LLMThread(models.Model):
         tracking=True,
     )
     active = fields.Boolean(default=True, tracking=True)
-    message_ids = fields.One2many('mail.message', 'res_id', domain=[('model', '=', 'llm.thread')])
-    state = fields.Selection([
-        ('draft', 'Draft'),
-        ('active', 'Active'),
-        ('closed', 'Closed')
-    ], default='active', string='Status')
+    message_ids = fields.One2many(
+        comodel_name="mail.message",
+        inverse_name="res_id",
+        string="Messages",
+        domain=lambda self: [("model", "=", self._name)],
+    )
 
-    @api.model
-    def create(self, vals):
-        if not vals.get('name'):
-            vals['name'] = 'New Chat'
-        return super().create(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Set default title if not provided"""
+        for vals in vals_list:
+            if not vals.get("name"):
+                vals["name"] = f"Chat with {self.model_id.name}"
+        return super().create(vals_list)
 
-    def send_message(self, message_content):
-        """Send a message in the thread.
+    def post_message(self, content, role="user"):
+        """Post a message to the thread"""
+        _logger.debug("Posting message - role: %s, content: %s", role, content)
 
-        Args:
-            message_content (str): The content of the message
-
-        Returns:
-            mail.message: The created message record
-        """
-        self.ensure_one()
-
-        if not message_content:
-            raise UserError("Message content cannot be empty")
-
-        message = self.env['mail.message'].create({
-            'model': 'llm.thread',
-            'res_id': self.id,
-            'body': message_content,
-            'message_type': 'comment',
-            'subtype_id': self.env.ref('mail.mt_comment').id,
-        })
-
+        message = self.env["mail.message"].create(
+            {
+                "model": self._name,
+                "res_id": self.id,
+                "body": content,
+                "message_type": "comment",
+            }
+        )
         return message
+
+    def get_chat_messages(self, limit=None):
+        """Get messages in provider-compatible format"""
+        domain = [
+            ("model", "=", self._name),
+            ("res_id", "=", self.id),
+            ("message_type", "=", "comment"),
+        ]
+        messages = self.env["mail.message"].search(
+            domain, order="create_date ASC", limit=limit
+        )
+        return [msg.to_provider_message() for msg in messages]
+
+    def get_assistant_response(self, stream=True):
+        """Get streaming response from assistant based on conversation history"""
+        try:
+            messages = self.get_chat_messages()
+            _logger.debug("Getting assistant response for messages: %s", messages)
+
+            content = ""
+            for response in self.model_id.chat(messages, stream=stream):
+                if response.get("content"):
+                    content += response.get("content", "")
+                    yield response
+
+            if content:
+                _logger.debug("Got assistant response: %s", content)
+        except Exception as e:
+            _logger.error("Error getting AI response: %s", str(e))
+            yield {"error": str(e)}
+
+
+class MailMessage(models.Model):
+    _inherit = "mail.message"
+
+    def to_provider_message(self):
+        """Convert to provider-compatible message format"""
+        return {
+            "role": "user" if self.author_id else "assistant",
+            "content": self.body,
+        }
