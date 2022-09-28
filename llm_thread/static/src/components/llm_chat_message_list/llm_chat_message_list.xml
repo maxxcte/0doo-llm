@@ -39,6 +39,27 @@
                         <Message t-if="messageListViewItem.messageView" record="messageListViewItem.messageView"/>
                     </t>
                 </t>
+                <!-- Streaming Message -->
+                <t t-if="messageListView.threadViewOwner.thread.isStreaming and messageListView.threadViewOwner.thread.streamingContent">
+                    <div class="o_Message o_MessageList_item o_MessageList_message d-flex flex-column">
+                        <div class="o_Message_core d-flex">
+                            <div class="o_Message_authorAvatar o_Message_authorAvatarContainer position-relative d-flex align-items-center">
+                                <img class="o_Message_authorAvatarImage rounded-circle w-100 h-100" t-att-src="'/web/image/llm.model/' + messageListView.threadViewOwner.thread.model_id[0] + '/avatar_128'" alt="Model Avatar"/>
+                            </div>
+                            <div class="o_Message_content d-flex flex-column">
+                                <div class="o_Message_header d-flex flex-wrap">
+                                    <div class="o_Message_authorName fw-bold" t-esc="messageListView.threadViewOwner.thread.model_id[1]"/>
+                                    <div class="o_Message_date small ms-2">
+                                        <i class="fa fa-circle-notch fa-spin text-primary"/>
+                                    </div>
+                                </div>
+                                <div class="o_Message_body">
+                                    <t t-out="messageListView.threadViewOwner.thread.streamingContent"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
                 <!-- LOADING (if order desc)-->
                 <t t-if="!messageListView.threadViewOwner.threadCache.hasLoadingFailed and messageListView.threadViewOwner.order === 'desc'">
                     <t t-call="llm_thread.LLMChatMessageList.loadMore"/>
