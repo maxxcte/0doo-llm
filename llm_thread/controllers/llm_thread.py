@@ -44,3 +44,15 @@ class LLMThreadController(http.Controller):
             direct_passthrough=True,
             headers=headers,
         )
+    
+    @http.route("/llm/thread/post_message", type="http", auth="user", csrf=True)
+    def post_message(self, thread_id, **kwargs):
+        """Post a message to the thread"""
+        _logger.debug("Posting message - kwargs: %s", kwargs)
+        thread = request.env["llm.thread"].browse(int(thread_id))
+        message = thread.post_message(**kwargs)
+        return Response(
+            json.dumps(message),
+            direct_passthrough=True,
+            headers={"Content-Type": "application/json"},
+        )

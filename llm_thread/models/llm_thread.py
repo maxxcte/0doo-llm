@@ -55,16 +55,16 @@ class LLMThread(models.Model):
                 vals["name"] = f"Chat with {self.model_id.name}"
         return super().create(vals_list)
 
-    def post_message(self, content, role="user"):
+    def post_message(self, **kwargs):
         """Post a message to the thread"""
-        _logger.debug("Posting message - role: %s, content: %s", role, content)
+        _logger.debug("Posting message - kwargs: %s", kwargs)
 
         message = self.env["mail.message"].create(
             {
                 "model": self._name,
                 "res_id": self.id,
-                "body": content,
                 "message_type": "comment",
+                **kwargs,
             }
         )
         return message
