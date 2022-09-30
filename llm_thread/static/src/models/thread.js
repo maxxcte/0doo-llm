@@ -40,6 +40,7 @@ registerPatch({
                 thread_id: this.id,   // Your thread ID
                 post_data: {
                     body,
+                    author_id: false,
                     email_from: "ai@apexive.com",
                 },
             }
