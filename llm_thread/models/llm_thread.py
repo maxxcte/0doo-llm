@@ -14,7 +14,6 @@ class LLMThread(models.Model):
     name = fields.Char(
         string="Title",
         required=True,
-        tracking=True,
     )
     user_id = fields.Many2one(
         "res.users",
@@ -22,14 +21,12 @@ class LLMThread(models.Model):
         default=lambda self: self.env.user,
         required=True,
         ondelete="restrict",
-        tracking=True,
     )
     provider_id = fields.Many2one(
         "llm.provider",
         string="Provider",
         required=True,
         ondelete="restrict",
-        tracking=True,
     )
     model_id = fields.Many2one(
         "llm.model",
@@ -37,9 +34,8 @@ class LLMThread(models.Model):
         required=True,
         domain="[('provider_id', '=', provider_id), ('model_use', 'in', ['chat', 'multimodal'])]",
         ondelete="restrict",
-        tracking=True,
     )
-    active = fields.Boolean(default=True, tracking=True)
+    active = fields.Boolean(default=True)
     message_ids = fields.One2many(
         comodel_name="mail.message",
         inverse_name="res_id",
