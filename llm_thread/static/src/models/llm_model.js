@@ -12,11 +12,11 @@ registerModel({
         name: attr({
             required: true,
         }),
-        llm_provider: one('LLMProvider', {
-            inverse: 'llm_models',
+        llmProvider: one('LLMProvider', {
+            inverse: 'llmModels',
         }),
         threads: many('Thread', {
-            inverse: 'llm_model',
+            inverse: 'llmModel',
         }),
     },
 });

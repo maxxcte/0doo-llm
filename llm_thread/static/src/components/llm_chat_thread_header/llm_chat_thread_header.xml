@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatThreadHeader" owl="1">
+        <div class="o_LLMChatThread_header border-bottom p-3 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <h3 class="mb-0 me-3" t-esc="thread.name"/>
+                <t t-if="modelName">
+                    <span class="badge bg-info" t-esc="modelName"/>
+                    <!-- <span class="ms-2" t-esc="thread.llmModel.provider.name"/> -->
+                </t>
+            </div>
+            <button class="btn btn-link" t-on-click="onSettingsClick">
+                <i class="fa fa-cog"/> Settings
+            </button>
+        </div>
+    </t>
+</templates>

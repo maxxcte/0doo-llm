@@ -14,7 +14,7 @@ registerPatch({
         activeLLMChat: one('LLMChat', {
             inverse: 'activeThread',
         }),
-        llm_model: one('LLMModel', {
+        llmModel: one('LLMModel', {
             inverse: 'threads',
         }),
     },

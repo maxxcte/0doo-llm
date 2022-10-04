@@ -27,6 +27,9 @@ This module adds support for LLM chat threads.
             'llm_thread/static/src/models/thread.js',
             'llm_thread/static/src/models/composer.js',
             'llm_thread/static/src/models/composer_view.js',
+            'llm_thread/static/src/models/llm_model.js',
+            'llm_thread/static/src/models/llm_provider.js',
+            'llm_thread/static/src/models/thread_view.js',
             
             # Components
             'llm_thread/static/src/components/llm_chat/llm_chat.js',
@@ -51,13 +54,15 @@ This module adds support for LLM chat threads.
             'llm_thread/static/src/components/llm_chat_message_list/llm_chat_message_list.js',
             'llm_thread/static/src/components/llm_chat_message_list/llm_chat_message_list.xml',
             'llm_thread/static/src/components/llm_chat_message_list/llm_chat_message_list.scss',
-            
+            'llm_thread/static/src/components/llm_chat_thread_header/llm_chat_thread_header.js',
+            'llm_thread/static/src/components/llm_chat_thread_header/llm_chat_thread_header.xml',
             # Client Actions
             'llm_thread/static/src/llm_chat_client_action.js',
             
             # Styles
             ('after', 'web/static/src/scss/pre_variables.scss', 'llm_thread/static/src/components/llm_chat/llm_chat.scss'),
             ('after', 'web/static/src/scss/pre_variables.scss', 'llm_thread/static/src/components/llm_chat_thread_list/llm_chat_thread_list.scss'),
+            
         ],
     },
     "license": "LGPL-3",

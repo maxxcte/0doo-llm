@@ -12,11 +12,8 @@ registerModel({
         name: attr({
             required: true,
         }),
-        llm_models: many('LLMModel', {
-            inverse: 'llm_provider',
-        }),
-        llm_chat: one('LLMChat', {
-            inverse: 'llm_providers',
+        llmModels: many('LLMModel', {
+            inverse: 'llmProvider',
         }),
     },
 });

@@ -76,7 +76,7 @@ registerModel({
                 method: 'search_read',
                 kwargs: {
                     domain: [],
-                    fields: ['name', 'message_ids', 'create_uid', 'create_date'],
+                    fields: ['name', 'message_ids', 'create_uid', 'create_date', 'model_id', 'provider_id'],
                     order: 'create_date desc',
                 },
             });
@@ -89,12 +89,19 @@ registerModel({
                 message_needaction_counter: 0,
                 creator: thread.create_uid ? { id: thread.create_uid } : undefined,
                 isServerPinned: true,
+                llmModel: thread.model_id ? { 
+                    id: thread.model_id[0], 
+                    name: thread.model_id[1],
+                    llmProvider: {
+                        id: thread.provider_id[0],
+                        name: thread.provider_id[1],
+                    },
+                } : undefined,
             }));
             
             // Update threads in the store
             this.update({ threads: threadData });
         },
-        
         /**
          * @param {integer} threadId 
          */
@@ -168,9 +175,6 @@ registerModel({
                     thread: this.activeThread 
                 };
             }
-        }),
-        llm_providers: many('LLMProvider', {
-            inverse: 'llm_chat',
         }),
     },
 });
