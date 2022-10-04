@@ -168,6 +168,9 @@ registerModel({
                     thread: this.activeThread 
                 };
             }
-        })
+        }),
+        llm_providers: many('LLMProvider', {
+            inverse: 'llm_chat',
+        }),
     },
 });
