@@ -26,6 +26,7 @@ This module adds support for LLM chat threads.
             'llm_thread/static/src/models/llm_chat_view.js',
             'llm_thread/static/src/models/thread.js',
             'llm_thread/static/src/models/composer.js',
+            'llm_thread/static/src/models/composer_view.js',
             
             # Components
             'llm_thread/static/src/components/llm_chat/llm_chat.js',

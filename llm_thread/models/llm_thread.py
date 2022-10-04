@@ -55,19 +55,19 @@ class LLMThread(models.Model):
                 vals["name"] = f"Chat with {self.model_id.name}"
         return super().create(vals_list)
 
-    def post_message(self, **kwargs):
+    def post_ai_response(self, **kwargs):
         """Post a message to the thread"""
         _logger.debug("Posting message - kwargs: %s", kwargs)
 
-        message = self.env["mail.message"].create(
-            {
-                "model": self._name,
-                "res_id": self.id,
-                "message_type": "comment",
-                **kwargs,
-            }
+        message = self.message_post(
+            body=kwargs.get("body"),
+            message_type="comment",
+            author_id=False,  # No author for AI messages
+            email_from=f"{self.model_id.name} <ai@{self.provider_id.name.lower()}.ai>",
+            partner_ids=[],  # No partner notifications
         )
-        return message
+
+        return message.message_format()[0]
 
     def get_chat_messages(self, limit=None):
         """Get messages in provider-compatible format"""

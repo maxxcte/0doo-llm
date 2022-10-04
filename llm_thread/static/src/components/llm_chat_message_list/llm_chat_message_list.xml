@@ -40,7 +40,7 @@
                     </t>
                 </t>
                 <!-- Streaming Message -->
-                <t t-if="messageListView.threadViewOwner.thread.isStreaming and htmlStreamingContent">
+                <t t-if="composerView.isStreaming and htmlStreamingContent">
                     <div class="o_Message o_MessageList_item o_MessageList_message d-flex flex-column">
                         <div class="o_Message_core d-flex">
                             <div class="o_Message_authorAvatar o_Message_authorAvatarContainer position-relative d-flex align-items-center">

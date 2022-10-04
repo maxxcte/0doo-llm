@@ -43,11 +43,7 @@ export class LLMChatComposer extends Component {
         this.composerView.update({
             doFocus: true,
         });
-        const thread = this.composerView.composer.activeThread;
-        if (thread) {
-            thread.startStreaming();
-        }
-        
+        this.composerView.startStreaming();
     }
 }
 
