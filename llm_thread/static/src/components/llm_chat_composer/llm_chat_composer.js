@@ -39,7 +39,7 @@ export class LLMChatComposer extends Component {
             return;
         }
         
-        await this.composerView.sendMessage();
+        await this.composerView.postMessage();
         this.composerView.update({
             doFocus: true,
         });
