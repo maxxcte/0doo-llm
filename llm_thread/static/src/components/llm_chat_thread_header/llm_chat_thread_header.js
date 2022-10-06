@@ -22,7 +22,15 @@ export class LLMChatThreadHeader extends Component {
      * Get the model name if available
      */
     get modelName() {
-        return this.thread?.llmModel?.name;
+        return this.llmModel?.name;
+    }
+
+    get providerName(){
+        return this.llmModel?.llmProvider?.name;
+    }
+
+    get llmModel(){
+        return this.thread?.llmModel;
     }
 }
 

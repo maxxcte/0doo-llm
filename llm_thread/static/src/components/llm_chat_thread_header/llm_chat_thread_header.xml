@@ -5,8 +5,11 @@
             <div class="d-flex align-items-center">
                 <h3 class="mb-0 me-3" t-esc="thread.name"/>
                 <t t-if="modelName">
-                    <span class="badge bg-info" t-esc="modelName"/>
-                    <!-- <span class="ms-2" t-esc="thread.llmModel.provider.name"/> -->
+                    <span class="badge bg-info text-white">
+                        <span t-esc="providerName"/>    
+                        <span class="ms-1"> - </span> 
+                        <span t-esc="modelName"/>
+                    </span>
                 </t>
             </div>
             <button class="btn btn-link" t-on-click="onSettingsClick">
