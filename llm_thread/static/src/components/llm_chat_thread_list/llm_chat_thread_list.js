@@ -21,18 +21,28 @@ export class LLMChatThreadList extends Component {
     get llmChatView() {
         return this.props.record;
     }
+
+    /**
+     * @returns {Thread}
+     */
+    get activeThread() {
+        console.log('activeThread getter called');
+        return this.llmChatView.llmChat.activeThread;
+    }
     
     /**
      * Handle thread click
      * @param {Thread} thread 
      */
     async _onThreadClick(thread) {
+        console.log('Thread clicked:', thread);
         if (this.state.isLoading) return;
         
         this.state.isLoading = true;
         try {
             await this.llmChatView.llmChat.selectThread(thread.id);
         } catch (error) {
+            console.error('Error selecting thread:', error);
             this.env.services.notification.notify({
                 title: 'Error',
                 message: 'Failed to load thread',

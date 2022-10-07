@@ -38,7 +38,64 @@
     }
     
     .o_LLMChatThreadList_empty {
-        color: $o-main-color-muted;
-        font-style: italic;
+        min-height: 200px;
+        color: $o-main-text-color;
+        font-size: 1.1rem;
+    }
+    
+    .o_LLMChatThreadList_items {
+        .o_LLMChatThreadList_item {
+            position: relative;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            transition: all 0.2s ease;
+            padding: 1rem 1.25rem;
+
+            &:hover:not(.active) {
+                background-color: $o-gray-100;
+            }
+
+            .o_LLMChatThreadList_itemIcon {
+                color: $o-main-color-muted;
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background-color: rgba($o-main-color-muted, 0.1);
+            }
+
+            .o_LLMChatThreadList_itemTitle {
+                font-size: 1.1rem;
+                color: $o-main-color-muted;
+                
+                // Non-active items should be more subtle
+                .o_LLMChatThreadList_item:not(.active) & {
+                    color: $o-main-color-muted;
+                }
+            }
+
+            &.active {
+                background-color: $o-view-background-color;
+
+                .o_LLMChatThreadList_itemTitle {
+                    color: $headings-color;
+                    font-weight: $font-weight-bold;
+                }
+
+                &:before {
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 3px;
+                    background-color: $o-brand-primary;
+                }
+            }
+        }
     }
 }
