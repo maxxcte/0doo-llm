@@ -44,17 +44,21 @@
     }
     
     .o_LLMChatThreadList_items {
+        padding: 0.5rem;
+
         .o_LLMChatThreadList_item {
             position: relative;
             border: none;
             background: none;
             width: 100%;
             text-align: left;
-            transition: all 0.2s ease;
-            padding: 1rem 1.25rem;
+            transition: all 0.15s ease;
+            padding: 0.75rem 1rem !important;
+            border-radius: $border-radius-lg;
+            margin-bottom: 0.25rem;
 
             &:hover:not(.active) {
-                background-color: $o-gray-100;
+                background-color: rgba($o-brand-primary, 0.05);
             }
 
             .o_LLMChatThreadList_itemIcon {
@@ -79,21 +83,15 @@
             }
 
             &.active {
-                background-color: $o-view-background-color;
+                background-color: rgba($o-brand-primary, 0.1);
 
                 .o_LLMChatThreadList_itemTitle {
-                    color: $headings-color;
+                    color: $o-brand-primary;
                     font-weight: $font-weight-bold;
                 }
 
-                &:before {
-                    content: '';
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    bottom: 0;
-                    width: 3px;
-                    background-color: $o-brand-primary;
+                .spinner-border {
+                    color: $o-brand-primary;
                 }
             }
         }
