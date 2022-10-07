@@ -26,7 +26,6 @@ export class LLMChatThreadList extends Component {
      * @returns {Thread}
      */
     get activeThread() {
-        console.log('activeThread getter called');
         return this.llmChatView.llmChat.activeThread;
     }
     
@@ -35,7 +34,6 @@ export class LLMChatThreadList extends Component {
      * @param {Thread} thread 
      */
     async _onThreadClick(thread) {
-        console.log('Thread clicked:', thread);
         if (this.state.isLoading) return;
         
         this.state.isLoading = true;
