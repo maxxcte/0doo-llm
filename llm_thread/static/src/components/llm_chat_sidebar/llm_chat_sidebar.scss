@@ -2,16 +2,22 @@
     background-color: $white;
     border-right: 1px solid $border-color;
     width: 300px;
-    position: relative; // For proper z-index stacking
+    position: relative;
+    transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
 
     &.o-mobile {
         position: fixed;
         top: 0;
         left: 0;
         bottom: 0;
-        z-index: $zindex-modal + 1; // Above backdrop
+        z-index: $zindex-modal + 1;
         width: 100%;
         max-width: 300px;
+        transform: translateX(-100%);
+
+        &.o-visible {
+            transform: translateX(0);
+        }
     }
 
     .o_LLMChatSidebar_content {
@@ -23,32 +29,6 @@
     }
 }
 
-// Drawer transition
-.o_LLMChatSidebar_drawer {
-    &-enter-active,
-    &-leave-active {
-        transition: all 0.3s ease;
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        width: 300px;
-        z-index: $zindex-modal + 1; // Above backdrop
-    }
-
-    &-enter-from,
-    &-leave-to {
-        transform: translateX(-100%);
-        opacity: 0;
-    }
-
-    &-enter-to,
-    &-leave-from {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
 // Backdrop
 .o_LLMChatSidebar_backdrop {
     position: fixed;
@@ -57,20 +37,16 @@
     right: 0;
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.5);
-    z-index: $zindex-modal; // Below sidebar
-    
-    &-enter-active,
-    &-leave-active {
-        transition: opacity 0.3s ease;
-    }
+    z-index: $zindex-modal;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0ms linear 300ms;
 
-    &-enter-from,
-    &-leave-to {
-        opacity: 0;
-    }
-
-    &-enter-to,
-    &-leave-from {
+    &.o-visible {
         opacity: 1;
+        visibility: visible;
+        transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
+                    visibility 0ms linear;
     }
 }

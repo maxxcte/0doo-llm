@@ -2,7 +2,6 @@
 
 import { useModels } from '@mail/component_hooks/use_models';
 import { registerMessagingComponent } from '@mail/utils/messaging_component';
-import { Transition } from '@web/core/transition';
 const { Component } = owl;
 
 export class LLMChatSidebar extends Component {
@@ -30,7 +29,6 @@ export class LLMChatSidebar extends Component {
 
 Object.assign(LLMChatSidebar, {
     props: { record: Object },
-    components: { Transition },
     template: 'llm_thread.LLMChatSidebar',
 });
 
