@@ -56,6 +56,7 @@
             padding: 0.75rem 1rem !important;
             border-radius: $border-radius-lg;
             margin-bottom: 0.25rem;
+            min-width: 0; // Required for text-truncate to work
 
             &:hover:not(.active) {
                 background-color: rgba($o-brand-primary, 0.05);
@@ -72,9 +73,14 @@
                 background-color: rgba($o-main-color-muted, 0.1);
             }
 
+            .o_LLMChatThreadList_itemInfo {
+                min-width: 0; // Required for text-truncate to work
+            }
+
             .o_LLMChatThreadList_itemTitle {
                 font-size: 1.1rem;
                 color: $o-main-color-muted;
+                min-width: 0; // Required for text-truncate to work
                 
                 // Non-active items should be more subtle
                 .o_LLMChatThreadList_item:not(.active) & {
