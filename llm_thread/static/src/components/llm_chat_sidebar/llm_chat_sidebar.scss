@@ -1,13 +1,76 @@
 .o_LLMChatSidebar {
-    background-color: $o-view-background-color;
-    border-right: $border-width solid $border-color;
+    background-color: $white;
+    border-right: 1px solid $border-color;
     width: 300px;
-    
-    .o_LLMChatSidebar_header {
-        background-color: $o-view-background-color;
+    position: relative; // For proper z-index stacking
+
+    &.o-mobile {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: $zindex-modal + 1; // Above backdrop
+        width: 100%;
+        max-width: 300px;
     }
-    
+
     .o_LLMChatSidebar_content {
-        background-color: $o-view-background-color;
+        background-color: $white;
+    }
+
+    .o_LLMChatSidebar_header {
+        background-color: $white;
+    }
+}
+
+// Drawer transition
+.o_LLMChatSidebar_drawer {
+    &-enter-active,
+    &-leave-active {
+        transition: all 0.3s ease;
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 300px;
+        z-index: $zindex-modal + 1; // Above backdrop
+    }
+
+    &-enter-from,
+    &-leave-to {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+
+    &-enter-to,
+    &-leave-from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+// Backdrop
+.o_LLMChatSidebar_backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: $zindex-modal; // Below sidebar
+    
+    &-enter-active,
+    &-leave-active {
+        transition: opacity 0.3s ease;
+    }
+
+    &-enter-from,
+    &-leave-to {
+        opacity: 0;
+    }
+
+    &-enter-to,
+    &-leave-from {
+        opacity: 1;
     }
 }

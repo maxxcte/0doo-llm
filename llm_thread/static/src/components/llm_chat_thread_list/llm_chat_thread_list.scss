@@ -5,6 +5,23 @@
     overflow-y: auto;
     background-color: $o-view-background-color;
     
+    &.o-mobile {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+        background-color: $white;
+        transform: translateX(0);
+        transition: transform 0.3s ease;
+        border-right: 1px solid $border-color;
+
+        &:not(.visible) {
+            transform: translateX(-100%);
+        }
+    }
+    
     &.o-empty {
         align-items: center;
         justify-content: center;
@@ -46,6 +63,10 @@
     .o_LLMChatThreadList_items {
         padding: 0.5rem;
 
+        .o-mobile & {
+            padding: 0;
+        }
+
         .o_LLMChatThreadList_item {
             position: relative;
             border: none;
@@ -57,6 +78,17 @@
             border-radius: $border-radius-lg;
             margin-bottom: 0.25rem;
             min-width: 0; // Required for text-truncate to work
+
+            .o-mobile & {
+                border-radius: 0;
+                margin-bottom: 0;
+                padding: 1rem !important;
+                border-bottom: 1px solid $border-color;
+
+                &:last-child {
+                    border-bottom: none;
+                }
+            }
 
             &:hover:not(.active) {
                 background-color: rgba($o-brand-primary, 0.05);
@@ -82,6 +114,10 @@
                 color: $o-main-color-muted;
                 min-width: 0; // Required for text-truncate to work
                 
+                .o-mobile & {
+                    font-size: 1rem;
+                }
+
                 // Non-active items should be more subtle
                 .o_LLMChatThreadList_item:not(.active) & {
                     color: $o-main-color-muted;
@@ -90,6 +126,12 @@
 
             &.active {
                 background-color: rgba($o-brand-primary, 0.1);
+
+                .o-mobile & {
+                    background-color: $white;
+                    border-left: 3px solid $o-brand-primary;
+                    padding-left: calc(1rem - 3px) !important;
+                }
 
                 .o_LLMChatThreadList_itemTitle {
                     color: $o-brand-primary;

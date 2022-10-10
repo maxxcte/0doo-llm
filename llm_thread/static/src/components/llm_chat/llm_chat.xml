@@ -3,9 +3,7 @@
     <t t-name="llm_thread.LLMChat" owl="1">
         <div class="o_LLMChat d-flex h-100">
             <!-- Thread List Section -->
-            <div class="o_LLMChat_sidebar border-end" style="width: 300px;">
-                <LLMChatSidebar record="llmChatView"/>
-            </div>
+            <LLMChatSidebar record="llmChatView"/>
             
             <!-- Chat Section -->
             <div class="o_LLMChat_content flex-grow-1">

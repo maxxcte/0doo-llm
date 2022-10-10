@@ -18,6 +18,7 @@ export class LLMChatThreadHeader extends Component {
     get thread(){
         return this.threadView.thread;
     }
+
     /**
      * Get the model name if available
      */
@@ -31,6 +32,22 @@ export class LLMChatThreadHeader extends Component {
 
     get llmModel(){
         return this.thread?.llmModel;
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    get isSmall() {
+        return this.messaging.device.isSmall;
+    }
+
+    /**
+     * Toggle thread list visibility on mobile
+     */
+    _onToggleThreadList() {
+        this.thread.llmChat.llmChatView.update({
+            isThreadListVisible: !this.thread.llmChat.llmChatView.isThreadListVisible,
+        });
     }
 }
 

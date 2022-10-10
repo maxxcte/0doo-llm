@@ -1,18 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="llm_thread.LLMChatSidebar" owl="1">
-        <div class="o_LLMChatSidebar d-flex flex-column h-100">
-            <!-- New Chat Button -->
-            <div class="o_LLMChatSidebar_header border-bottom p-3">
-                <button class="btn btn-primary w-100" disabled="disabled">
-                    New Chat
-                </button>
+        <!-- Backdrop -->
+        <t t-if="messaging.device.isSmall">
+            <Transition visible="llmChatView.isThreadListVisible"
+                        leaveDuration="300"
+                        name="'o_LLMChatSidebar_backdrop'">
+                <div class="o_LLMChatSidebar_backdrop" t-on-click="_onBackdropClick"/>
+            </Transition>
+        </t>
+
+        <!-- Sidebar -->
+        <Transition visible="!messaging.device.isSmall || llmChatView.isThreadListVisible"
+                    leaveDuration="300"
+                    name="'o_LLMChatSidebar_drawer'">
+            <div class="o_LLMChatSidebar d-flex flex-column h-100" t-att-class="{ 'o-mobile': messaging.device.isSmall }">
+                <!-- New Chat Button -->
+                <div class="o_LLMChatSidebar_header border-bottom p-3">
+                    <button class="btn btn-primary w-100" disabled="disabled">
+                        New Chat
+                    </button>
+                </div>
+                
+                <!-- Thread List -->
+                <div class="o_LLMChatSidebar_threadList flex-grow-1 overflow-auto">
+                    <LLMChatThreadList record="llmChatView"/>
+                </div>
             </div>
-            
-            <!-- Thread List -->
-            <div class="o_LLMChatSidebar_content flex-grow-1 overflow-auto">
-                <LLMChatThreadList record="llmChatView"/>
-            </div>
-        </div>
+        </Transition>
     </t>
 </templates>

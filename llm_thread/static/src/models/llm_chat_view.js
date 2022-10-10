@@ -6,6 +6,14 @@ import { clear } from '@mail/model/model_field_command';
 
 registerModel({
     name: 'LLMChatView',
+    lifecycleHooks: {
+        _created() {
+            // Initialize thread list visibility based on device size
+            this.update({ 
+                isThreadListVisible: !this.messaging.device.isSmall 
+            });
+        },
+    },
     recordMethods: {
         /**
          * @private
@@ -19,6 +27,9 @@ registerModel({
     },
     fields: {
         actionId: attr(),
+        isThreadListVisible: attr({
+            default: true,
+        }),
         llmChat: one('LLMChat', {
             inverse: 'llmChatView',
             required: true,
@@ -26,6 +37,11 @@ registerModel({
         isActive: attr({
             compute() {
                 return Boolean(this.llmChat);
+            },
+        }),
+        thread: one('Thread', {
+            compute() {
+                return this.llmChat.activeThread;
             },
         }),
         threadViewer: one('ThreadViewer', {

@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="llm_thread.LLMChatThreadHeader" owl="1">
-        <div class="o_LLMChatThread_header border-bottom p-3 d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center">
+        <div class="o_LLMChatThread_header border-bottom p-3 d-flex align-items-center">
+            <!-- Mobile thread list toggle -->
+            <button t-if="isSmall" 
+                    class="o_LLMChatThreadHeader_toggleList btn btn-link p-0 me-2"
+                    t-on-click="_onToggleThreadList">
+                <i class="fa fa-bars" role="img" aria-label="Toggle thread list"/>
+            </button>
+            
+            <!-- Thread info -->
+            <div class="d-flex align-items-center flex-grow-1">
                 <h3 class="mb-0 me-3" t-esc="thread.name"/>
                 <t t-if="modelName">
                     <span class="badge bg-info text-white">
@@ -12,6 +20,8 @@
                     </span>
                 </t>
             </div>
+
+            <!-- Settings button -->
             <button class="btn btn-link" t-on-click="onSettingsClick">
                 <i class="fa fa-cog"/> Settings
             </button>

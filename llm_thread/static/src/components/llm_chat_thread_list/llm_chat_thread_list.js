@@ -9,7 +9,6 @@ export class LLMChatThreadList extends Component {
     setup() {
         useModels();
         super.setup();
-        
         this.state = useState({
             isLoading: false,
         });
@@ -28,7 +27,7 @@ export class LLMChatThreadList extends Component {
     get activeThread() {
         return this.llmChatView.llmChat.activeThread;
     }
-    
+
     /**
      * Handle thread click
      * @param {Thread} thread 
@@ -39,6 +38,9 @@ export class LLMChatThreadList extends Component {
         this.state.isLoading = true;
         try {
             await this.llmChatView.llmChat.selectThread(thread.id);
+            this.llmChatView.update({
+                isThreadListVisible: false,
+            });
         } catch (error) {
             console.error('Error selecting thread:', error);
             this.env.services.notification.notify({
