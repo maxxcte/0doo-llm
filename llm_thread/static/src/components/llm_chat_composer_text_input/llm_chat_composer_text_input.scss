@@ -3,18 +3,29 @@
     
     &_textarea {
         resize: none;
-        border-radius: 20px !important;
-        min-height: 40px;
-        max-height: 120px;
-        padding: 8px 16px;
-        border: 1px solid $border-color;
-        background-color: $white;
-        font-size: 14px;
+        border-radius: 24px !important;
+        min-height: 112px !important;
+        max-height: 200px;
+        padding: 12px 20px;
+        border: 1.5px solid rgba($border-color, 0.3);
+        background-color: rgba($white, 0.8);
+        font-size: 15px;
         line-height: 1.5;
+        transition: all 0.2s ease-in-out;
+        
+        &::placeholder {
+            color: rgba($gray-600, 0.8);
+        }
+        
+        &:hover {
+            border-color: rgba($primary, 0.3);
+            background-color: $white;
+        }
         
         &:focus {
             border-color: $primary;
-            box-shadow: 0 0 0 2px rgba($primary, 0.2);
+            background-color: $white;
+            box-shadow: 0 0 0 3px rgba($primary, 0.15);
         }
     }
     
@@ -29,8 +40,8 @@
         word-wrap: break-word;
         overflow: hidden;
         height: 0;
-        padding: 8px 16px;
-        font-size: 14px;
+        padding: 12px 20px;
+        font-size: 15px;
         line-height: 1.5;
     }
 }
