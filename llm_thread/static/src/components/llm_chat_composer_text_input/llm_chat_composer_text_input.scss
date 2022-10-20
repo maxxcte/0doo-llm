@@ -8,7 +8,7 @@
         max-height: 200px;
         padding: 12px 20px;
         border: 1.5px solid rgba($border-color, 0.3);
-        background-color: rgba($white, 0.8);
+        background-color: rgba(244, 245, 249, 0.95) !important;
         font-size: 15px;
         line-height: 1.5;
         transition: all 0.2s ease-in-out;
@@ -19,12 +19,12 @@
         
         &:hover {
             border-color: rgba($primary, 0.3);
-            background-color: $white;
+            background-color: rgba(244, 245, 249, 0.98) !important;
         }
         
         &:focus {
             border-color: $primary;
-            background-color: $white;
+            background-color: rgba(244, 245, 249, 1) !important;
             box-shadow: 0 0 0 3px rgba($primary, 0.15);
         }
     }
@@ -43,5 +43,6 @@
         padding: 12px 20px;
         font-size: 15px;
         line-height: 1.5;
+        background: transparent !important;
     }
 }
