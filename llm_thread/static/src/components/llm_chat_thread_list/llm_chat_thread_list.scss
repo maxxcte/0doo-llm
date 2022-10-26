@@ -3,7 +3,7 @@
     flex-direction: column;
     height: 100%;
     overflow-y: auto;
-    background-color: $o-view-background-color;
+    background-color: $white;
     
     &.o-mobile {
         position: absolute;
@@ -12,136 +12,61 @@
         right: 0;
         bottom: 0;
         z-index: 1;
-        background-color: $white;
         transform: translateX(0);
         transition: transform 0.3s ease;
-        border-right: 1px solid $border-color;
+        border-right: 1px solid rgba(0, 0, 0, 0.06);
 
         &:not(.visible) {
             transform: translateX(-100%);
         }
     }
     
-    &.o-empty {
-        align-items: center;
-        justify-content: center;
+    &_empty {
+        color: $gray-500;
+        font-size: 14px;
     }
     
-    .o_LLMChatThreadList_threads {
+    &_items {
         display: flex;
         flex-direction: column;
         width: 100%;
     }
     
-    .o_LLMChatThreadList_thread {
+    &_item {
         display: flex;
         align-items: center;
-        padding: 10px 16px;
+        padding: 12px 24px;
         cursor: pointer;
-        border-bottom: 1px solid $border-color;
+        border: none;
+        background: none;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        transition: all 0.2s ease;
+        width: 100%;
+        text-align: left;
         
         &:hover {
-            background-color: rgba($o-brand-primary, 0.05);
+            background-color: rgba($primary, 0.04);
         }
         
-        &.o-active {
-            background-color: rgba($o-brand-primary, 0.1);
-        }
-    }
-    
-    .o_LLMChatThreadList_threadName {
-        font-size: 14px;
-        color: $o-main-text-color;
-    }
-    
-    .o_LLMChatThreadList_empty {
-        min-height: 200px;
-        color: $o-main-text-color;
-        font-size: 1.1rem;
-    }
-    
-    .o_LLMChatThreadList_items {
-        padding: 0.5rem;
-
-        .o-mobile & {
-            padding: 0;
-        }
-
-        .o_LLMChatThreadList_item {
-            position: relative;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            transition: all 0.15s ease;
-            padding: 0.75rem 1rem !important;
-            border-radius: $border-radius-lg;
-            margin-bottom: 0.25rem;
-            min-width: 0; // Required for text-truncate to work
-
-            .o-mobile & {
-                border-radius: 0;
-                margin-bottom: 0;
-                padding: 1rem !important;
-                border-bottom: 1px solid $border-color;
-
-                &:last-child {
-                    border-bottom: none;
-                }
-            }
-
-            &:hover:not(.active) {
-                background-color: rgba($o-brand-primary, 0.05);
-            }
-
-            .o_LLMChatThreadList_itemIcon {
-                color: $o-main-color-muted;
-                width: 24px;
-                height: 24px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%;
-                background-color: rgba($o-main-color-muted, 0.1);
-            }
-
-            .o_LLMChatThreadList_itemInfo {
-                min-width: 0; // Required for text-truncate to work
-            }
-
+        &.active {
+            background-color: rgba($primary, 0.08);
+            
             .o_LLMChatThreadList_itemTitle {
-                font-size: 1.1rem;
-                color: $o-main-color-muted;
-                min-width: 0; // Required for text-truncate to work
-                
-                .o-mobile & {
-                    font-size: 1rem;
-                }
-
-                // Non-active items should be more subtle
-                .o_LLMChatThreadList_item:not(.active) & {
-                    color: $o-main-color-muted;
-                }
-            }
-
-            &.active {
-                background-color: rgba($o-brand-primary, 0.1);
-
-                .o-mobile & {
-                    background-color: $white;
-                    border-left: 3px solid $o-brand-primary;
-                    padding-left: calc(1rem - 3px) !important;
-                }
-
-                .o_LLMChatThreadList_itemTitle {
-                    color: $o-brand-primary;
-                    font-weight: $font-weight-bold;
-                }
-
-                .spinner-border {
-                    color: $o-brand-primary;
-                }
+                color: $primary;
+                font-weight: 500;
             }
         }
+    }
+    
+    &_itemTitle {
+        font-size: 14px;
+        color: $gray-800;
+        transition: all 0.2s ease;
+    }
+    
+    .spinner-border {
+        width: 14px;
+        height: 14px;
+        border-width: 2px;
     }
 }
