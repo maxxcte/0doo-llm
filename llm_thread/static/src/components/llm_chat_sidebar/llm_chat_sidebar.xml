@@ -15,9 +15,10 @@
                 'o-visible': !messaging.device.isSmall || llmChatView.isThreadListVisible
             }">
             <!-- New Chat Button -->
-            <div class="o_LLMChatSidebar_header border-bottom p-3">
-                <button class="btn btn-primary w-100" disabled="disabled">
-                    New Chat
+            <div class="o_LLMChatSidebar_header">
+                <button class="o_LLMChatSidebar_newChat" disabled="disabled">
+                    <i class="fa fa-plus"/>
+                    <span>New Chat</span>
                 </button>
             </div>
             
