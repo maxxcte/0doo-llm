@@ -10,7 +10,7 @@
                     </div>
                 </t>
                 <t t-else="">
-                    <div class="o_LLMChatThreadList_items" t-att-class="{ 'pe-none': state.isLoading }">
+                    <div class="o_LLMChatThreadList_items p-3" t-att-class="{ 'pe-none': state.isLoading }">
                         <t t-foreach="llmChatView.llmChat.threads" t-as="thread" t-key="thread.id">
                             <button class="o_LLMChatThreadList_item d-flex align-items-center p-3"
                                     t-on-click="() => this._onThreadClick(thread)"

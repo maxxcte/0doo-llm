@@ -3,7 +3,6 @@
     flex-direction: column;
     height: 100%;
     overflow-y: auto;
-    background-color: $white;
     
     &.o-mobile {
         position: absolute;
@@ -35,14 +34,13 @@
     &_item {
         display: flex;
         align-items: center;
-        padding: 12px 24px;
         cursor: pointer;
         border: none;
         background: none;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         transition: all 0.2s ease;
         width: 100%;
         text-align: left;
+        border-radius: 12px;
         
         &:hover {
             background-color: rgba($primary, 0.04);
