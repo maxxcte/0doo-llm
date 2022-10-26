@@ -25,7 +25,8 @@
 
             <!-- Settings button -->
             <button class="o_LLMChatThreadHeader_settings btn flex-shrink-0" t-on-click="onSettingsClick">
-                <i class="fa fa-cog"/> Settings
+                <i class="fa fa-cog"/>
+                <span class="o_LLMChatThreadHeader_settingsText">Settings</span>
             </button>
         </div>
     </t>
