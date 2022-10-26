@@ -10,10 +10,12 @@
             </button>
             
             <!-- Thread info -->
-            <div class="d-flex align-items-center flex-grow-1 gap-3">
-                <h3 class="o_LLMChatThreadHeader_title" t-esc="thread.name"/>
+            <div class="d-flex align-items-center flex-grow-1 gap-3 min-w-0">
+                <div class="o_LLMChatThreadHeader_titleContainer text-truncate">
+                    <h3 class="o_LLMChatThreadHeader_title text-truncate" t-esc="thread.name"/>
+                </div>
                 <t t-if="modelName">
-                    <div class="o_LLMChatThreadHeader_model">
+                    <div class="o_LLMChatThreadHeader_model flex-shrink-0">
                         <span class="o_LLMChatThreadHeader_modelProvider" t-esc="providerName"/>    
                         <span class="o_LLMChatThreadHeader_modelSeparator">•</span> 
                         <span class="o_LLMChatThreadHeader_modelName" t-esc="modelName"/>
@@ -22,7 +24,7 @@
             </div>
 
             <!-- Settings button -->
-            <button class="o_LLMChatThreadHeader_settings btn" t-on-click="onSettingsClick">
+            <button class="o_LLMChatThreadHeader_settings btn flex-shrink-0" t-on-click="onSettingsClick">
                 <i class="fa fa-cog"/> Settings
             </button>
         </div>
