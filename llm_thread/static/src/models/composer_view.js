@@ -69,21 +69,24 @@ registerPatch({
          * Start streaming response for this thread
          */
         async startStreaming() {
+            const defaultContent = 'Thinking...';
             if (this.isStreaming) {
                 return;
             }
             const composer = this.composer;
             
-            this.update({ isStreaming: true, streamingContent: '' });
+            this.update({ isStreaming: true, streamingContent: defaultContent });
             const eventSource = new EventSource(`/llm/thread/stream_response?thread_id=${composer.thread.id}`);
             
             eventSource.onmessage = async (event) => {
                 const data = JSON.parse(event.data);
                 switch (data.type) {
                     case 'start':
-                        this.update({ streamingContent: '' });
                         break;
                     case 'content':
+                        if (this.streamingContent === defaultContent) {
+                            this.update({ streamingContent: '' });
+                        }
                         this.update({ 
                             streamingContent: this.streamingContent + (data.content || ''),
                         });
