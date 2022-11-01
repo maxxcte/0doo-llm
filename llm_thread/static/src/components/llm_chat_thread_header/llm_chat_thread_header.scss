@@ -1,105 +1,13 @@
-.o_LLMChatThread_header {
-    background-color: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
-    padding: 16px 24px !important;
-    
-    .o_LLMChatThreadHeader {
-        &_toggleList {
-            color: $gray-600;
-            transition: color 0.2s ease;
-            
-            &:hover {
-                color: $gray-800;
-            }
-            
-            .fa {
-                font-size: 20px;
-            }
-        }
+.o_ThreadViewTopbar {
+    // Only keep styles that are specific to our use case and not covered by Odoo's classes
+    .o_ThreadViewTopbar_threadDescription {
+        display: inline-flex;
+        align-items: center;
+        font-size: 13px;
+        color: $gray-600;
         
-        &_titleContainer {
-            min-width: 0; // Required for text-truncate to work in a flex container
-            max-width: 100%;
-        }
-        
-        &_title {
-            font-size: 18px;
-            font-weight: 600;
-            color: $gray-900;
-            margin: 0;
-            line-height: 1.4;
-            width: 100%;
-        }
-        
-        &_model {
-            display: inline-flex;
-            align-items: center;
-            padding: 6px 12px;
-            border-radius: 20px;
-            background: linear-gradient(135deg, rgba($info, 0.1), rgba($primary, 0.1));
-            border: 1px solid rgba($info, 0.2);
-            font-size: 13px;
-            font-weight: 500;
-            color: $gray-700;
-            white-space: nowrap; // Prevent wrapping
-            
-            @include media-breakpoint-down(sm) {
-                font-size: 12px;
-                padding: 4px 10px;
-            }
-            
-            &Provider {
-                color: $info;
-            }
-            
-            &Name {
-                color: $primary;
-            }
-            
-            &Separator {
-                margin: 0 6px;
-                opacity: 0.4;
-            }
-        }
-        
-        &_settings {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 8px 16px;
-            border-radius: 20px;
-            color: $gray-600;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            background-color: transparent;
-            white-space: nowrap; // Prevent wrapping
-            
-            @include media-breakpoint-down(sm) {
-                padding: 8px;
-                width: 36px;
-                height: 36px;
-                border-radius: 18px;
-            }
-            
-            &:hover {
-                background-color: rgba($gray-200, 0.5);
-                color: $gray-800;
-            }
-            
-            .fa {
-                font-size: 15px;
-                @include media-breakpoint-up(sm) {
-                    margin-right: 8px;
-                }
-            }
-            
-            &Text {
-                @include media-breakpoint-down(sm) {
-                    display: none;
-                }
-            }
+        @include media-breakpoint-down(sm) {
+            font-size: 12px;
         }
     }
 }

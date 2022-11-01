@@ -1,33 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="llm_thread.LLMChatThreadHeader" owl="1">
-        <div class="o_LLMChatThread_header d-flex align-items-center">
+        <div class="o_ThreadViewTopbar d-flex flex-shrink-0 w-100 px-3 bg-100 border-bottom">
             <!-- Mobile thread list toggle -->
             <button t-if="isSmall" 
-                    class="o_LLMChatThreadHeader_toggleList btn p-0 me-3"
+                    class="o_ThreadViewTopbar_button btn px-2 border-none rounded shadow-none me-2"
                     t-on-click="_onToggleThreadList">
-                <i class="fa fa-bars" role="img" aria-label="Toggle thread list"/>
+                <i class="fa fa-lg fa-bars text-700" role="img" aria-label="Toggle thread list"/>
             </button>
             
-            <!-- Thread info -->
-            <div class="d-flex align-items-center flex-grow-1 gap-3 min-w-0">
-                <div class="o_LLMChatThreadHeader_titleContainer text-truncate">
-                    <h3 class="o_LLMChatThreadHeader_title text-truncate" t-esc="thread.name"/>
-                </div>
+            <!-- Thread title and info -->
+            <div class="o_ThreadViewTopbar_title d-flex flex-grow-1 align-self-center align-items-center">
+                <div class="o_ThreadViewTopbar_threadName lead flex-shrink-0 px-1 text-truncate fw-bold" t-esc="thread.name"/>
                 <t t-if="modelName">
-                    <div class="o_LLMChatThreadHeader_model flex-shrink-0">
-                        <span class="o_LLMChatThreadHeader_modelProvider" t-esc="providerName"/>    
-                        <span class="o_LLMChatThreadHeader_modelSeparator">•</span> 
-                        <span class="o_LLMChatThreadHeader_modelName" t-esc="modelName"/>
+                    <div class="o_ThreadViewTopbar_threadDescriptionSeparator flex-shrink-0 mx-2 py-2 border-start"/>
+                    <div class="o_ThreadViewTopbar_threadDescription px-1 text-truncate">
+                        <span t-esc="providerName"/>
+                        <span class="mx-1">•</span>
+                        <span t-esc="modelName"/>
                     </div>
                 </t>
             </div>
 
-            <!-- Settings button -->
-            <button class="o_LLMChatThreadHeader_settings btn flex-shrink-0" t-on-click="onSettingsClick">
-                <i class="fa fa-cog"/>
-                <span class="o_LLMChatThreadHeader_settingsText">Settings</span>
-            </button>
+            <!-- Actions -->
+            <div class="o_ThreadViewTopbar_actions d-flex align-items-center ms-1">
+                <button class="o_ThreadViewTopbar_button btn px-2 border-none rounded shadow-none" 
+                        t-on-click="onSettingsClick" 
+                        title="Settings">
+                    <i class="fa fa-lg fa-gear text-700"/>
+                </button>
+            </div>
         </div>
     </t>
 </templates>
