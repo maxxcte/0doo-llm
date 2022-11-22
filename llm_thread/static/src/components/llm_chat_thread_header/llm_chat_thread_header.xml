@@ -10,14 +10,14 @@
             </button>
             
             <!-- Thread title and info -->
-            <div class="o_ThreadViewTopbar_title d-flex flex-grow-1 align-self-center align-items-center">
-                <div class="o_ThreadViewTopbar_threadName lead flex-shrink-1 px-1 text-truncate fw-bold min-w-0" t-esc="thread.name"/>
+            <div class="o_ThreadViewTopbar_title d-flex flex-grow-1 align-self-center align-items-center min-w-0">
+                <div class="o_ThreadViewTopbar_threadName lead flex-shrink-1 px-1 text-truncate fw-bold" t-att-title="thread.name" t-esc="thread.name"/>
                 <t t-if="modelName">
                     <div class="o_ThreadViewTopbar_threadDescriptionSeparator flex-shrink-0 mx-2 py-2 border-start"/>
-                    <div class="o_ThreadViewTopbar_threadDescription flex-shrink-0 px-1">
-                        <span class="o_ThreadViewTopbar_providerName" t-esc="providerName"/>
-                        <span class="mx-1">•</span>
-                        <span class="o_ThreadViewTopbar_modelName" t-esc="modelName"/>
+                    <div class="o_ThreadViewTopbar_threadDescription d-flex align-items-center flex-shrink-0 px-1">
+                        <span class="o_ThreadViewTopbar_providerName flex-shrink-0" t-esc="providerName"/>
+                        <span class="mx-1 flex-shrink-0">•</span>
+                        <span class="o_ThreadViewTopbar_modelName text-truncate" t-att-title="modelName" t-esc="modelName"/>
                     </div>
                 </t>
             </div>

@@ -12,11 +12,11 @@
         display: inline-flex;
         align-items: center;
         font-size: 13px;
-        color: $gray-600;
-        white-space: nowrap;
+        max-width: 200px; // Limit description width
         
         @include media-breakpoint-down(sm) {
             font-size: 12px;
+            max-width: 150px; // More constrained on mobile
         }
     }
     
@@ -26,5 +26,6 @@
     
     .o_ThreadViewTopbar_modelName {
         color: $primary;
+        min-width: 0; // Enable truncation
     }
 }
