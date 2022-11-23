@@ -1,70 +1,25 @@
 .o_LLMChatThreadList {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    overflow-y: auto;
-    
-    &.o-mobile {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 1;
-        transform: translateX(0);
-        transition: transform 0.3s ease;
-        border-right: 1px solid rgba(0, 0, 0, 0.06);
-
-        &:not(.visible) {
-            transform: translateX(-100%);
-        }
-    }
+    padding-top: 16px;
+    padding-bottom: 16px;
     
     &_empty {
         color: $gray-500;
         font-size: 14px;
     }
     
-    &_items {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    &_item {
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-        border: none;
-        background: none;
-        transition: all 0.2s ease;
-        width: 100%;
-        text-align: left;
-        border-radius: 12px;
+    .o_DiscussSidebarCategoryItem {
+        position: relative; // For absolute positioning of border
         
-        &:hover {
-            background-color: rgba($primary, 0.04);
-        }
-        
-        &.active {
-            background-color: rgba($primary, 0.08);
-            
-            .o_LLMChatThreadList_itemTitle {
-                color: $primary;
-                font-weight: 500;
+        &.o-active {
+            &::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 3px;
+                background-color: $primary;
             }
         }
-    }
-    
-    &_itemTitle {
-        font-size: 14px;
-        color: $gray-800;
-        transition: all 0.2s ease;
-    }
-    
-    .spinner-border {
-        width: 14px;
-        height: 14px;
-        border-width: 2px;
     }
 }
