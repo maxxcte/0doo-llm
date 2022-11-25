@@ -2,9 +2,10 @@
 <templates xml:space="preserve">
     <t t-name="llm_thread.LLMChatThreadList" owl="1">
         <div class="o_LLMChatThreadList d-flex flex-column flex-grow-1 overflow-auto">
-            <t t-if="llmChatView.llmChat.threads.length !== 0">
-                <div class="d-flex align-items-center justify-content-center flex-grow-1 text-muted">
-                    No chats yet
+            <t t-if="llmChatView.llmChat.threads.length === 0">
+                <div class="d-flex flex-column align-items-center justify-content-center flex-grow-1 text-muted p-3">
+                    <i class="fa fa-comments fa-3x mb-3 text-300"/>
+                    <span class="fs-6">No chats yet</span>
                 </div>
             </t>
             <t t-else="">
