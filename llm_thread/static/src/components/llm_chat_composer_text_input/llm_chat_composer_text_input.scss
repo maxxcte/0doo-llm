@@ -3,15 +3,13 @@
     
     &_textarea {
         resize: none;
-        border-radius: 24px !important;
+        border-radius: 24px;
         min-height: 112px !important;
         max-height: 200px;
-        padding: 12px 20px;
-        border: 1.5px solid rgba($border-color, 0.3);
-        background-color: rgba(244, 245, 249, 0.95) !important;
         font-size: 15px;
         line-height: 1.5;
-        transition: all 0.2s ease-in-out;
+        border-width: 1.5px;
+        background-color: mix($gray-100, $white, 95%) !important;
         
         &::placeholder {
             color: rgba($gray-600, 0.8);
@@ -19,30 +17,12 @@
         
         &:hover {
             border-color: rgba($primary, 0.3);
-            background-color: rgba(244, 245, 249, 0.98) !important;
         }
         
         &:focus {
             border-color: $primary;
-            background-color: rgba(244, 245, 249, 1) !important;
             box-shadow: 0 0 0 3px rgba($primary, 0.15);
         }
     }
     
-    &_mirroredTextarea {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        visibility: hidden;
-        pointer-events: none;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        overflow: hidden;
-        height: 0;
-        padding: 12px 20px;
-        font-size: 15px;
-        line-height: 1.5;
-        background: transparent !important;
-    }
 }
