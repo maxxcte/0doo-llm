@@ -20,6 +20,7 @@
                 <t t-if="threadView.isEditingName">
                     <input class="o_ThreadViewTopbar_threadNameInput form-control lead fw-bold" 
                            type="text" 
+                           autofocus="autofocus"
                            t-att-value="threadView.pendingName"
                            t-on-input="onInputThreadNameInput"
                            t-on-keydown="onKeyDownThreadNameInput"
