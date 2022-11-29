@@ -18,13 +18,6 @@ export class LLMChatThreadHeader extends Component {
         return this.threadView.thread;
     }
 
-    /**
-     * Opens thread settings to modify provider/model
-     */
-    async onSettingsClick() {
-        await this.threadView.openThreadSettings();
-    }
-
     get modelName() {
         return this.llmModel?.name;
     }
@@ -48,13 +41,6 @@ export class LLMChatThreadHeader extends Component {
         this.thread.llmChat.llmChatView.update({
             isThreadListVisible: !this.thread.llmChat.llmChatView.isThreadListVisible,
         });
-    }
-
-    /**
-     * Handle thread name click
-     */
-    onClickTopbarThreadName() {
-        this.threadView.onClickTopbarThreadName();
     }
 
     /**

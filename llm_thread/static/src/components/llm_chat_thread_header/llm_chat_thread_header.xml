@@ -12,7 +12,7 @@
                 <t t-if="!threadView.isEditingName">
                     <div class="o_ThreadViewTopbar_threadName o_ThreadViewTopbar_editableItem lead flex-shrink-1 px-1 border text-truncate fw-bold" 
                          t-att-title="thread.name" 
-                         t-on-click="onClickTopbarThreadName"
+                         t-on-click="threadView.onClickTopbarThreadName"
                          t-attf-class="{{ 'border-light' }}">
                         <t t-esc="thread.name"/>
                     </div>
@@ -37,7 +37,7 @@
             </div>
 
             <button class="o_ThreadViewTopbar_button btn px-2 border-none rounded shadow-none" 
-                    t-on-click="onSettingsClick" 
+                    t-on-click="threadView.openThreadSettings" 
                     title="Settings">
                 <i class="fa fa-lg fa-gear text-700"/>
             </button>
