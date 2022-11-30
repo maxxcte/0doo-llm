@@ -18,13 +18,16 @@
                     </div>
                 </t>
                 <t t-if="llmChatThreadHeaderView.isEditingName">
-                    <input class="o_ThreadViewTopbar_threadNameInput form-control lead fw-bold" 
-                           type="text" 
-                           autofocus="autofocus"
-                           t-att-value="llmChatThreadHeaderView.pendingName"
-                           t-on-input="onInputThreadNameInput"
-                           t-on-keydown="onKeyDownThreadNameInput"
-                           t-ref="threadNameInput"/>
+                    <input class="o_ThreadViewTopbar_threadNameInput form-control lead fw-bold o_input_tooltip" 
+                            type="text" 
+                            autofocus="autofocus"
+                            t-att-value="llmChatThreadHeaderView.pendingName"
+                            t-on-input="onInputThreadNameInput"
+                            t-on-keydown="onKeyDownThreadNameInput"
+                            t-ref="threadNameInput"
+                            title="Press Enter to save, Esc to cancel"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="bottom"/>
                 </t>
                 <t t-if="modelName">
                     <div class="o_ThreadViewTopbar_threadDescriptionSeparator flex-shrink-0 mx-2 py-2 border-start"/>
