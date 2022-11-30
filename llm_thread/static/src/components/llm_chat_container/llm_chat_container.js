@@ -40,6 +40,7 @@ export class LLMChatContainer extends Component {
             
             // Load threads first
             await this.llmChat.loadThreads();
+            await this.llmChat.loadLLMModels();
             
             // Then handle initial thread
             if (!this.llmChat.isInitThreadHandled) {

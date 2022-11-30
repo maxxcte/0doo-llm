@@ -120,6 +120,27 @@ registerModel({
         open() {
             this.update({ llmChatView: {} });
         },
+
+        async loadLLMModels() {
+            const result = await this.messaging.rpc({
+                model: 'llm.model',
+                method: 'search_read',
+                kwargs: {
+                    domain: [],
+                    fields: ['name', 'id', 'provider_id'],
+                },
+            });
+            
+            // Convert results to LLMModel records
+            const llmModelData = result.map(model => ({
+                id: model.id,
+                name: model.name,
+                llmProvider: model.provider_id ? { id: model.provider_id[0], name: model.provider_id[1] } : undefined,
+            }));
+            
+            // Update llmModels in the store
+            this.update({ llmModels: llmModelData });
+        },
     },
     fields: {
         /**
@@ -175,6 +196,25 @@ registerModel({
                     thread: this.activeThread 
                 };
             }
+        }),
+        llmModels: many('LLMModel'),
+        llmProviders: many('LLMProvider', {
+            compute() {
+                // Create a map to track unique providers by ID
+                const providersMap = new Map();
+                
+                // Extract unique providers from llmModels' data
+                for (const model of this.llmModels) {
+                    const providerId = model.llmProvider?.id;
+                    const providerName = model.llmProvider?.name;
+                    if (providerId && !providersMap.has(providerId)) {
+                        providersMap.set(providerId, { id: providerId, name: providerName });
+                    }
+                }
+                
+                // Convert map values to array
+                return Array.from(providersMap.values());
+            },
         }),
     },
 });
