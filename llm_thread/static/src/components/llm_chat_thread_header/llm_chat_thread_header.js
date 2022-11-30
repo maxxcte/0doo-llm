@@ -7,7 +7,7 @@ const { Component } = owl;
 export class LLMChatThreadHeader extends Component {
     setup() {
         super.setup();
-        useRefToModel({ fieldName: 'threadNameInputRef', refName: 'threadNameInput' });
+        useRefToModel({ fieldName: 'llmChatThreadNameInputRef', refName: 'threadNameInput' });
     }
 
     get threadView() {

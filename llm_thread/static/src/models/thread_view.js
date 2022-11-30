@@ -14,6 +14,7 @@ registerPatch({
         pendingName: attr({
             default: '',
         }),
+        llmChatThreadNameInputRef: attr(),
     },
     recordMethods: {
         /**
@@ -66,18 +67,15 @@ registerPatch({
             }
 
             try {
-                await this.env.services.rpc({
-                    model: 'llm.thread',
-                    method: 'write',
-                    args: [[this.thread.id], { name: newName }],
-                });
+                await this.thread.updateLLMChatThreadSettings({name: newName});
                 await this.thread.llmChat.loadThreads();
                 this.update({
                     isEditingName: false,
                     pendingName: '',
                 });
             } catch (error) {
-                this.env.services.notification.notify({
+                console.error('Error updating thread name:', error);
+                this.messaging.notify({
                     message: this.env._t("Failed to update thread name"),
                     type: 'danger',
                 });

@@ -43,7 +43,7 @@ export class LLMChatThreadList extends Component {
             });
         } catch (error) {
             console.error('Error selecting thread:', error);
-            this.env.services.notification.notify({
+            this.messaging.notify({
                 title: 'Error',
                 message: 'Failed to load thread',
                 type: 'danger',
