@@ -2,7 +2,7 @@
 
 import { useRefToModel } from '@mail/component_hooks/use_ref_to_model';
 import { registerMessagingComponent } from '@mail/utils/messaging_component';
-const { Component, useRef } = owl;
+const { Component, useRef, useState } = owl;
 
 export class LLMChatThreadHeader extends Component {
     /**
@@ -11,6 +11,12 @@ export class LLMChatThreadHeader extends Component {
     setup() {
         super.setup();
         useRefToModel({ fieldName: 'llmChatThreadNameInputRef', refName: 'threadNameInput' });
+        
+        // Local state for selected provider and model
+        this.state = useState({
+            selectedProviderId: this.thread.llmModel?.llmProvider?.id,
+            selectedModelId: this.thread.llmModel?.id,
+        });
     }
 
     get llmChatThreadHeaderView() {
@@ -25,20 +31,60 @@ export class LLMChatThreadHeader extends Component {
         return this.threadView.thread;
     }
 
-    get modelName() {
-        return this.llmModel?.name;
+    get llmChat() {
+        return this.thread.llmChat;
     }
 
-    get providerName() {
-        return this.llmModel?.llmProvider?.name;
+    get llmProviders() {
+        return this.llmChat.llmProviders;
     }
 
-    get llmModel() {
-        return this.thread?.llmModel;
+    get selectedProvider() {
+        if (this.state.selectedProviderId) {
+            return this.llmProviders.find(p => p.id === this.state.selectedProviderId);
+        }
+        return this.thread.llmModel?.llmProvider;
     }
 
+    get selectedModel() {
+        if (this.state.selectedModelId) {
+            return this.llmChat.llmModels.find(m => m.id === this.state.selectedModelId);
+        }
+        return this.thread.llmModel;
+    }
     get isSmall() {
         return this.messaging.device.isSmall;
+    }
+    get filteredModels() {
+        if (!this.selectedProvider) {
+            return this.llmChat.llmModels;
+        }
+        return this.llmChat.llmModels.filter(
+            model => model.llmProvider?.id === this.selectedProvider.id
+        );
+    }
+
+    /**
+     * @param {Object} provider
+     */
+    onSelectProvider(provider) {
+        // Update provider and clear model selection since it might not be compatible
+        this.state.selectedProviderId = provider.id;
+        this.state.selectedModelId = undefined;
+    }
+
+    /**
+     * @param {Object} model
+     */
+    onSelectModel(model) {
+        // Save both model and its provider to backend since they must be compatible
+        this.thread.updateLLMChatThreadSettings({
+            llmModelId: model.id,
+            llmProviderId: model.llmProvider.id,
+        });
+        // Update local state to match
+        this.state.selectedProviderId = model.llmProvider.id;
+        this.state.selectedModelId = model.id;
     }
 
     /**
