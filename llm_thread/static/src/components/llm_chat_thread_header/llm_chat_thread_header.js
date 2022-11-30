@@ -10,8 +10,12 @@ export class LLMChatThreadHeader extends Component {
         useRefToModel({ fieldName: 'llmChatThreadNameInputRef', refName: 'threadNameInput' });
     }
 
-    get threadView() {
+    get llmChatThreadHeaderView() {
         return this.props.record;
+    }
+
+    get threadView() {
+        return this.llmChatThreadHeaderView.threadView;
     }
 
     get thread() {
@@ -51,11 +55,11 @@ export class LLMChatThreadHeader extends Component {
         switch(ev.key) {
             case 'Enter':
                 ev.preventDefault();
-                this.threadView.saveThreadName();
+                this.llmChatThreadHeaderView.saveThreadName();
                 break;
             case 'Escape':
                 ev.preventDefault();
-                this.threadView.discardThreadNameEdition();
+                this.llmChatThreadHeaderView.discardThreadNameEdition();
                 break;
         }
     }
@@ -65,7 +69,7 @@ export class LLMChatThreadHeader extends Component {
      * @param {Event} ev 
      */
     onInputThreadNameInput(ev) {
-        this.threadView.update({ pendingName: ev.target.value });
+        this.llmChatThreadHeaderView.update({ pendingName: ev.target.value });
     }
 }
 

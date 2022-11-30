@@ -3,7 +3,7 @@
     <t t-name="llm_thread.LLMChatThread" owl="1">
         <div class="o_LLMChatThread d-flex flex-column h-100">
             <!-- Header -->
-            <LLMChatThreadHeader record="threadView"/>
+            <LLMChatThreadHeader record="threadView.llmChatThreadHeaderView"/>
             
             <!-- Messages -->
             <div class="o_LLMChatThread_content flex-grow-1 overflow-auto">

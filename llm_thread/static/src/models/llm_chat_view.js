@@ -63,7 +63,8 @@ registerModel({
                 }
                 return {
                     threadViewer: this.threadViewer,
-                    messageListView: {}, // This is crucial - we create MessageListView here
+                    messageListView: {},
+                    llmChatThreadHeaderView: {},
                 };
             },
         }),

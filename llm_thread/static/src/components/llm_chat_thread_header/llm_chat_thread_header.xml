@@ -9,19 +9,19 @@
             </button>
             
             <div class="o_ThreadViewTopbar_title d-flex flex-grow-1 align-self-center align-items-center min-w-0">
-                <t t-if="!threadView.isEditingName">
+                <t t-if="!llmChatThreadHeaderView.isEditingName">
                     <div class="o_ThreadViewTopbar_threadName o_ThreadViewTopbar_editableItem lead flex-shrink-1 px-1 border text-truncate fw-bold" 
                          t-att-title="thread.name" 
-                         t-on-click="threadView.onClickTopbarThreadName"
+                         t-on-click="llmChatThreadHeaderView.onClickTopbarThreadName"
                          t-attf-class="{{ 'border-light' }}">
                         <t t-esc="thread.name"/>
                     </div>
                 </t>
-                <t t-if="threadView.isEditingName">
+                <t t-if="llmChatThreadHeaderView.isEditingName">
                     <input class="o_ThreadViewTopbar_threadNameInput form-control lead fw-bold" 
                            type="text" 
                            autofocus="autofocus"
-                           t-att-value="threadView.pendingName"
+                           t-att-value="llmChatThreadHeaderView.pendingName"
                            t-on-input="onInputThreadNameInput"
                            t-on-keydown="onKeyDownThreadNameInput"
                            t-ref="threadNameInput"/>
@@ -37,7 +37,7 @@
             </div>
 
             <button class="o_ThreadViewTopbar_button btn px-2 border-none rounded shadow-none" 
-                    t-on-click="threadView.openThreadSettings" 
+                    t-on-click="llmChatThreadHeaderView.openThreadSettings" 
                     title="Settings">
                 <i class="fa fa-lg fa-gear text-700"/>
             </button>
