@@ -48,9 +48,9 @@ export class LLMChatThreadHeader extends Component {
 
     get selectedModel() {
         if (this.state.selectedModelId) {
-            return this.llmChat.llmModels.find(m => m.id === this.state.selectedModelId);
+            return this.filteredModels.find(m => m.id === this.state.selectedModelId);
         }
-        return this.thread.llmModel;
+        return undefined;
     }
     get isSmall() {
         return this.messaging.device.isSmall;
@@ -71,20 +71,30 @@ export class LLMChatThreadHeader extends Component {
         // Update provider and clear model selection since it might not be compatible
         this.state.selectedProviderId = provider.id;
         this.state.selectedModelId = undefined;
+        this.messaging.notify({
+            title: 'Please select a model to save',
+            message: 'Attention! Your model might not be compatible with the selected provider.',
+            type: 'info',
+        });
     }
 
     /**
      * @param {Object} model
      */
-    onSelectModel(model) {
+    async onSelectModel(model) {
         // Save both model and its provider to backend since they must be compatible
-        this.thread.updateLLMChatThreadSettings({
+        await this.thread.updateLLMChatThreadSettings({
             llmModelId: model.id,
             llmProviderId: model.llmProvider.id,
         });
         // Update local state to match
         this.state.selectedProviderId = model.llmProvider.id;
         this.state.selectedModelId = model.id;
+        this.messaging.notify({
+            title: 'Model selected',
+            message: 'Your model has been successfully updated for this thread.',
+            type: 'success',
+        });
     }
 
     /**
