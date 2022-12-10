@@ -9,11 +9,7 @@ registerModel({
     lifecycleHooks: {
         _created() {
             // Set initial values without triggering backend update
-            this.update({ 
-                _isInitializing: true,
-                selectedProviderId: this.threadView.thread.llmModel.llmProvider.id,
-                selectedModelId: this.threadView.thread.llmModel.id,
-            });
+            this._initializeState();
         },
     },
     fields: {
@@ -63,6 +59,30 @@ registerModel({
         }),
     },
     recordMethods: {
+        /**
+         * Initialize or reset state based on current thread
+         * @private
+         */
+        _initializeState() {
+            this.update({ 
+                _isInitializing: true,
+                selectedProviderId: this.threadView.thread.llmModel?.llmProvider?.id,
+                selectedModelId: this.threadView.thread.llmModel?.id,
+            });
+        },
+
+        /**
+         * Handle thread changes
+         * @private
+         */
+        _onThreadViewChange() {
+            this._initializeState();
+        },
+
+        /**
+         * Handle model changes
+         * @private
+         */
         async _onSelectedModelChange(){
             // Skip backend update during initialization
             if(!this.selectedModel || this._isInitializing){
@@ -159,6 +179,10 @@ registerModel({
         {
             dependencies: ['selectedModel'],
             methodName: '_onSelectedModelChange',
+        },
+        {
+            dependencies: ['threadView.thread.llmChat.activeThread'],
+            methodName: '_onThreadViewChange',
         },
     ],
 });
