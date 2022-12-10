@@ -127,7 +127,7 @@ registerModel({
          * Start editing thread name
          */
         onClickTopbarThreadName() {
-            if (this.isEditingName) {
+            if (this.isEditingName || this.messaging.device.isSmall) {
                 return;
             }
             this.update({
