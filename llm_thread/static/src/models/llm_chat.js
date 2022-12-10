@@ -127,7 +127,7 @@ registerModel({
                 method: 'search_read',
                 kwargs: {
                     domain: [],
-                    fields: ['name', 'id', 'provider_id'],
+                    fields: ['name', 'id', 'provider_id', 'default'],
                 },
             });
             
@@ -136,6 +136,7 @@ registerModel({
                 id: model.id,
                 name: model.name,
                 llmProvider: model.provider_id ? { id: model.provider_id[0], name: model.provider_id[1] } : undefined,
+                default: model.default,
             }));
             
             // Update llmModels in the store

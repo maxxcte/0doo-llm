@@ -18,5 +18,8 @@ registerModel({
         threads: many('Thread', {
             inverse: 'llmModel',
         }),
+        default: attr({
+            default: false,
+        }),
     },
 });

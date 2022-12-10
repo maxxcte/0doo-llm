@@ -33,19 +33,17 @@ registerModel({
                 if(!this.selectedProviderId){
                     return clear();
                 } else {
-                    console.log(this.threadView.thread);
-                    return this.threadView.thread.llmChat.llmProviders.find(p => p.id === this.selectedProviderId) || this.selectedModel?.llmProvider;
+                    return this.threadView.thread.llmChat.llmProviders.find(p => p.id === this.selectedProviderId);
                 }
             }
         }),
         selectedModel: one('LLMModel', {
             compute(){
-                console.log("SelectedModelID",this.selectedModelId);
                 if(!this.selectedModelId){
-                    console.log("Clearning the selectedModelId");
                     return clear();
                 } else {
-                    return this.threadView.thread.llmChat.llmModels.find(m => m.id === this.selectedModelId);
+                    const matchedModel = this.threadView.thread.llmChat.llmModels.find(m => m.id === this.selectedModelId);
+                    return matchedModel || clear();
                 }
             }
         }),
@@ -67,7 +65,6 @@ registerModel({
          */
         _initializeState() {
             this.update({ 
-                _isInitializing: true,
                 selectedProviderId: this.threadView.thread.llmModel?.llmProvider?.id,
                 selectedModelId: this.threadView.thread.llmModel?.id,
             });
@@ -85,18 +82,23 @@ registerModel({
          * Handle model changes
          * @private
          */
-        async _onSelectedModelChange(){
+        async saveSelectedModel(selectedModelId){
             // Skip backend update during initialization
-            if(!this.selectedModel || this._isInitializing){
-                if(this._isInitializing){
-                    this.update({ _isInitializing: false });
-                    return;
-                }
+            if(!selectedModelId|| selectedModelId === this.selectedModelId ){
+                return;
             }
+
+            this.update({
+                selectedModelId,
+            });
+            const provider = this.selectedModel.llmProvider;
+            this.update({
+                selectedProviderId: provider.id,
+            });
             
             await this.threadView.thread.updateLLMChatThreadSettings({
                 llmModelId: this.selectedModel.id,
-                llmProviderId: this.selectedModel.llmProvider.id,
+                llmProviderId: provider.id,
             });
         },
 
@@ -179,11 +181,7 @@ registerModel({
     },
     onChanges: [
         {
-            dependencies: ['selectedModel'],
-            methodName: '_onSelectedModelChange',
-        },
-        {
-            dependencies: ['threadView.thread.llmChat.activeThread'],
+            dependencies: ['threadView.thread.llmChat.activeThread.id'],
             methodName: '_onThreadViewChange',
         },
     ],

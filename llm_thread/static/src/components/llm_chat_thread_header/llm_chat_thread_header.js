@@ -11,12 +11,6 @@ export class LLMChatThreadHeader extends Component {
     setup() {
         super.setup();
         useRefToModel({ fieldName: 'llmChatThreadNameInputRef', refName: 'threadNameInput' });
-        
-        // Local state for selected provider and model
-        this.state = useState({
-            selectedProviderId: this.thread.llmModel?.llmProvider?.id,
-            selectedModelId: this.thread.llmModel?.id,
-        });
     }
 
     get llmChatThreadHeaderView() {
@@ -51,26 +45,43 @@ export class LLMChatThreadHeader extends Component {
      * @param {Object} provider
      */
     onSelectProvider(provider) {
-        // Update provider and clear model selection since it might not be compatible
-        this.llmChatThreadHeaderView.update({
-            selectedProviderId: provider.id,
-            selectedModelId: null,
-        });
-        this.messaging.notify({
-            title: 'Please select a model to save',
-            message: 'Attention! Your model might not be compatible with the selected provider.',
-            type: 'info',
-        });
+        if(provider.id !== this.llmChatThreadHeaderView.selectedProviderId){
+            const defaultModel = this.getDefaultModelForProvider(provider.id);
+            // it should trigger onChange event
+            this.llmChatThreadHeaderView.saveSelectedModel(
+                defaultModel?.id,
+            );
+            this.messaging.notify({
+                title: 'Model have been reset',
+                message: 'We have auto updated model to default one for this provider',
+                type: 'info',
+            });    
+        }
+    }
+
+    getDefaultModelForProvider(providerId) {
+        const availableModels = this.llmModels?.filter(
+            model => model.llmProvider?.id === providerId
+        ) || [];
+        const defaultModel = availableModels.find(
+            model => model.default
+        );
+
+        if(defaultModel){
+            return defaultModel;
+        } else if (availableModels.length > 0){
+            return availableModels[0];
+        }
+        return null;
     }
 
     /**
      * @param {Object} model
      */
     onSelectModel(model) {
-        // Just update the selectedModelId, the onChange handler will take care of the rest
-        this.llmChatThreadHeaderView.update({
-            selectedModelId: model.id,
-        });
+        this.llmChatThreadHeaderView.saveSelectedModel(
+            model.id,
+        );
     }
 
     /**
