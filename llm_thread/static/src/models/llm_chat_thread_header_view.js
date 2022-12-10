@@ -40,7 +40,9 @@ registerModel({
         }),
         selectedModel: one('LLMModel', {
             compute(){
+                console.log("SelectedModelID",this.selectedModelId);
                 if(!this.selectedModelId){
+                    console.log("Clearning the selectedModelId");
                     return clear();
                 } else {
                     return this.threadView.thread.llmChat.llmModels.find(m => m.id === this.selectedModelId);

@@ -54,7 +54,7 @@ export class LLMChatThreadHeader extends Component {
         // Update provider and clear model selection since it might not be compatible
         this.llmChatThreadHeaderView.update({
             selectedProviderId: provider.id,
-            selectedModelId: undefined,
+            selectedModelId: null,
         });
         this.messaging.notify({
             title: 'Please select a model to save',
