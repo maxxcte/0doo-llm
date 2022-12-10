@@ -29,10 +29,12 @@
                             data-bs-toggle="tooltip"
                             data-bs-placement="bottom"/>
                 </t>
-                
+            </div>
+
+            <div t-if="!isSmall" class="d-flex align-items-center">
                 <!-- LLM Provider Dropdown -->
-                <div class="dropdown ms-2">
-                    <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="dropdown">
+                    <button class="btn btn-light dropdown-toggle text-truncate" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="max-width: 200px;">
                         <t t-if="llmChatThreadHeaderView.selectedProvider">
                             <t t-esc="llmChatThreadHeaderView.selectedProvider.name"/>
                         </t>
@@ -43,7 +45,7 @@
                     <ul class="dropdown-menu">
                         <t t-foreach="llmProviders" t-as="provider" t-key="provider.id">
                             <li>
-                                <a class="dropdown-item" href="#" t-on-click="() => this.onSelectProvider(provider)">
+                                <a class="dropdown-item text-truncate" href="#" t-on-click="() => this.onSelectProvider(provider)" t-att-title="provider.name">
                                     <t t-esc="provider.name"/>
                                 </a>
                             </li>
@@ -53,7 +55,7 @@
 
                 <!-- LLM Model Dropdown -->
                 <div class="dropdown ms-2">
-                    <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn btn-light dropdown-toggle text-truncate" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="max-width: 200px;">
                         <t t-if="llmChatThreadHeaderView.selectedModel">
                             <t t-esc="llmChatThreadHeaderView.selectedModel.name"/>
                         </t>
@@ -64,7 +66,7 @@
                     <ul class="dropdown-menu">
                         <t t-foreach="llmChatThreadHeaderView.modelsAvailableToSelect" t-as="model" t-key="model.id">
                             <li>
-                                <a class="dropdown-item" href="#" t-on-click="() => this.onSelectModel(model)">
+                                <a class="dropdown-item text-truncate" href="#" t-on-click="() => this.onSelectModel(model)" t-att-title="model.name">
                                     <t t-esc="model.name"/>
                                 </a>
                             </li>
@@ -74,6 +76,7 @@
             </div>
 
             <button class="o_ThreadViewTopbar_button btn px-2 border-none rounded shadow-none" 
+                    t-if="isSmall"
                     t-on-click="llmChatThreadHeaderView.openThreadSettings" 
                     title="Settings">
                 <i class="fa fa-lg fa-gear text-700"/>
