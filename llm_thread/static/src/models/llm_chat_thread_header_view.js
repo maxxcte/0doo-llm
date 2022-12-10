@@ -1,11 +1,21 @@
 /** @odoo-module **/
 
 import { registerModel } from '@mail/model/model_core';
-import { one } from '@mail/model/model_field';
-import { attr } from '@mail/model/model_field';
+import { attr, many, one } from '@mail/model/model_field';
+import { clear } from '@mail/model/model_field_command';
 
 registerModel({
     name: 'LLMChatThreadHeaderView',
+    lifecycleHooks: {
+        _created() {
+            // Set initial values without triggering backend update
+            this.update({ 
+                _isInitializing: true,
+                selectedProviderId: this.threadView.thread.llmModel.llmProvider.id,
+                selectedModelId: this.threadView.thread.llmModel.id,
+            });
+        },
+    },
     fields: {
         threadView: one('ThreadView', {
             inverse: 'llmChatThreadHeaderView',
@@ -17,8 +27,57 @@ registerModel({
             default: '',
         }),
         llmChatThreadNameInputRef: attr(),
+        selectedProviderId: attr(),
+        selectedModelId: attr(),
+        _isInitializing: attr({
+            default: false,
+        }),
+        selectedProvider: one('LLMProvider', {
+            compute(){
+                if(!this.selectedProviderId){
+                    return clear();
+                } else {
+                    console.log(this.threadView.thread);
+                    return this.threadView.thread.llmChat.llmProviders.find(p => p.id === this.selectedProviderId) || this.selectedModel?.llmProvider;
+                }
+            }
+        }),
+        selectedModel: one('LLMModel', {
+            compute(){
+                if(!this.selectedModelId){
+                    return clear();
+                } else {
+                    return this.threadView.thread.llmChat.llmModels.find(m => m.id === this.selectedModelId);
+                }
+            }
+        }),
+        modelsAvailableToSelect: many('LLMModel', {
+            compute(){
+                if(!this.selectedProviderId){
+                    return [];
+                }
+                return this.threadView.thread.llmChat?.llmModels?.filter(
+                    model => model.llmProvider?.id === this.selectedProviderId
+                ) || [];
+            }
+        }),
     },
     recordMethods: {
+        async _onSelectedModelChange(){
+            // Skip backend update during initialization
+            if(!this.selectedModel || this._isInitializing){
+                if(this._isInitializing){
+                    this.update({ _isInitializing: false });
+                    return;
+                }
+            }
+            
+            await this.threadView.thread.updateLLMChatThreadSettings({
+                llmModelId: this.selectedModel.id,
+                llmProviderId: this.selectedModel.llmProvider.id,
+            });
+        },
+
         /**
          * Opens the thread form view for editing
          */
@@ -95,5 +154,11 @@ registerModel({
                 pendingName: '',
             });
         },
-    }
+    },
+    onChanges: [
+        {
+            dependencies: ['selectedModel'],
+            methodName: '_onSelectedModelChange',
+        },
+    ],
 });

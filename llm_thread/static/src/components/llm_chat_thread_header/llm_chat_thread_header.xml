@@ -33,8 +33,8 @@
                 <!-- LLM Provider Dropdown -->
                 <div class="dropdown ms-2">
                     <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <t t-if="selectedProvider">
-                            <t t-esc="selectedProvider.name"/>
+                        <t t-if="llmChatThreadHeaderView.selectedProvider">
+                            <t t-esc="llmChatThreadHeaderView.selectedProvider.name"/>
                         </t>
                         <t t-else="">
                             Select Provider
@@ -54,15 +54,15 @@
                 <!-- LLM Model Dropdown -->
                 <div class="dropdown ms-2">
                     <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <t t-if="selectedModel">
-                            <t t-esc="selectedModel.name"/>
+                        <t t-if="llmChatThreadHeaderView.selectedModel">
+                            <t t-esc="llmChatThreadHeaderView.selectedModel.name"/>
                         </t>
                         <t t-else="">
                             Select Model
                         </t>
                     </button>
                     <ul class="dropdown-menu">
-                        <t t-foreach="filteredModels" t-as="model" t-key="model.id">
+                        <t t-foreach="llmChatThreadHeaderView.modelsAvailableToSelect" t-as="model" t-key="model.id">
                             <li>
                                 <a class="dropdown-item" href="#" t-on-click="() => this.onSelectModel(model)">
                                     <t t-esc="model.name"/>

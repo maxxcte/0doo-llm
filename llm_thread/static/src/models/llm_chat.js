@@ -200,6 +200,9 @@ registerModel({
         llmModels: many('LLMModel'),
         llmProviders: many('LLMProvider', {
             compute() {
+                if(!this.llmModels) {
+                    return clear();
+                }
                 // Create a map to track unique providers by ID
                 const providersMap = new Map();
                 

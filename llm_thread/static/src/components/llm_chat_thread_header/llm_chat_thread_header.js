@@ -39,29 +39,12 @@ export class LLMChatThreadHeader extends Component {
         return this.llmChat.llmProviders;
     }
 
-    get selectedProvider() {
-        if (this.state.selectedProviderId) {
-            return this.llmProviders.find(p => p.id === this.state.selectedProviderId);
-        }
-        return this.thread.llmModel?.llmProvider;
+    get llmModels() {
+        return this.llmChat.llmModels;
     }
 
-    get selectedModel() {
-        if (this.state.selectedModelId) {
-            return this.filteredModels.find(m => m.id === this.state.selectedModelId);
-        }
-        return undefined;
-    }
     get isSmall() {
         return this.messaging.device.isSmall;
-    }
-    get filteredModels() {
-        if (!this.selectedProvider) {
-            return this.llmChat.llmModels;
-        }
-        return this.llmChat.llmModels.filter(
-            model => model.llmProvider?.id === this.selectedProvider.id
-        );
     }
 
     /**
@@ -69,8 +52,10 @@ export class LLMChatThreadHeader extends Component {
      */
     onSelectProvider(provider) {
         // Update provider and clear model selection since it might not be compatible
-        this.state.selectedProviderId = provider.id;
-        this.state.selectedModelId = undefined;
+        this.llmChatThreadHeaderView.update({
+            selectedProviderId: provider.id,
+            selectedModelId: undefined,
+        });
         this.messaging.notify({
             title: 'Please select a model to save',
             message: 'Attention! Your model might not be compatible with the selected provider.',
@@ -81,19 +66,10 @@ export class LLMChatThreadHeader extends Component {
     /**
      * @param {Object} model
      */
-    async onSelectModel(model) {
-        // Save both model and its provider to backend since they must be compatible
-        await this.thread.updateLLMChatThreadSettings({
-            llmModelId: model.id,
-            llmProviderId: model.llmProvider.id,
-        });
-        // Update local state to match
-        this.state.selectedProviderId = model.llmProvider.id;
-        this.state.selectedModelId = model.id;
-        this.messaging.notify({
-            title: 'Model selected',
-            message: 'Your model has been successfully updated for this thread.',
-            type: 'success',
+    onSelectModel(model) {
+        // Just update the selectedModelId, the onChange handler will take care of the rest
+        this.llmChatThreadHeaderView.update({
+            selectedModelId: model.id,
         });
     }
 
