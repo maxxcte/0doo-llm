@@ -16,7 +16,7 @@
             }">
             <!-- New Chat Button -->
             <div class="d-flex justify-content-center">
-                    <button class="o_DiscussSidebar_startAMeetingButton btn btn-primary rounded">
+                    <button class="o_DiscussSidebar_startAMeetingButton btn btn-primary rounded" t-on-click="_onClickNewChat">
                         <i class="fa fa-plus me-2"/>
                         <span>New Chat</span>
                     </button>
