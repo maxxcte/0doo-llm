@@ -9,7 +9,7 @@
             </button>
             
             <div class="o_ThreadViewTopbar_title d-flex flex-grow-1 align-self-center align-items-center min-w-0">
-                <t t-if="!llmChatThreadHeaderView.isEditingName">
+                <t t-if="!llmChatThreadHeaderView.isEditingName || isSmall">
                     <div class="o_ThreadViewTopbar_threadName o_ThreadViewTopbar_editableItem lead flex-shrink-1 px-1 border text-truncate fw-bold" 
                          t-att-title="thread.name" 
                          t-on-click="llmChatThreadHeaderView.onClickTopbarThreadName"
@@ -17,7 +17,7 @@
                         <t t-esc="thread.name"/>
                     </div>
                 </t>
-                <t t-if="llmChatThreadHeaderView.isEditingName">
+                <t t-if="llmChatThreadHeaderView.isEditingName and !isSmall">
                     <input class="o_ThreadViewTopbar_threadNameInput form-control lead fw-bold o_input_tooltip" 
                             type="text" 
                             autofocus="autofocus"
