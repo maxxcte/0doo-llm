@@ -31,44 +31,8 @@ export class LLMChatSidebar extends Component {
      */
     async _onClickNewChat() {
         const llmChat = this.llmChatView.llmChat;
-        // Get the default model or first available model
-        const defaultModel = llmChat.llmModels[0];
-        if (!defaultModel) {
-            return;
-        }
-        const threadName = `New Chat ${new Date().toLocaleString()}`;
-        // Create new thread via RPC
-        const threadId = await this.messaging.rpc({
-            model: 'llm.thread',
-            method: 'create',
-            args: [[{
-                model_id: defaultModel.id,
-                provider_id: defaultModel.llmProvider.id,
-                name: threadName,
-            }]],
-        });
-
-        const threadDetails = await this.messaging.rpc({
-            model: 'llm.thread',
-            method: 'read',
-            args: [[threadId], ['name', 'model_id', 'provider_id', 'write_date']],
-        });
-        if (!threadDetails || !threadDetails[0]) {
-            return;
-        }
-
-        // Insert the thread into frontend models
-        await this.messaging.models['Thread'].insert({
-            id: threadId,
-            model: 'llm.thread',
-            name: threadDetails[0].name,
-            message_needaction_counter: 0,
-            isServerPinned: true,
-            llmModel: defaultModel,
-            llmChat: llmChat,
-            updatedAt: threadDetails[0].write_date,
-        });
-        llmChat.selectThread(threadId);
+        await llmChat.createNewThread();
+        this.llmChatView.update({ isThreadListVisible: false });
     }
 }
 

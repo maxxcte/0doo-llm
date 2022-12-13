@@ -143,6 +143,51 @@ registerModel({
             // Update llmModels in the store
             this.update({ llmModels: llmModelData });
         },
+        async createNewThread() {
+            // Get the default model or first available model
+            const defaultModel = this.defaultLLMModel;
+            if (!defaultModel) {
+                this.messaging.notify({
+                    title: 'No default model',
+                    message: 'Please select a default model or create a new one',
+                    type: 'warning',
+                });
+                return;
+            }
+            const threadName = `New Chat ${new Date().toLocaleString()}`;
+            // Create new thread via RPC
+            const threadId = await this.messaging.rpc({
+                model: 'llm.thread',
+                method: 'create',
+                args: [[{
+                    model_id: defaultModel.id,
+                    provider_id: defaultModel.llmProvider.id,
+                    name: threadName,
+                }]],
+            });
+
+            const threadDetails = await this.messaging.rpc({
+                model: 'llm.thread',
+                method: 'read',
+                args: [[threadId], ['name', 'model_id', 'provider_id', 'write_date']],
+            });
+            if (!threadDetails || !threadDetails[0]) {
+                return;
+            }
+
+            // Insert the thread into frontend models
+            await this.messaging.models['Thread'].insert({
+                id: threadId,
+                model: 'llm.thread',
+                name: threadDetails[0].name,
+                message_needaction_counter: 0,
+                isServerPinned: true,
+                llmModel: defaultModel,
+                llmChat: this,
+                updatedAt: threadDetails[0].write_date,
+            });
+            this.selectThread(threadId);
+        },
     },
     fields: {
         /**
@@ -232,6 +277,14 @@ registerModel({
                 
                 // Convert map values to array
                 return Array.from(providersMap.values());
+            },
+        }),
+        defaultLLMModel: one('LLMModel', {
+            compute() {
+                if (!this.llmModels) {
+                    return clear();
+                }
+                return this.llmModels.find(model => model.default) ||this.llmModels[0] || clear();
             },
         }),
     },
