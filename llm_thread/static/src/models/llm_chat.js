@@ -76,8 +76,8 @@ registerModel({
                 method: 'search_read',
                 kwargs: {
                     domain: [],
-                    fields: ['name', 'message_ids', 'create_uid', 'create_date', 'model_id', 'provider_id'],
-                    order: 'create_date desc',
+                    fields: ['name', 'message_ids', 'create_uid', 'create_date', 'write_date', 'model_id', 'provider_id'],
+                    order: 'write_date desc',
                 },
             });
             
@@ -89,6 +89,7 @@ registerModel({
                 message_needaction_counter: 0,
                 creator: thread.create_uid ? { id: thread.create_uid } : undefined,
                 isServerPinned: true,
+                updatedAt: thread.write_date,
                 llmModel: thread.model_id ? { 
                     id: thread.model_id[0], 
                     name: thread.model_id[1],
@@ -187,6 +188,19 @@ registerModel({
          */
         threads: many('Thread', {
             inverse: 'llmChat',
+        }),
+        orderedThreads: many('Thread', {
+            compute() {
+                if (!this.threads) {
+                    return clear();
+                }
+                const sortedThreads = this.threads.slice().sort((a, b) => {
+                    const dateA = a.updatedAt ? new Date(a.updatedAt.replace(' ', 'T')) : new Date(0);
+                    const dateB = b.updatedAt ? new Date(b.updatedAt.replace(' ', 'T')) : new Date(0);
+                    return dateB - dateA;
+                });
+                return sortedThreads;
+            },
         }),
         threadCache: one('ThreadCache', {
             compute() {
