@@ -98,9 +98,8 @@ registerPatch({
                         break;
                     case 'end':
                         const htmlStreamingContent = this.htmlStreamingContent;
-                        await this._postAIMessage(htmlStreamingContent);
                         this._stopStreaming(eventSource);
-                        
+                        await this._postAIMessage(htmlStreamingContent);
                         break;
                 }
             };
