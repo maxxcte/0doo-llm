@@ -12,8 +12,19 @@ export class LLMChatMessageList extends MessageList {
         this.rootRef = useRef('root'); // Reference to .o_MessageList
         useEffect(() => {
             if (this.rootRef.el) {
-                this.rootRef.el.style.maxHeight = '500px'; // Fixed height for testing
-                this.rootRef.el.style.overflow = 'auto'; // Ensure scrollable
+                // Calculate available height dynamically
+                const parent = this.rootRef.el.closest('.o_LLMChatThread');
+                if (parent) {
+                    const parentHeight = parent.clientHeight;
+                    const header = parent.querySelector('.o_LLMChatThread_header'); // Adjust selector if needed
+                    const composer = parent.querySelector('.o_LLMChatThread_composer');
+                    const headerHeight = header ? header.offsetHeight : 0;
+                    const composerHeight = composer ? composer.offsetHeight : 0;
+                    const availableHeight = parentHeight - headerHeight - composerHeight;
+                    this.rootRef.el.style.maxHeight = `${availableHeight}px`;
+                    this.rootRef.el.style.overflow = 'auto';
+                    console.log("Set maxHeight:", availableHeight, "Parent:", parentHeight, "Header:", headerHeight, "Composer:", composerHeight);
+                }
             }
             if (this.composerView.isStreaming && this.htmlStreamingContent) {
                 console.log("Triggered useEffect - isStreaming:", this.composerView.isStreaming, "htmlStreamingContent:", this.htmlStreamingContent);
