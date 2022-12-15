@@ -4,12 +4,17 @@ import { MessageList } from '@mail/components/message_list/message_list';
 import { Transition } from '@web/core/transition';
 import { registerMessagingComponent } from '@mail/utils/messaging_component';
 import { markup } from '@odoo/owl';
-import { useEffect } from '@odoo/owl';
+import { useEffect, useRef } from '@odoo/owl';
 
 export class LLMChatMessageList extends MessageList {
     setup() {
         super.setup();
+        this.rootRef = useRef('root'); // Reference to .o_MessageList
         useEffect(() => {
+            if (this.rootRef.el) {
+                this.rootRef.el.style.maxHeight = '500px'; // Fixed height for testing
+                this.rootRef.el.style.overflow = 'auto'; // Ensure scrollable
+            }
             if (this.composerView.isStreaming && this.htmlStreamingContent) {
                 console.log("Triggered useEffect - isStreaming:", this.composerView.isStreaming, "htmlStreamingContent:", this.htmlStreamingContent);
                 this._scrollToEnd();
@@ -26,13 +31,12 @@ export class LLMChatMessageList extends MessageList {
     }
 
     _scrollToEnd() {
-        const { messageListView, order } = this._lastRenderedValues();
-        const scrollable = messageListView.getScrollableElement();
-        console.log("scrollToEnd called - scrollable:", scrollable, "order:", order);
+        const scrollable = this.rootRef.el;
+        console.log("scrollToEnd called - scrollable:", scrollable);
         if (scrollable) {
             const scrollHeight = scrollable.scrollHeight;
             const clientHeight = scrollable.clientHeight;
-            const scrollTop = order === 'asc' ? scrollHeight - clientHeight : 0;
+            const scrollTop = scrollHeight - clientHeight;
             console.log("Scroll details - scrollHeight:", scrollHeight, "clientHeight:", clientHeight, "scrollTop:", scrollTop);
             scrollable.scrollTop = scrollTop;
             console.log("After scroll - current scrollTop:", scrollable.scrollTop);
