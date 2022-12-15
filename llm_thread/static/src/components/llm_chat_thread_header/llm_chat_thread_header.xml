@@ -34,13 +34,15 @@
             <div t-if="!isSmall" class="d-flex align-items-center">
                 <!-- LLM Provider Dropdown -->
                 <div class="dropdown">
-                    <button class="btn btn-light dropdown-toggle text-truncate" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="max-width: 200px;">
-                        <t t-if="llmChatThreadHeaderView.selectedProvider">
-                            <t t-esc="llmChatThreadHeaderView.selectedProvider.name"/>
-                        </t>
-                        <t t-else="">
-                            Select Provider
-                        </t>
+                    <button class="btn btn-light dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="max-width: 200px;">
+                        <div class="text-truncate">
+                            <t t-if="llmChatThreadHeaderView.selectedProvider">
+                                <t t-esc="llmChatThreadHeaderView.selectedProvider.name"/>
+                            </t>
+                            <t t-else="">
+                                Select Provider
+                            </t>
+                        </div>
                     </button>
                     <ul class="dropdown-menu">
                         <t t-foreach="llmProviders" t-as="provider" t-key="provider.id">
@@ -55,13 +57,15 @@
 
                 <!-- LLM Model Dropdown -->
                 <div class="dropdown ms-2">
-                    <button class="btn btn-light dropdown-toggle text-truncate" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="max-width: 200px;">
-                        <t t-if="llmChatThreadHeaderView.selectedModel">
-                            <t t-esc="llmChatThreadHeaderView.selectedModel.name"/>
-                        </t>
-                        <t t-else="">
-                            Select Model
-                        </t>
+                    <button class="btn btn-light dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="max-width: 200px;">
+                        <div class="text-truncate">
+                            <t t-if="llmChatThreadHeaderView.selectedModel">
+                                <t t-esc="llmChatThreadHeaderView.selectedModel.name"/>
+                            </t>
+                            <t t-else="">
+                                Select Model
+                            </t>
+                        </div>
                     </button>
                     <ul class="dropdown-menu">
                         <t t-foreach="llmChatThreadHeaderView.modelsAvailableToSelect" t-as="model" t-key="model.id">
