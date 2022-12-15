@@ -1,10 +1,14 @@
 .o_LLMChatThread {
-    &_content {
-        height: 0; // This forces the content to take remaining space
-        padding: 1rem;
-    }
+    height: 100%; /* Ensure the thread takes full height of its container */
+}
 
-    &_composer {
-        background-color: var(--white, #ffffff);
-    }
+.o_LLMChatThread_content {
+    flex-grow: 1; /* Take remaining space */
+    overflow: auto; /* Enable scrolling */
+    max-height: calc(100% - 150px); /* Adjust based on header + composer height */
+    padding: 1rem;
+}
+
+.o_LLMChatThread_composer {
+    background-color: var(--white, #ffffff);
 }
