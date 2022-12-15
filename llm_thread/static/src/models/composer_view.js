@@ -110,5 +110,83 @@ registerPatch({
                 this._stopStreaming(eventSource);
             };
         },
+        async postUserMessageForAi() {
+            await this.postMessage();
+            this.update({
+                doFocus: true,
+            });
+            this.startStreaming();
+        },
+
+        onKeydownTextareaForAi(ev) {
+            if (!this.exists()) {
+                return;
+            }
+            switch (ev.key) {
+                case 'Escape':
+                // UP, DOWN, TAB: prevent moving cursor if navigation in mention suggestions
+                case 'ArrowUp':
+                case 'PageUp':
+                case 'ArrowDown':
+                case 'PageDown':
+                case 'Home':
+                case 'End':
+                case 'Tab':
+                    if (this.hasSuggestions) {
+                        // We use preventDefault here to avoid keys native actions but actions are handled in keyUp
+                        ev.preventDefault();
+                    }
+                    break;
+                // ENTER: submit the message only if the dropdown mention proposition is not displayed
+                case 'Enter':
+                    this.onKeydownTextareaEnterForAi(ev);
+                    break;
+            }
+        },
+        /**
+         * @param {KeyboardEvent} ev
+         */
+        onKeydownTextareaEnterForAi(ev) {
+            if (!this.exists()) {
+                return;
+            }
+            if (this.hasSuggestions) {
+                ev.preventDefault();
+                return;
+            }
+            if (
+                this.sendShortcuts.includes('ctrl-enter') &&
+                !ev.altKey &&
+                ev.ctrlKey &&
+                !ev.metaKey &&
+                !ev.shiftKey
+            ) {
+                this.postUserMessageForAi();
+                ev.preventDefault();
+                return;
+            }
+            if (
+                this.sendShortcuts.includes('enter') &&
+                !ev.altKey &&
+                !ev.ctrlKey &&
+                !ev.metaKey &&
+                !ev.shiftKey
+            ) {
+                this.postUserMessageForAi();
+                ev.preventDefault();
+                return;
+            }
+            if (
+                this.sendShortcuts.includes('meta-enter') &&
+                !ev.altKey &&
+                !ev.ctrlKey &&
+                ev.metaKey &&
+                !ev.shiftKey
+            ) {
+                this.postUserMessageForAi();
+                ev.preventDefault();
+                return;
+            }
+        },
     },
 });

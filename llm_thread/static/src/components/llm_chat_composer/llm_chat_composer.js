@@ -34,16 +34,12 @@ export class LLMChatComposer extends Component {
      * Intercept send button click
      * @private
      */
-    async _onClickSend() {
+    _onClickSend() {
         if (this.isDisabled) {
             return;
         }
         
-        await this.composerView.postMessage();
-        this.composerView.update({
-            doFocus: true,
-        });
-        this.composerView.startStreaming();
+        this.composerView.postUserMessageForAi();
     }
 }
 

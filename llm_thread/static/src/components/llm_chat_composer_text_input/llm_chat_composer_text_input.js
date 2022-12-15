@@ -10,9 +10,6 @@ export class LLMChatComposerTextInput extends ComposerTextInput {
      * @param {InputEvent} ev
      */
     _onInput(ev) {
-        // Pre-process the input if needed
-        const value = ev.target.value;
-        
         // Call original handler
         this.composerView.onInputTextarea(ev);
     }
@@ -23,8 +20,7 @@ export class LLMChatComposerTextInput extends ComposerTextInput {
      * @param {KeyboardEvent} ev
      */
     _onKeydown(ev) {
-        console.log(ev.key);
-        this.composerView.onKeydownTextarea(ev);
+        this.composerView.onKeydownTextareaForAi(ev);
     }
 }
 
