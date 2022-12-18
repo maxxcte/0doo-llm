@@ -1,24 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
-
     <t t-name="llm_thread.LLMChatMessageList" owl="1">
         <t t-if="messageListView">
             <div class="o_MessageList bg-view d-flex flex-column overflow-auto" t-att-class="{ 'o-empty align-items-center justify-content-center': messageListView.threadViewOwner.messages.length === 0, 'pb-4': messageListView.threadViewOwner.messages.length !== 0 }" t-attf-class="{{ className }}" t-on-scroll="onScroll" t-ref="root">
                 <!-- LOADING (if order asc)-->
                 <t t-if="messageListView.threadViewOwner.threadCache.hasLoadingFailed">
                     <div class="o_MessageList_alertLoadingFailed d-flex align-items-center alert alert-info">
-                        <div>
-                            An error occurred while fetching messages.
-                        </div>
-                        <button class="o_MessageList_alertLoadingFailedRetryButton btn btn-link" t-on-click="messageListView.onClickRetryLoadMoreMessages">
-                            Click here to retry
-                        </button>
+                        <div>An error occurred while fetching messages.</div>
+                        <button class="o_MessageList_alertLoadingFailedRetryButton btn btn-link" t-on-click="messageListView.onClickRetryLoadMoreMessages">Click here to retry</button>
                     </div>
                 </t>
                 <t t-if="!messageListView.threadViewOwner.threadCache.hasLoadingFailed and messageListView.threadViewOwner.order === 'asc'">
                     <t t-call="llm_thread.LLMChatMessageList.loadMore"/>
                 </t>
-                <div t-if="messageListView.threadViewOwner.order === 'asc' and messageListView.threadViewOwner.threadCache.orderedNonEmptyMessages.length !== 0 and !(messageListView.threadViewOwner.thread and messageListView.threadViewOwner.thread.mailbox)" class="flex-grow-1"/>
+                <div t-if="messageListView.threadViewOwner.order === 'asc' and messageListView.threadViewOwner.threadCache.orderedNonEmptyMessages.length !== 0 and !(messageListView.threadViewOwner.thread and messageListView.threadViewOwner.thread.mailbox)" style="flex: 0 0 auto;"/>
                 <!-- MESSAGES -->
                 <t t-set="current_day" t-value="0"/>
                 <t t-foreach="messageListView.messageListViewItems" t-as="messageListViewItem" t-key="messageListViewItem.localId">
@@ -89,5 +84,4 @@
             </a>
         </t>
     </t>
-
 </templates>
