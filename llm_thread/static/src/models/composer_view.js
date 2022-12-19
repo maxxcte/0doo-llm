@@ -95,6 +95,10 @@ registerPatch({
                         console.error('Streaming error:', data.error);
                         eventSource.close();
                         this.update({ isStreaming: false });
+                        this.messaging.notify({
+                            message: data.error,
+                            type: 'danger',
+                        });
                         break;
                     case 'end':
                         const htmlStreamingContent = this.htmlStreamingContent;
