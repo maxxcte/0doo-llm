@@ -6,7 +6,7 @@
 .o_LLMChatThread_content {
     flex-grow: 1;
     overflow: auto;
-    max-height: calc(100% - 250px); /* Adjust based on header + composer */
+    max-height: calc(100% - 150px); /* Adjust based on header + composer */
     padding: 1rem;
 }
 
