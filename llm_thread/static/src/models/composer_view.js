@@ -58,12 +58,11 @@ registerPatch({
         /**
          * Stop streaming response for this thread
          */
-        async _stopStreaming(eventSource) {
+        async _stopStreaming() {
             if (!this.isStreaming) {
                 return;
             }
             this.update({ isStreaming: false, streamingContent: '' });
-            eventSource.close();
         },
         /**
          * Start streaming response for this thread
@@ -102,15 +101,17 @@ registerPatch({
                         break;
                     case 'end':
                         const htmlStreamingContent = this.htmlStreamingContent;
-                        this._stopStreaming(eventSource);
+                        eventSource.close();
                         await this._postAIMessage(htmlStreamingContent);
+                        this._stopStreaming();
                         break;
                 }
             };
             
             eventSource.onerror = (error) => {
                 console.error('EventSource failed:', error);
-                this._stopStreaming(eventSource);
+                eventSource.close();
+                this._stopStreaming();
             };
         },
         async postUserMessageForAi() {
