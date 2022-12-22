@@ -148,8 +148,8 @@ registerModel({
             const defaultModel = this.defaultLLMModel;
             if (!defaultModel) {
                 this.messaging.notify({
-                    title: 'No default model',
-                    message: 'Please select a default model or create a new one',
+                    title: 'No LLMModel available',
+                    message: 'Please add a new LLMModel to use this feature',
                     type: 'warning',
                 });
                 return;
