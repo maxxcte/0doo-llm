@@ -84,25 +84,25 @@
 
     <!-- Menu Items -->
     <menuitem
-        id="menu_llm_thread"
-        name="Chat Threads"
-        action="llm_thread_action"
-        parent="llm.menu_llm_root"
-        sequence="20"
-    />
+    id="menu_llm_thread"
+    name="Chat Threads"
+    action="llm_thread_action"
+    parent="llm.menu_llm_root"
+    sequence="20"
+  />
     <!-- Chat Client Action -->
     <record id="action_llm_chat" model="ir.actions.client">
         <field name="name">Chat</field>
         <field name="tag">llm_thread.chat_client_action</field>
-        <field name="params" eval="&quot;{}&quot;"/>
+        <field name="params" eval="&quot;{}&quot;" />
     </record>
 
     <!-- Chat Menu Item -->
     <menuitem
-        id="menu_llm_chat"
-        name="Chat"
-        action="action_llm_chat"
-        parent="llm.menu_llm_root"
-        sequence="30"
-    />
+    id="menu_llm_chat"
+    name="Chat"
+    action="action_llm_chat"
+    parent="llm.menu_llm_root"
+    sequence="30"
+  />
 </odoo>

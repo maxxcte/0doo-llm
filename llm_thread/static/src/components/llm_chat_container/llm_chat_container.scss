@@ -1,13 +1,13 @@
 .o_LLMChatContainer {
-    background-color: $o-view-background-color;
-    
-    .o_LLMChatContainer_spinner {
-        color: $o-main-text-color;
-        font-size: 1.1em;
-        
-        .o_LLMChatContainer_spinnerIcon {
-            font-size: 1.3em;
-            color: $o-brand-primary;
-        }
+  background-color: $o-view-background-color;
+
+  .o_LLMChatContainer_spinner {
+    color: $o-main-text-color;
+    font-size: 1.1em;
+
+    .o_LLMChatContainer_spinnerIcon {
+      font-size: 1.3em;
+      color: $o-brand-primary;
     }
+  }
 }

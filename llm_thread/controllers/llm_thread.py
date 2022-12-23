@@ -6,6 +6,7 @@ from odoo.http import Response, request
 
 _logger = logging.getLogger(__name__)
 
+
 class LLMThreadController(http.Controller):
     def generate(self, dbname, env, thread_id):
         """Generate streaming response for the thread"""
@@ -44,7 +45,7 @@ class LLMThreadController(http.Controller):
             direct_passthrough=True,
             headers=headers,
         )
-    
+
     @http.route("/llm/thread/post_ai_response", type="json", auth="user")
     def post_ai_response(self, thread_id, **kwargs):
         """Post a message to the thread"""

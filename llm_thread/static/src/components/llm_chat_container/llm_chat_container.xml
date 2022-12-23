@@ -1,11 +1,18 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <templates xml:space="preserve">
     <t t-name="llm_thread.LLMChatContainer" owl="1">
         <div class="o_LLMChatContainer h-100 d-flex flex-column">
-            <LLMChat t-if="messaging and messaging.llmChat and messaging.llmChat.llmChatView and messaging.isInitialized" 
-                     record="messaging.llmChat.llmChatView"/>
-            <div t-else="" class="o_LLMChatContainer_spinner d-flex flex-grow-1 align-items-center justify-content-center">
-                <i class="o_LLMChatContainer_spinnerIcon fa fa-circle-o-notch fa-spin me-2"/>Please wait...
+            <LLMChat
+        t-if="messaging and messaging.llmChat and messaging.llmChat.llmChatView and messaging.isInitialized"
+        record="messaging.llmChat.llmChatView"
+      />
+            <div
+        t-else=""
+        class="o_LLMChatContainer_spinner d-flex flex-grow-1 align-items-center justify-content-center"
+      >
+                <i
+          class="o_LLMChatContainer_spinnerIcon fa fa-circle-o-notch fa-spin me-2"
+        />Please wait...
             </div>
         </div>
     </t>

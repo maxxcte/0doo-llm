@@ -6,5 +6,5 @@
  * @returns {string} The resulting HTML string.
  */
 export function markdownToHtml(markdown) {
-    return window.marked.parse(markdown);
+  return window.marked.parse(markdown);
 }
