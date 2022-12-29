@@ -82,6 +82,8 @@ registerModel({
             "write_date",
             "model_id",
             "provider_id",
+            "related_thread_model",
+            "related_thread_id",
           ],
           order: "write_date desc",
         },
@@ -96,6 +98,8 @@ registerModel({
         creator: thread.create_uid ? { id: thread.create_uid } : undefined,
         isServerPinned: true,
         updatedAt: thread.write_date,
+        relatedThreadModel: thread.related_thread_model,
+        relatedThreadId: thread.related_thread_id,
         llmModel: thread.model_id
           ? {
               id: thread.model_id[0],
