@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.Chatter" t-inherit="mail.Chatter" t-inherit-mode="extension" owl="1">
+        <xpath expr="//t[@t-if='chatter.threadView']" position="replace">
+            <t t-if="chatter.threadView">
+                <div>Hello World</div>
+                <t t-if="chatter.is_chatting_with_ai and chatter.llmChatThread">
+                    <LLMChatThread
+                        className="'o_Chatter_thread'"
+                        record="chatter.llmChatThread"
+                        threadView="chatter.llmChatThreadView"
+                    />
+                </t>
+                <t t-else="">
+                    <ThreadView
+                        className="'o_Chatter_thread'"
+                        record="chatter.threadView"
+                    />
+                </t>
+                <div>Hello World2</div>
+            </t>
+        </xpath>
+    </t>
+</templates>

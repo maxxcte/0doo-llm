@@ -1,0 +1,5332 @@
+# Project Directory Structure:
+.
+├── .gptree_config
+├── components/
+│   ├── llm_chat/
+│   │   ├── llm_chat.js
+│   │   ├── llm_chat.scss
+│   │   └── llm_chat.xml
+│   ├── llm_chat_composer/
+│   │   ├── llm_chat_composer.js
+│   │   ├── llm_chat_composer.scss
+│   │   └── llm_chat_composer.xml
+│   ├── llm_chat_composer_text_input/
+│   │   ├── llm_chat_composer_text_input.js
+│   │   ├── llm_chat_composer_text_input.scss
+│   │   └── llm_chat_composer_text_input.xml
+│   ├── llm_chat_container/
+│   │   ├── llm_chat_container.js
+│   │   ├── llm_chat_container.scss
+│   │   └── llm_chat_container.xml
+│   ├── llm_chat_message_list/
+│   │   ├── llm_chat_message_list.js
+│   │   └── llm_chat_message_list.xml
+│   ├── llm_chat_sidebar/
+│   │   ├── llm_chat_sidebar.js
+│   │   ├── llm_chat_sidebar.scss
+│   │   └── llm_chat_sidebar.xml
+│   ├── llm_chat_thread/
+│   │   ├── llm_chat_thread.js
+│   │   ├── llm_chat_thread.scss
+│   │   └── llm_chat_thread.xml
+│   ├── llm_chat_thread_header/
+│   │   ├── llm_chat_thread_header.js
+│   │   ├── llm_chat_thread_header.scss
+│   │   └── llm_chat_thread_header.xml
+│   ├── llm_chat_thread_list/
+│   │   ├── llm_chat_thread_list.js
+│   │   ├── llm_chat_thread_list.scss
+│   │   └── llm_chat_thread_list.xml
+│   ├── llm_chatter/
+│   │   └── llm_chatter.xml
+│   └── llm_chatter_topbar/
+│       └── llm_chatter_topbar.xml
+├── gptree_output.txt
+├── llm_chat_client_action.js
+├── models/
+│   ├── chatter.js
+│   ├── composer.js
+│   ├── composer_view.js
+│   ├── llm_chat.js
+│   ├── llm_chat_thread_header_view.js
+│   ├── llm_chat_view.js
+│   ├── llm_model.js
+│   ├── llm_provider.js
+│   ├── main.js
+│   ├── messaging.js
+│   ├── thread.js
+│   └── thread_view.js
+└── utils/
+    └── markdown_utils.js
+
+# BEGIN FILE CONTENTS
+
+# File: components/llm_chat_container/llm_chat_container.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatContainer" owl="1">
+        <div class="o_LLMChatContainer h-100 d-flex flex-column">
+            <LLMChat
+        t-if="messaging and messaging.llmChat and messaging.llmChat.llmChatView and messaging.isInitialized"
+        record="messaging.llmChat.llmChatView"
+      />
+            <div
+        t-else=""
+        class="o_LLMChatContainer_spinner d-flex flex-grow-1 align-items-center justify-content-center"
+      >
+                <i
+          class="o_LLMChatContainer_spinnerIcon fa fa-circle-o-notch fa-spin me-2"
+        />Please wait...
+            </div>
+        </div>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread_header/llm_chat_thread_header.scss
+
+.o_ThreadViewTopbar {
+  // Only keep styles that are specific to our use case and not covered by Odoo's classes
+  .o_ThreadViewTopbar_threadName {
+    max-width: 180px; // Limit thread name width on mobile
+
+    @include media-breakpoint-up(sm) {
+      max-width: none;
+    }
+  }
+
+  .o_ThreadViewTopbar_threadDescription {
+    display: inline-flex;
+    align-items: center;
+    font-size: 13px;
+    max-width: 200px; // Limit description width
+
+    @include media-breakpoint-down(sm) {
+      font-size: 12px;
+      max-width: 150px; // More constrained on mobile
+    }
+  }
+
+  .o_ThreadViewTopbar_providerName {
+    color: $info;
+  }
+
+  .o_ThreadViewTopbar_modelName {
+    color: $primary;
+    min-width: 0; // Enable truncation
+  }
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_message_list/llm_chat_message_list.js
+
+/** @odoo-module **/
+
+import { MessageList } from "@mail/components/message_list/message_list";
+import { Transition } from "@web/core/transition";
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+import { markup } from "@odoo/owl";
+import { useEffect, useRef } from "@odoo/owl";
+
+export class LLMChatMessageList extends MessageList {
+  setup() {
+    super.setup();
+    this.rootRef = useRef("root");
+    useEffect(
+      () => {
+        if (this.composerView.isStreaming && this.htmlStreamingContent) {
+          this._scrollToEnd();
+        }
+      },
+      () => [this.htmlStreamingContent]
+    );
+  }
+
+  get htmlStreamingContent() {
+    return this.composerView.htmlStreamingContent
+      ? markup(this.composerView.htmlStreamingContent)
+      : "";
+  }
+
+  get composerView() {
+    return this.props.composerView;
+  }
+
+  _scrollToEnd() {
+    const scrollable = this.rootRef.el.closest(".o_LLMChatThread_content");
+    if (scrollable) {
+      const scrollHeight = scrollable.scrollHeight;
+      const clientHeight = scrollable.clientHeight;
+      const scrollTop = scrollHeight - clientHeight;
+      scrollable.scrollTop = scrollTop;
+    } else {
+      // Fallback to original behavior
+      const fallbackScrollable = this.rootRef.el;
+      if (fallbackScrollable) {
+        const scrollHeight = fallbackScrollable.scrollHeight;
+        const clientHeight = fallbackScrollable.clientHeight;
+        const scrollTop = scrollHeight - clientHeight;
+        fallbackScrollable.scrollTop = scrollTop;
+      }
+    }
+  }
+}
+
+Object.assign(LLMChatMessageList, {
+  components: { Transition },
+  props: { record: Object, composerView: Object },
+  template: "llm_thread.LLMChatMessageList",
+});
+
+registerMessagingComponent(LLMChatMessageList);
+
+
+# END FILE CONTENTS
+
+
+# File: utils/markdown_utils.js
+
+/** @odoo-module **/
+
+/**
+ * Converts a Markdown string to HTML using the marked library.
+ * @param {string} markdown - The Markdown text to convert.
+ * @returns {string} The resulting HTML string.
+ */
+export function markdownToHtml(markdown) {
+  return window.marked.parse(markdown);
+}
+
+
+# END FILE CONTENTS
+
+
+# File: .gptree_config
+
+# GPTree Local Config
+version: 1
+
+# Whether to use .gitignore
+useGitIgnore: true
+# File types to include (e.g., .py,.js)
+includeFileTypes: *
+# File types to exclude when includeFileTypes is '*'
+excludeFileTypes: 
+# Output file name
+outputFile: gptree_output.txt
+# Whether to output the file locally or relative to the project directory
+outputFileLocally: true
+# Whether to copy the output to the clipboard
+copyToClipboard: false
+# Whether to use safe mode (prevent overly large files from being combined)
+safeMode: true
+# Whether to store the files chosen in the config file (--save, -s)
+storeFilesChosen: true
+# Previously selected files (when using the -s or --save flag previously)
+previousFiles: components/llm_chat_thread/llm_chat_thread.scss,components/llm_chat_composer/llm_chat_composer.js,components/llm_chat_container/llm_chat_container.js,components/llm_chat/llm_chat.scss,components/llm_chat_sidebar/llm_chat_sidebar.js,llm_chat_client_action.js,models/thread.js,models/composer.js,components/llm_chat_composer_text_input/llm_chat_composer_text_input.xml,.gptree_config,components/llm_chat_composer/llm_chat_composer.xml,models/messaging.js,components/llm_chat_sidebar/llm_chat_sidebar.scss,components/llm_chat/llm_chat.js,components/llm_chat_container/llm_chat_container.xml,components/llm_chat_thread_list/llm_chat_thread_list.js,components/llm_chat_thread_list/llm_chat_thread_list.xml,models/composer_view.js,models/llm_chat_view.js,models/llm_provider.js,components/llm_chat_composer/llm_chat_composer.scss,models/thread_view.js,components/llm_chat_thread_header/llm_chat_thread_header.scss,components/llm_chatter_topbar/llm_chatter_topbar.xml,models/llm_model.js,components/llm_chat_message_list/llm_chat_message_list.xml,components/llm_chat_composer_text_input/llm_chat_composer_text_input.scss,components/llm_chat_sidebar/llm_chat_sidebar.xml,components/llm_chat_thread/llm_chat_thread.xml,models/main.js,components/llm_chat_thread/llm_chat_thread.js,components/llm_chat_container/llm_chat_container.scss,components/llm_chat_composer_text_input/llm_chat_composer_text_input.js,components/llm_chat_thread_list/llm_chat_thread_list.scss,components/llm_chat_thread_header/llm_chat_thread_header.js,components/llm_chat_message_list/llm_chat_message_list.js,models/llm_chat_thread_header_view.js,components/llm_chat_thread_header/llm_chat_thread_header.xml,utils/markdown_utils.js,components/llm_chat/llm_chat.xml,models/llm_chat.js
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chatter/llm_chatter.xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.Chatter" t-inherit="mail.Chatter" t-inherit-mode="extension" owl="1">
+        <xpath expr="//t[@t-if='chatter.threadView']" position="replace">
+            <t t-if="chatter.threadView">
+                <t t-if="chatter.is_chatting_with_ai and chatter.llmChatThread">
+                    <LLMChatThread
+                        className="'o_Chatter_thread'"
+                        record="chatter.llmChatThread"
+                        threadView="chatter.llmChatThreadView"
+                    />
+                </t>
+                <t t-else="">
+                    <ThreadView
+                        className="'o_Chatter_thread'"
+                        record="chatter.threadView"
+                    />
+                </t>
+            </t>
+        </xpath>
+    </t>
+</templates>
+
+# END FILE CONTENTS
+
+
+# File: models/main.js
+
+/** @odoo-module **/
+
+// Import all models to ensure they are registered
+import "@llm_thread/models/llm_chat";
+import "@llm_thread/models/llm_chat_view";
+import "@llm_thread/models/messaging";
+import "@llm_thread/models/thread";
+import "@llm_thread/models/composer";
+import "@llm_thread/models/composer_view";
+import "@llm_thread/models/llm_model";
+import "@llm_thread/models/llm_provider";
+import "@llm_thread/models/thread_view";
+import "@llm_thread/models/llm_chat_thread_header_view";
+import "@llm_thread/models/chatter";
+
+# END FILE CONTENTS
+
+
+# File: models/composer.js
+
+/** @odoo-module **/
+
+import { registerPatch } from "@mail/model/model_core";
+import { attr } from "@mail/model/model_field";
+
+registerPatch({
+  name: "Composer",
+  fields: {
+    placeholderLLMChat: attr({
+      default: "Ask anything...",
+    }),
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: models/chatter.js
+
+/** @odoo-module **/
+
+import { registerPatch } from "@mail/model/model_core";
+import { attr, one } from "@mail/model/model_field";
+import { clear } from "@mail/model/model_field_command";
+
+registerPatch({
+    name: "Chatter",
+    fields: {
+        is_chatting_with_ai: attr({
+            default: false,
+        }),
+        llmChatThread: one("Thread", {
+            compute() {
+                if (!this.is_chatting_with_ai || !this.llmChatThreadView) {
+                    return clear();
+                }
+                return this.llmChatThreadView.thread;
+            },
+        }),
+        llmChatThreadView: one("ThreadView", {
+            compute() {
+                if (!this.is_chatting_with_ai || !this.thread) {
+                    return clear();
+                }
+                const llmChat = this.messaging.llmChat;
+                if (!llmChat || !llmChat.activeThread) {
+                    return clear();
+                }
+                return {
+                    thread: llmChat.activeThread,
+                    messageListView: {},
+                    llmChatThreadHeaderView: {},
+                };
+            },
+        }),
+    },
+    recordMethods: {
+        printStuffs(){
+            console.log("Printing Stuffs");
+        },
+        async toggleAIChat() {
+            console.log("Toggling AI Chat");
+            const messaging = this.messaging;
+            if (!this.thread) {
+                return;
+            }
+
+            if (!this.is_chatting_with_ai) {
+                let llmChat = messaging.llmChat;
+                if (!llmChat) {
+                    messaging.update({
+                        llmChat: {
+                            isInitThreadHandled: false,
+                        },
+                    });
+                    llmChat = messaging.llmChat;
+                    await llmChat.loadLLMModels();
+                    await llmChat.loadThreads();
+                }
+
+                let llmThread = llmChat.threads.find(
+                    thread => thread.relatedThreadModel === this.thread.model &&
+                            thread.relatedThreadId === this.thread.id
+                );
+
+                if (!llmThread) {
+                    const defaultModel = llmChat.defaultLLMModel;
+                    if (!defaultModel) {
+                        messaging.notify({
+                            title: "No AI Model Available",
+                            message: "Please configure an AI model first",
+                            type: "warning",
+                        });
+                        return;
+                    }
+
+                    const threadId = await messaging.rpc({
+                        model: "llm.thread",
+                        method: "create",
+                        args: [{
+                            name: `AI Chat for ${this.thread.model} ${this.thread.id}`,
+                            model_id: defaultModel.id,
+                            provider_id: defaultModel.llmProvider.id,
+                            related_thread_model: this.thread.model,
+                            related_thread_id: this.thread.id,
+                        }],
+                    });
+
+                    llmThread = messaging.models["Thread"].insert({
+                        id: threadId,
+                        model: "llm.thread",
+                        name: `AI Chat for ${this.thread.model} ${this.thread.id}`,
+                        llmModel: defaultModel,
+                        llmChat: llmChat,
+                        relatedThreadModel: this.thread.model,
+                        relatedThreadId: this.thread.id,
+                    });
+                }
+
+                await llmChat.selectThread(llmThread.id);
+                this.update({ is_chatting_with_ai: true });
+            } else {
+                this.update({ is_chatting_with_ai: false });
+            }
+        },
+    },
+});
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_composer/llm_chat_composer.js
+
+/** @odoo-module **/
+
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+import { useComponentToModel } from "@mail/component_hooks/use_component_to_model";
+const { Component } = owl;
+
+export class LLMChatComposer extends Component {
+  /**
+   * @override
+   */
+  setup() {
+    super.setup();
+    useComponentToModel({ fieldName: "component" });
+  }
+  /**
+   * @returns {ComposerView}
+   */
+  get composerView() {
+    return this.props.record;
+  }
+
+  /**
+   * @returns {boolean}
+   */
+  get isDisabled() {
+    return !this.composerView.composer.canPostMessage;
+  }
+
+  //--------------------------------------------------------------------------
+  // Private
+  //--------------------------------------------------------------------------
+
+  /**
+   * Intercept send button click
+   * @private
+   */
+  _onClickSend() {
+    if (this.isDisabled) {
+      return;
+    }
+
+    this.composerView.postUserMessageForAi();
+  }
+}
+
+Object.assign(LLMChatComposer, {
+  props: { record: Object },
+  template: "llm_thread.LLMChatComposer",
+});
+
+registerMessagingComponent(LLMChatComposer);
+
+
+# END FILE CONTENTS
+
+
+# File: models/llm_chat.js
+
+/** @odoo-module **/
+
+import { registerModel } from "@mail/model/model_core";
+import { attr, one, many } from "@mail/model/model_field";
+import { clear } from "@mail/model/model_field_command";
+
+registerModel({
+  name: "LLMChat",
+  recordMethods: {
+    /**
+     * Close the LLM chat. Should reset its internal state.
+     */
+    close() {
+      this.update({ llmChatView: clear() });
+    },
+
+    /**
+     * Opens thread from init active id if the thread exists.
+     */
+    openInitThread() {
+      if (!this.initActiveId) {
+        // If no initial thread specified, select the first thread
+        if (this.threads.length > 0) {
+          this.selectThread(this.threads[0].id);
+        }
+        return;
+      }
+
+      const [model, id] =
+        typeof this.initActiveId === "number"
+          ? ["llm.thread", this.initActiveId]
+          : this.initActiveId.split("_");
+      const thread = this.messaging.models["Thread"].findFromIdentifyingData({
+        id: Number(id),
+        model,
+      });
+      if (!thread) {
+        // If specified thread not found, select first thread
+        if (this.threads.length > 0) {
+          this.selectThread(this.threads[0].id);
+        }
+        return;
+      }
+      this.selectThread(thread.id);
+    },
+
+    /**
+     * Opens the given thread in LLMChat
+     *
+     * @param {Thread} thread
+     */
+    async openThread(thread) {
+      this.update({ thread });
+      if (!this.llmChatView) {
+        this.env.services.action.doAction("llm_thread.action_llm_chat", {
+          name: this.env._t("Chat"),
+          active_id: this.threadToActiveId(thread),
+          clearBreadcrumbs: false,
+        });
+      }
+    },
+
+    /**
+     * @param {Thread} thread
+     * @returns {string}
+     */
+    threadToActiveId(thread) {
+      return `${thread.model}_${thread.id}`;
+    },
+
+    async loadThreads() {
+      const result = await this.messaging.rpc({
+        model: "llm.thread",
+        method: "search_read",
+        kwargs: {
+          domain: [],
+          fields: [
+            "name",
+            "message_ids",
+            "create_uid",
+            "create_date",
+            "write_date",
+            "model_id",
+            "provider_id",
+          ],
+          order: "write_date desc",
+        },
+      });
+
+      // Convert results to Thread records
+      const threadData = result.map((thread) => ({
+        id: thread.id,
+        model: "llm.thread",
+        name: thread.name,
+        message_needaction_counter: 0,
+        creator: thread.create_uid ? { id: thread.create_uid } : undefined,
+        isServerPinned: true,
+        updatedAt: thread.write_date,
+        llmModel: thread.model_id
+          ? {
+              id: thread.model_id[0],
+              name: thread.model_id[1],
+              llmProvider: {
+                id: thread.provider_id[0],
+                name: thread.provider_id[1],
+              },
+            }
+          : undefined,
+      }));
+
+      // Update threads in the store
+      this.update({ threads: threadData });
+    },
+    /**
+     * @param {integer} threadId
+     */
+    async selectThread(threadId) {
+      const thread = this.messaging.models["Thread"].findFromIdentifyingData({
+        id: threadId,
+        model: "llm.thread",
+      });
+
+      if (thread) {
+        // Update active thread - ThreadCache will handle message loading
+        this.update({ activeThread: thread });
+      }
+    },
+
+    open() {
+      this.update({ llmChatView: {} });
+    },
+
+    async loadLLMModels() {
+      const result = await this.messaging.rpc({
+        model: "llm.model",
+        method: "search_read",
+        kwargs: {
+          domain: [],
+          fields: ["name", "id", "provider_id", "default"],
+        },
+      });
+
+      // Convert results to LLMModel records
+      const llmModelData = result.map((model) => ({
+        id: model.id,
+        name: model.name,
+        llmProvider: model.provider_id
+          ? { id: model.provider_id[0], name: model.provider_id[1] }
+          : undefined,
+        default: model.default,
+      }));
+
+      // Update llmModels in the store
+      this.update({ llmModels: llmModelData });
+    },
+    async createNewThread() {
+      // Get the default model or first available model
+      const defaultModel = this.defaultLLMModel;
+      if (!defaultModel) {
+        this.messaging.notify({
+          title: "No LLMModel available",
+          message: "Please add a new LLMModel to use this feature",
+          type: "warning",
+        });
+        return;
+      }
+      const threadName = `New Chat ${new Date().toLocaleString()}`;
+      // Create new thread via RPC
+      const threadId = await this.messaging.rpc({
+        model: "llm.thread",
+        method: "create",
+        args: [
+          [
+            {
+              model_id: defaultModel.id,
+              provider_id: defaultModel.llmProvider.id,
+              name: threadName,
+            },
+          ],
+        ],
+      });
+
+      const threadDetails = await this.messaging.rpc({
+        model: "llm.thread",
+        method: "read",
+        args: [[threadId], ["name", "model_id", "provider_id", "write_date"]],
+      });
+      if (!threadDetails || !threadDetails[0]) {
+        return;
+      }
+
+      // Insert the thread into frontend models
+      await this.messaging.models["Thread"].insert({
+        id: threadId,
+        model: "llm.thread",
+        name: threadDetails[0].name,
+        message_needaction_counter: 0,
+        isServerPinned: true,
+        llmModel: defaultModel,
+        llmChat: this,
+        updatedAt: threadDetails[0].write_date,
+      });
+      this.selectThread(threadId);
+    },
+  },
+  fields: {
+    /**
+     * Formatted active id of the current thread
+     */
+    activeId: attr({
+      compute() {
+        if (!this.activeThread) {
+          return clear();
+        }
+        return this.threadToActiveId(this.activeThread);
+      },
+    }),
+    /**
+     * View component for this LLMChat
+     */
+    llmChatView: one("LLMChatView", {
+      inverse: "llmChat",
+      isCausal: true,
+    }),
+    /**
+     * Determines if the logic for opening a thread via the `initActiveId`
+     * has been processed.
+     */
+    isInitThreadHandled: attr({
+      default: false,
+    }),
+    /**
+     * Formatted init thread on opening chat for the first time
+     * Format: <threadModel>_<threadId>
+     */
+    initActiveId: attr({
+      default: null,
+    }),
+    /**
+     * Currently active thread
+     */
+    activeThread: one("Thread", {
+      inverse: "activeLLMChat",
+    }),
+    /**
+     * All threads in this chat
+     */
+    threads: many("Thread", {
+      inverse: "llmChat",
+    }),
+    orderedThreads: many("Thread", {
+      compute() {
+        if (!this.threads) {
+          return clear();
+        }
+        const sortedThreads = this.threads.slice().sort((a, b) => {
+          const dateA = a.updatedAt
+            ? new Date(a.updatedAt.replace(" ", "T"))
+            : new Date(0);
+          const dateB = b.updatedAt
+            ? new Date(b.updatedAt.replace(" ", "T"))
+            : new Date(0);
+          return dateB - dateA;
+        });
+        return sortedThreads;
+      },
+    }),
+    threadCache: one("ThreadCache", {
+      compute() {
+        if (!this.activeThread) {
+          return clear();
+        }
+        return {
+          thread: this.activeThread,
+        };
+      },
+    }),
+    llmModels: many("LLMModel"),
+    llmProviders: many("LLMProvider", {
+      compute() {
+        if (!this.llmModels) {
+          return clear();
+        }
+        // Create a map to track unique providers by ID
+        const providersMap = new Map();
+
+        // Extract unique providers from llmModels' data
+        for (const model of this.llmModels) {
+          const providerId = model.llmProvider?.id;
+          const providerName = model.llmProvider?.name;
+          if (providerId && !providersMap.has(providerId)) {
+            providersMap.set(providerId, {
+              id: providerId,
+              name: providerName,
+            });
+          }
+        }
+
+        // Convert map values to array
+        return Array.from(providersMap.values());
+      },
+    }),
+    defaultLLMModel: one("LLMModel", {
+      compute() {
+        if (!this.llmModels) {
+          return clear();
+        }
+        return (
+          this.llmModels.find((model) => model.default) ||
+          this.llmModels[0] ||
+          clear()
+        );
+      },
+    }),
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: models/llm_chat_view.js
+
+/** @odoo-module **/
+
+import { registerModel } from "@mail/model/model_core";
+import { attr, one } from "@mail/model/model_field";
+import { clear } from "@mail/model/model_field_command";
+
+registerModel({
+  name: "LLMChatView",
+  lifecycleHooks: {
+    _created() {
+      // Initialize thread list visibility based on device size
+      this.update({
+        isThreadListVisible: !this.messaging.device.isSmall,
+      });
+    },
+  },
+  recordMethods: {
+    /**
+     * @private
+     */
+    _onLLMChatActiveThreadChanged() {
+      this.env.services.router.pushState({
+        action: this.llmChat.llmChatView.actionId,
+        active_id: this.llmChat.activeId,
+      });
+    },
+  },
+  fields: {
+    actionId: attr(),
+    isThreadListVisible: attr({
+      default: true,
+    }),
+    llmChat: one("LLMChat", {
+      inverse: "llmChatView",
+      required: true,
+    }),
+    isActive: attr({
+      compute() {
+        return Boolean(this.llmChat);
+      },
+    }),
+    thread: one("Thread", {
+      compute() {
+        return this.llmChat.activeThread;
+      },
+    }),
+    threadViewer: one("ThreadViewer", {
+      compute() {
+        if (!this.llmChat.activeThread) {
+          return clear();
+        }
+        return {
+          hasThreadView: true,
+          thread: this.llmChat.activeThread,
+          threadCache: this.llmChat.threadCache,
+        };
+      },
+    }),
+    threadView: one("ThreadView", {
+      compute() {
+        if (!this.threadViewer) {
+          return clear();
+        }
+        return {
+          threadViewer: this.threadViewer,
+          messageListView: {},
+          llmChatThreadHeaderView: {},
+        };
+      },
+    }),
+    composer: one("Composer", {
+      compute() {
+        if (!this.threadViewer) {
+          return clear();
+        }
+        return { thread: this.threadViewer.thread };
+      },
+    }),
+  },
+  onChanges: [
+    {
+      dependencies: ["llmChat.activeThread"],
+      methodName: "_onLLMChatActiveThreadChanged",
+    },
+  ],
+});
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread_list/llm_chat_thread_list.js
+
+/** @odoo-module **/
+
+import { useModels } from "@mail/component_hooks/use_models";
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+
+const { Component, useState } = owl;
+
+export class LLMChatThreadList extends Component {
+  setup() {
+    useModels();
+    super.setup();
+    this.state = useState({
+      isLoading: false,
+    });
+  }
+
+  /**
+   * @returns {LLMChatView}
+   */
+  get llmChatView() {
+    return this.props.record;
+  }
+
+  /**
+   * @returns {Thread}
+   */
+  get activeThread() {
+    return this.llmChatView.llmChat.activeThread;
+  }
+
+  /**
+   * Handle thread click
+   * @param {Thread} thread
+   */
+  async _onThreadClick(thread) {
+    if (this.state.isLoading) return;
+
+    this.state.isLoading = true;
+    try {
+      await this.llmChatView.llmChat.selectThread(thread.id);
+      this.llmChatView.update({
+        isThreadListVisible: false,
+      });
+    } catch (error) {
+      console.error("Error selecting thread:", error);
+      this.messaging.notify({
+        title: "Error",
+        message: "Failed to load thread",
+        type: "danger",
+      });
+    } finally {
+      this.state.isLoading = false;
+    }
+  }
+}
+
+Object.assign(LLMChatThreadList, {
+  props: { record: Object },
+  template: "llm_thread.LLMChatThreadList",
+});
+
+registerMessagingComponent(LLMChatThreadList);
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_composer/llm_chat_composer.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatComposer" owl="1">
+        <div class="o_LLMChatComposer">
+            <div
+        class="o_LLMChatComposer_container d-flex align-items-end gap-3 mx-auto"
+        style="max-width: 1200px;"
+      >
+                <LLMChatComposerTextInput record="composerView" />
+                <button
+          class="o_Composer_actionButton o_Composer_button o_Composer_buttonSend btn btn-primary o-last o-composer-is-compact border-start-0"
+          t-on-click="_onClickSend"
+          t-att-disabled="isDisabled"
+        >
+                    <i class="fa fa-paper-plane-o" />
+                </button>
+            </div>
+        </div>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: models/thread_view.js
+
+/** @odoo-module **/
+
+import { registerPatch } from "@mail/model/model_core";
+import { one } from "@mail/model/model_field";
+
+registerPatch({
+  name: "ThreadView",
+  fields: {
+    llmChatThreadHeaderView: one("LLMChatThreadHeaderView", {
+      inverse: "threadView",
+    }),
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: models/llm_model.js
+
+/** @odoo-module **/
+
+import { registerModel } from "@mail/model/model_core";
+import { attr, one, many } from "@mail/model/model_field";
+
+registerModel({
+  name: "LLMModel",
+  fields: {
+    id: attr({
+      identifying: true,
+    }),
+    name: attr({
+      required: true,
+    }),
+    llmProvider: one("LLMProvider", {
+      inverse: "llmModels",
+    }),
+    threads: many("Thread", {
+      inverse: "llmModel",
+    }),
+    default: attr({
+      default: false,
+    }),
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_container/llm_chat_container.js
+
+/** @odoo-module **/
+
+import { useModels } from "@mail/component_hooks/use_models";
+import { getMessagingComponent } from "@mail/utils/messaging_component";
+
+const { Component, onWillDestroy } = owl;
+
+export class LLMChatContainer extends Component {
+  setup() {
+    useModels();
+    super.setup();
+    onWillDestroy(() => this._willDestroy());
+
+    this.env.services.messaging.modelManager.messagingCreatedPromise.then(
+      async () => {
+        const { action } = this.props;
+        const initActiveId =
+          (action.context && action.context.active_id) ||
+          (action.params && action.params.default_active_id) ||
+          null;
+
+        if (!this.messaging.llmChat) {
+          this.messaging.update({
+            llmChat: {
+              isInitThreadHandled: false,
+            },
+          });
+        }
+        this.llmChat = this.messaging.llmChat;
+
+        // Create LLMChatView and link it to LLMChat
+        this.llmChat.update({
+          llmChatView: {
+            actionId: action.id,
+          },
+          initActiveId,
+        });
+
+        // Wait for messaging to be initialized
+        await this.messaging.initializedPromise;
+        await this.llmChat.loadLLMModels();
+        // Load threads first
+        await this.llmChat.loadThreads();
+
+        // Then handle initial thread
+        if (!this.llmChat.isInitThreadHandled) {
+          this.llmChat.update({ isInitThreadHandled: true });
+          if (!this.llmChat.activeThread) {
+            this.llmChat.openInitThread();
+          }
+        }
+      }
+    );
+
+    // Keep track of current instance to handle cleanup
+    LLMChatContainer.currentInstance = this;
+  }
+
+  get messaging() {
+    return this.env.services.messaging.modelManager.messaging;
+  }
+
+  _willDestroy() {
+    if (this.llmChat && LLMChatContainer.currentInstance === this) {
+      this.llmChat.close();
+    }
+  }
+}
+
+Object.assign(LLMChatContainer, {
+  props: {
+    action: Object,
+    actionId: { type: Number, optional: 1 },
+    className: String,
+    globalState: { type: Object, optional: 1 },
+  },
+  components: {
+    LLMChat: getMessagingComponent("LLMChat"),
+  },
+  template: "llm_thread.LLMChatContainer",
+});
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread/llm_chat_thread.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatThread" owl="1">
+        <div class="o_LLMChatThread d-flex flex-column h-100">
+            <!-- Header -->
+            <LLMChatThreadHeader record="threadView.llmChatThreadHeaderView" />
+
+            <!-- Messages -->
+            <div class="o_LLMChatThread_content flex-grow-1 overflow-auto">
+                <t t-if="thread.cache?.isLoading">
+                    <div
+            class="d-flex justify-content-center align-items-center h-100"
+          >
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </t>
+                <t t-else="">
+                    <!-- Message List -->
+                    <LLMChatMessageList
+            record="threadView.messageListView"
+            composerView="threadView.composerView"
+          />
+                </t>
+            </div>
+
+            <!-- Chat Composer - Moved outside scrollable area -->
+            <div class="o_LLMChatThread_composer p-3">
+                <LLMChatComposer record="threadView.composerView" />
+            </div>
+        </div>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: models/composer_view.js
+
+/** @odoo-module **/
+
+import { registerPatch } from "@mail/model/model_core";
+import { attr } from "@mail/model/model_field";
+import { markdownToHtml } from "../utils/markdown_utils";
+
+registerPatch({
+  name: "ComposerView",
+  fields: {
+    // Streaming related fields
+    isStreaming: attr({
+      default: false,
+    }),
+    streamingContent: attr({
+      default: "",
+    }),
+    // computed field from streaming content
+    htmlStreamingContent: attr({
+      compute() {
+        return markdownToHtml(this.streamingContent);
+      },
+    }),
+  },
+  recordMethods: {
+    /**
+     * Post AI message to the thread
+     * @private
+     */
+    async _postAIMessage(body) {
+      const composer = this.composer;
+      const params = {
+        thread_id: composer.thread.id,
+        body,
+      };
+      const messaging = this.messaging;
+      let messageData = await messaging.rpc(
+        { route: `/llm/thread/post_ai_response`, params },
+        { shadow: true }
+      );
+      if (!messaging.exists()) {
+        return;
+      }
+      const message = messaging.models["Message"].insert(
+        messaging.models["Message"].convertData(messageData)
+      );
+      if (messaging.hasLinkPreviewFeature && !message.isBodyEmpty) {
+        messaging.rpc(
+          {
+            route: `/mail/link_preview`,
+            params: {
+              message_id: message.id,
+            },
+          },
+          { shadow: true }
+        );
+      }
+      for (const threadView of message.originThread.threadViews) {
+        // Reset auto scroll to be able to see the newly posted message.
+        threadView.update({ hasAutoScrollOnMessageReceived: true });
+        threadView.addComponentHint("message-posted", { message });
+      }
+    },
+
+    /**
+     * Stop streaming response for this thread
+     */
+    async _stopStreaming() {
+      if (!this.isStreaming) {
+        return;
+      }
+      this.update({ isStreaming: false, streamingContent: "" });
+    },
+    /**
+     * Start streaming response for this thread
+     */
+    async startStreaming() {
+      const defaultContent = "Thinking...";
+      if (this.isStreaming) {
+        return;
+      }
+      const composer = this.composer;
+
+      this.update({ isStreaming: true, streamingContent: defaultContent });
+      const eventSource = new EventSource(
+        `/llm/thread/stream_response?thread_id=${composer.thread.id}`
+      );
+
+      eventSource.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+        switch (data.type) {
+          case "start":
+            break;
+          case "content":
+            if (this.streamingContent === defaultContent) {
+              this.update({ streamingContent: "" });
+            }
+            this.update({
+              streamingContent: this.streamingContent + (data.content || ""),
+            });
+            break;
+          case "error":
+            console.error("Streaming error:", data.error);
+            eventSource.close();
+            this.update({ isStreaming: false });
+            this.messaging.notify({
+              message: data.error,
+              type: "danger",
+            });
+            break;
+          case "end":
+            const htmlStreamingContent = this.htmlStreamingContent;
+            eventSource.close();
+            await this._postAIMessage(htmlStreamingContent);
+            this._stopStreaming();
+            break;
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error("EventSource failed:", error);
+        eventSource.close();
+        this._stopStreaming();
+      };
+    },
+    async postUserMessageForAi() {
+      await this.postMessage();
+      this.update({
+        doFocus: true,
+      });
+      this.startStreaming();
+    },
+
+    onKeydownTextareaForAi(ev) {
+      if (!this.exists()) {
+        return;
+      }
+      switch (ev.key) {
+        case "Escape":
+        // UP, DOWN, TAB: prevent moving cursor if navigation in mention suggestions
+        case "ArrowUp":
+        case "PageUp":
+        case "ArrowDown":
+        case "PageDown":
+        case "Home":
+        case "End":
+        case "Tab":
+          if (this.hasSuggestions) {
+            // We use preventDefault here to avoid keys native actions but actions are handled in keyUp
+            ev.preventDefault();
+          }
+          break;
+        // ENTER: submit the message only if the dropdown mention proposition is not displayed
+        case "Enter":
+          this.onKeydownTextareaEnterForAi(ev);
+          break;
+      }
+    },
+    /**
+     * @param {KeyboardEvent} ev
+     */
+    onKeydownTextareaEnterForAi(ev) {
+      if (!this.exists()) {
+        return;
+      }
+      if (this.hasSuggestions) {
+        ev.preventDefault();
+        return;
+      }
+      if (
+        this.sendShortcuts.includes("ctrl-enter") &&
+        !ev.altKey &&
+        ev.ctrlKey &&
+        !ev.metaKey &&
+        !ev.shiftKey
+      ) {
+        this.postUserMessageForAi();
+        ev.preventDefault();
+        return;
+      }
+      if (
+        this.sendShortcuts.includes("enter") &&
+        !ev.altKey &&
+        !ev.ctrlKey &&
+        !ev.metaKey &&
+        !ev.shiftKey
+      ) {
+        this.postUserMessageForAi();
+        ev.preventDefault();
+        return;
+      }
+      if (
+        this.sendShortcuts.includes("meta-enter") &&
+        !ev.altKey &&
+        !ev.ctrlKey &&
+        ev.metaKey &&
+        !ev.shiftKey
+      ) {
+        this.postUserMessageForAi();
+        ev.preventDefault();
+        return;
+      }
+    },
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat/llm_chat.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChat" owl="1">
+        <div class="o_LLMChat d-flex h-100">
+            <!-- Thread List Section -->
+            <LLMChatSidebar record="llmChatView" />
+
+            <!-- Chat Section -->
+            <div class="o_LLMChat_content flex-grow-1">
+                <t t-if="llmChatView.llmChat.activeThread">
+                    <LLMChatThread
+            record="llmChatView.llmChat.activeThread"
+            threadView="llmChatView.threadView"
+          />
+                </t>
+                <t t-else="">
+                    <div
+            class="o_LLMChat_noThread d-flex align-items-center justify-content-center h-100"
+          >
+                        <span>Select a conversation to start chatting</span>
+                    </div>
+                </t>
+            </div>
+        </div>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_container/llm_chat_container.scss
+
+.o_LLMChatContainer {
+  background-color: $o-view-background-color;
+
+  .o_LLMChatContainer_spinner {
+    color: $o-main-text-color;
+    font-size: 1.1em;
+
+    .o_LLMChatContainer_spinnerIcon {
+      font-size: 1.3em;
+      color: $o-brand-primary;
+    }
+  }
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread_list/llm_chat_thread_list.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatThreadList" owl="1">
+        <div
+      class="o_LLMChatThreadList d-flex flex-column flex-grow-1 overflow-auto"
+    >
+            <t t-if="llmChatView.llmChat.threads.length === 0">
+                <div
+          class="d-flex flex-column align-items-center justify-content-center flex-grow-1 text-muted p-3"
+        >
+                    <i class="fa fa-comments fa-3x mb-3 text-300" />
+                    <span class="fs-6">No chats yet</span>
+                </div>
+            </t>
+            <t t-else="">
+                <div class="o_LLMChatThreadList_items d-flex flex-column">
+                    <t
+            t-foreach="llmChatView.llmChat.orderedThreads"
+            t-as="thread"
+            t-key="thread.id"
+          >
+                        <button
+              class="o_DiscussSidebarCategoryItem btn d-flex align-items-center w-100 px-0 py-2 border-0 rounded-0 fw-normal text-reset bg-100"
+              t-att-class="{'o-active bg-200': thread.id === activeThread?.id}"
+              t-on-click="() => this._onThreadClick(thread)"
+            >
+                            <span
+                class="o_DiscussSidebarCategoryItem_item o_DiscussSidebarCategoryItem_name ms-3 me-2 text-truncate"
+                t-esc="thread.name"
+              />
+                            <div
+                class="o_DiscussSidebarCategoryItem_item flex-grow-1"
+              />
+                        </button>
+                    </t>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: models/llm_chat_thread_header_view.js
+
+/** @odoo-module **/
+
+import { registerModel } from "@mail/model/model_core";
+import { attr, many, one } from "@mail/model/model_field";
+import { clear } from "@mail/model/model_field_command";
+
+registerModel({
+  name: "LLMChatThreadHeaderView",
+  lifecycleHooks: {
+    _created() {
+      // Set initial values without triggering backend update
+      this._initializeState();
+    },
+  },
+  fields: {
+    threadView: one("ThreadView", {
+      inverse: "llmChatThreadHeaderView",
+    }),
+    isEditingName: attr({
+      default: false,
+    }),
+    pendingName: attr({
+      default: "",
+    }),
+    llmChatThreadNameInputRef: attr(),
+    selectedProviderId: attr(),
+    selectedModelId: attr(),
+    _isInitializing: attr({
+      default: false,
+    }),
+    selectedProvider: one("LLMProvider", {
+      compute() {
+        if (!this.selectedProviderId) {
+          return clear();
+        } else {
+          return this.threadView.thread.llmChat.llmProviders.find(
+            (p) => p.id === this.selectedProviderId
+          );
+        }
+      },
+    }),
+    selectedModel: one("LLMModel", {
+      compute() {
+        if (!this.selectedModelId) {
+          return clear();
+        } else {
+          const matchedModel = this.threadView.thread.llmChat.llmModels.find(
+            (m) => m.id === this.selectedModelId
+          );
+          return matchedModel || clear();
+        }
+      },
+    }),
+    modelsAvailableToSelect: many("LLMModel", {
+      compute() {
+        if (!this.selectedProviderId) {
+          return [];
+        }
+        return (
+          this.threadView.thread.llmChat?.llmModels?.filter(
+            (model) => model.llmProvider?.id === this.selectedProviderId
+          ) || []
+        );
+      },
+    }),
+  },
+  recordMethods: {
+    /**
+     * Initialize or reset state based on current thread
+     * @private
+     */
+    _initializeState() {
+      this.update({
+        selectedProviderId: this.threadView.thread.llmModel?.llmProvider?.id,
+        selectedModelId: this.threadView.thread.llmModel?.id,
+      });
+    },
+
+    /**
+     * Handle thread changes
+     * @private
+     */
+    _onThreadViewChange() {
+      this._initializeState();
+    },
+
+    /**
+     * Handle model changes
+     * @private
+     */
+    async saveSelectedModel(selectedModelId) {
+      // Skip backend update during initialization
+      if (!selectedModelId || selectedModelId === this.selectedModelId) {
+        return;
+      }
+
+      this.update({
+        selectedModelId,
+      });
+      const provider = this.selectedModel.llmProvider;
+      this.update({
+        selectedProviderId: provider.id,
+      });
+
+      await this.threadView.thread.updateLLMChatThreadSettings({
+        llmModelId: this.selectedModel.id,
+        llmProviderId: provider.id,
+      });
+    },
+
+    /**
+     * Opens the thread form view for editing
+     */
+    async openThreadSettings() {
+      await this.env.services.action.doAction(
+        {
+          type: "ir.actions.act_window",
+          res_model: "llm.thread",
+          res_id: this.threadView.thread.id,
+          views: [[false, "form"]],
+          target: "new",
+          flags: {
+            mode: "edit",
+          },
+        },
+        {
+          onClose: () => {
+            // Reload thread data when form is closed
+            this.threadView.thread.llmChat.loadThreads();
+          },
+        }
+      );
+    },
+
+    /**
+     * Start editing thread name
+     */
+    onClickTopbarThreadName() {
+      if (this.isEditingName || this.messaging.device.isSmall) {
+        return;
+      }
+      this.update({
+        isEditingName: true,
+        pendingName: this.threadView.thread.name,
+      });
+    },
+
+    /**
+     * Save thread name changes to server
+     */
+    async saveThreadName() {
+      const thread = this.threadView.thread;
+      if (!this.pendingName.trim()) {
+        this.discardThreadNameEdition();
+        return;
+      }
+
+      const newName = this.pendingName.trim();
+      if (newName === thread.name) {
+        this.discardThreadNameEdition();
+        return;
+      }
+
+      try {
+        await thread.updateLLMChatThreadSettings({ name: newName });
+        await thread.llmChat.loadThreads();
+        this.update({
+          isEditingName: false,
+          pendingName: "",
+        });
+      } catch (error) {
+        console.error("Error updating thread name:", error);
+        this.messaging.notify({
+          message: this.env._t("Failed to update thread name"),
+          type: "danger",
+        });
+        this.discardThreadNameEdition();
+      }
+    },
+
+    /**
+     * Discard thread name changes
+     */
+    discardThreadNameEdition() {
+      this.update({
+        isEditingName: false,
+        pendingName: "",
+      });
+    },
+  },
+  onChanges: [
+    {
+      dependencies: ["threadView.thread.llmChat.activeThread.id"],
+      methodName: "_onThreadViewChange",
+    },
+  ],
+});
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_sidebar/llm_chat_sidebar.scss
+
+.o_LLMChatSidebar {
+  position: relative;
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.o-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: $zindex-modal + 1;
+    width: 100%;
+    max-width: 300px;
+    transform: translateX(-100%);
+
+    &.o-visible {
+      transform: translateX(0);
+    }
+  }
+
+  &_header {
+    backdrop-filter: blur(10px);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+  }
+
+  &_newChat {
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// Backdrop
+.o_LLMChatSidebar_backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: $zindex-modal;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0ms linear 300ms;
+
+  &.o-visible {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0ms linear;
+  }
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat/llm_chat.scss
+
+.o_LLMChat {
+  background-color: $white;
+}
+
+.o_LLMChat_content {
+  overflow: auto; /* Allow scrolling */
+  height: 100%;
+}
+
+.o_LLMChat_noThread {
+  color: $o-main-color-muted;
+  font-style: italic;
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_composer_text_input/llm_chat_composer_text_input.js
+
+/** @odoo-module **/
+import { ComposerTextInput } from "@mail/components/composer_text_input/composer_text_input";
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+
+export class LLMChatComposerTextInput extends ComposerTextInput {
+  /**
+   * Intercept input event before passing to composer view
+   * @private
+   * @param {InputEvent} ev
+   */
+  _onInput(ev) {
+    // Call original handler
+    this.composerView.onInputTextarea(ev);
+  }
+
+  /**
+   * Intercept keydown event
+   * @private
+   * @param {KeyboardEvent} ev
+   */
+  _onKeydown(ev) {
+    this.composerView.onKeydownTextareaForAi(ev);
+  }
+}
+
+Object.assign(LLMChatComposerTextInput, {
+  props: { record: Object },
+  template: "llm_thread.LLMChatComposerTextInput",
+});
+
+registerMessagingComponent(LLMChatComposerTextInput);
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread_header/llm_chat_thread_header.js
+
+/** @odoo-module **/
+
+import { useRefToModel } from "@mail/component_hooks/use_ref_to_model";
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+const { Component, useRef, useState } = owl;
+
+export class LLMChatThreadHeader extends Component {
+  /**
+   * @override
+   */
+  setup() {
+    super.setup();
+    useRefToModel({
+      fieldName: "llmChatThreadNameInputRef",
+      refName: "threadNameInput",
+    });
+  }
+
+  get llmChatThreadHeaderView() {
+    return this.props.record;
+  }
+
+  get threadView() {
+    return this.llmChatThreadHeaderView.threadView;
+  }
+
+  get thread() {
+    return this.threadView.thread;
+  }
+
+  get llmChat() {
+    return this.thread.llmChat;
+  }
+
+  get llmProviders() {
+    return this.llmChat.llmProviders;
+  }
+
+  get llmModels() {
+    return this.llmChat.llmModels;
+  }
+
+  get isSmall() {
+    return this.messaging.device.isSmall;
+  }
+
+  /**
+   * @param {Object} provider
+   */
+  onSelectProvider(provider) {
+    if (provider.id !== this.llmChatThreadHeaderView.selectedProviderId) {
+      const defaultModel = this.getDefaultModelForProvider(provider.id);
+      // it should trigger onChange event
+      this.llmChatThreadHeaderView.saveSelectedModel(defaultModel?.id);
+      this.messaging.notify({
+        title: "Model have been reset",
+        message: "We have auto updated model to default one for this provider",
+        type: "info",
+      });
+    }
+  }
+
+  getDefaultModelForProvider(providerId) {
+    const availableModels =
+      this.llmModels?.filter((model) => model.llmProvider?.id === providerId) ||
+      [];
+    const defaultModel = availableModels.find((model) => model.default);
+
+    if (defaultModel) {
+      return defaultModel;
+    } else if (availableModels.length > 0) {
+      return availableModels[0];
+    }
+    return null;
+  }
+
+  /**
+   * @param {Object} model
+   */
+  onSelectModel(model) {
+    this.llmChatThreadHeaderView.saveSelectedModel(model.id);
+  }
+
+  /**
+   * Toggle thread list visibility on mobile
+   */
+  _onToggleThreadList() {
+    this.thread.llmChat.llmChatView.update({
+      isThreadListVisible: !this.thread.llmChat.llmChatView.isThreadListVisible,
+    });
+  }
+
+  /**
+   * Handle keydown in thread name input
+   * @param {KeyboardEvent} ev
+   */
+  onKeyDownThreadNameInput(ev) {
+    switch (ev.key) {
+      case "Enter":
+        ev.preventDefault();
+        this.llmChatThreadHeaderView.saveThreadName();
+        break;
+      case "Escape":
+        ev.preventDefault();
+        this.llmChatThreadHeaderView.discardThreadNameEdition();
+        break;
+    }
+  }
+
+  /**
+   * Handle input value change
+   * @param {Event} ev
+   */
+  onInputThreadNameInput(ev) {
+    this.llmChatThreadHeaderView.update({ pendingName: ev.target.value });
+  }
+}
+
+Object.assign(LLMChatThreadHeader, {
+  props: { record: Object },
+  template: "llm_thread.LLMChatThreadHeader",
+});
+
+registerMessagingComponent(LLMChatThreadHeader);
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_message_list/llm_chat_message_list.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatMessageList" owl="1">
+        <t t-if="messageListView">
+            <div
+        class="o_MessageList bg-view d-flex flex-column overflow-auto"
+        t-att-class="{ 'o-empty align-items-center justify-content-center': messageListView.threadViewOwner.messages.length === 0, 'pb-4': messageListView.threadViewOwner.messages.length !== 0 }"
+        t-attf-class="{{ className }}"
+        t-on-scroll="onScroll"
+        t-ref="root"
+      >
+                <!-- LOADING (if order asc)-->
+                <t
+          t-if="messageListView.threadViewOwner.threadCache.hasLoadingFailed"
+        >
+                    <div
+            class="o_MessageList_alertLoadingFailed d-flex align-items-center alert alert-info"
+          >
+                        <div>An error occurred while fetching messages.</div>
+                        <button
+              class="o_MessageList_alertLoadingFailedRetryButton btn btn-link"
+              t-on-click="messageListView.onClickRetryLoadMoreMessages"
+            >Click here to retry</button>
+                    </div>
+                </t>
+                <t
+          t-if="!messageListView.threadViewOwner.threadCache.hasLoadingFailed and messageListView.threadViewOwner.order === 'asc'"
+        >
+                    <t t-call="llm_thread.LLMChatMessageList.loadMore" />
+                </t>
+                <div
+          t-if="messageListView.threadViewOwner.order === 'asc' and messageListView.threadViewOwner.threadCache.orderedNonEmptyMessages.length !== 0 and !(messageListView.threadViewOwner.thread and messageListView.threadViewOwner.thread.mailbox)"
+          style="flex: 0 0 auto;"
+        />
+                <!-- MESSAGES -->
+                <t t-set="current_day" t-value="0" />
+                <t
+          t-foreach="messageListView.messageListViewItems"
+          t-as="messageListViewItem"
+          t-key="messageListViewItem.localId"
+        >
+                    <Transition
+            visible="messageListViewItem.message === messageListView.threadViewOwner.thread.messageAfterNewMessageSeparator"
+            name="'o-fade'"
+            t-slot-scope="transition"
+          >
+                        <div
+              class="o_MessageList_separator o_MessageList_separatorNewMessages o_MessageList_item d-flex flex-shrink-0 align-items-center me-4 p-0 fw-bolder"
+              t-att-class="{ 'o-disable-animation': messaging.disableAnimation, 'opacity-0': transition.className.includes('o-fade-leave') }"
+              t-attf-class="{{transition.className}}"
+            >
+                            <hr
+                class="o_MessageList_separatorLine o_MessageList_separatorLineNewMessages flex-grow-1 w-auto"
+              /><span
+                class="o_MessageList_separatorLabel o_MessageList_separatorLabelNewMessages px-3"
+              >New messages</span>
+                        </div>
+                    </Transition>
+                    <t t-if="!messageListViewItem.message.isEmpty">
+                        <t
+              t-set="message_day"
+              t-value="messageListViewItem.message.dateDay"
+            />
+                        <t t-if="current_day !== message_day">
+                            <div
+                class="o_MessageList_separator o_MessageList_separatorDate o_MessageList_item d-flex flex-shrink-0 align-items-center pt-4 pb-0 px-0 fw-bolder"
+              >
+                                <hr
+                  class="o_MessageList_separatorLine flex-grow-1 w-auto border-top"
+                /><span
+                  class="o_MessageList_separatorLabel o_MessageList_separatorLabelDate px-3"
+                ><t t-esc="message_day" /></span><hr
+                  class="o_MessageList_separatorLine flex-grow-1 w-auto border-top"
+                />
+                                <t t-set="current_day" t-value="message_day" />
+                            </div>
+                        </t>
+                        <NotificationMessageView
+              t-if="messageListViewItem.notificationMessageView"
+              record="messageListViewItem.notificationMessageView"
+            />
+                        <Message
+              t-if="messageListViewItem.messageView"
+              record="messageListViewItem.messageView"
+            />
+                    </t>
+                </t>
+                <!-- Streaming Message -->
+                <t t-if="composerView.isStreaming and htmlStreamingContent">
+                    <div class="o_Message position-relative py-1 px-3">
+                        <div class="position-relative d-flex flex-shrink-0">
+                            <div class="o_Message_sidebar d-flex flex-shrink-0">
+                                <div
+                  class="o_Message_authorAvatarContainer o_Message_sidebarItem position-relative"
+                >
+                                    <img
+                    class="o_Message_authorAvatar w-100 h-100 rounded-circle o_object_fit_cover"
+                    src="/mail/static/src/img/smiley/avatar.jpg"
+                    alt="AI Avatar"
+                  />
+                                </div>
+                            </div>
+                            <div class="o_Message_core flex-grow-1">
+                                <div
+                  class="o_Message_header d-flex flex-wrap align-items-baseline"
+                >
+                                    <a
+                    class="o_Message_authorName me-2 text-truncate text-muted"
+                  >
+                                        <strong>AI</strong>
+                                    </a>
+                                </div>
+                                <div
+                  class="o_Message_bubbleWrap position-relative d-flex align-items-start"
+                >
+                                    <div
+                    class="o_Message_bubble position-relative w-100 text-muted"
+                  >
+                                        <div
+                      class="o_Message_background position-absolute start-0 top-0 w-100 h-100"
+                    />
+                                        <div
+                      class="o_Message_content position-relative text-break"
+                    >
+                                            <div class="o_Message_prettyBody">
+                                                <t
+                          t-out="htmlStreamingContent"
+                        />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+                <!-- LOADING (if order desc)-->
+                <t
+          t-if="!messageListView.threadViewOwner.threadCache.hasLoadingFailed and messageListView.threadViewOwner.order === 'desc'"
+        >
+                    <t t-call="llm_thread.LLMChatMessageList.loadMore" />
+                </t>
+            </div>
+        </t>
+    </t>
+
+    <t t-name="llm_thread.LLMChatMessageList.loadMore" owl="1">
+        <t t-if="messageListView.threadViewOwner.threadCache.isLoadingMore">
+            <div
+        class="o_MessageList_item o_MessageList_isLoadingMore align-self-center"
+      >
+                <i
+          class="o_MessageList_isLoadingMoreIcon fa fa-spin fa-circle-o-notch me-1"
+        />
+                Loading...
+            </div>
+        </t>
+        <t
+      t-elif="!messageListView.threadViewOwner.threadCache.isAllHistoryLoaded and !messageListView.threadViewOwner.thread.isTemporary"
+    >
+            <a
+        class="o_MessageList_item o_MessageList_loadMore align-self-center"
+        href="#"
+        t-on-click="messageListView.onClickLoadMore"
+        t-ref="loadMore"
+      >
+                Load more
+            </a>
+        </t>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_sidebar/llm_chat_sidebar.js
+
+/** @odoo-module **/
+
+import { useModels } from "@mail/component_hooks/use_models";
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+const { Component } = owl;
+
+export class LLMChatSidebar extends Component {
+  setup() {
+    useModels();
+    super.setup();
+  }
+
+  /**
+   * @returns {LLMChatView}
+   */
+  get llmChatView() {
+    return this.props.record;
+  }
+
+  /**
+   * Handle backdrop click to close sidebar on mobile
+   */
+  _onBackdropClick() {
+    if (this.messaging.device.isSmall) {
+      this.llmChatView.update({ isThreadListVisible: false });
+    }
+  }
+
+  /**
+   * Handle click on New Chat button
+   */
+  async _onClickNewChat() {
+    const llmChat = this.llmChatView.llmChat;
+    await llmChat.createNewThread();
+    this.llmChatView.update({ isThreadListVisible: false });
+  }
+}
+
+Object.assign(LLMChatSidebar, {
+  props: { record: Object },
+  template: "llm_thread.LLMChatSidebar",
+});
+
+registerMessagingComponent(LLMChatSidebar);
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_composer_text_input/llm_chat_composer_text_input.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatComposerTextInput" owl="1">
+        <t t-if="composerView">
+            <div
+        class="o_LLMChatComposerTextInput position-relative bg-view flex-grow-1"
+        t-on-paste="composerView.onPasteTextInput"
+        t-ref="root"
+      >
+                <textarea
+          class="o_LLMChatComposerTextInput_textarea form-control border bg-light py-3 px-4"
+          t-att-placeholder="composerView.composer.placeholderLLMChat"
+          t-on-click="composerView.onClickTextarea"
+          t-on-focusin="composerView.onFocusinTextarea"
+          t-on-focusout="composerView.onFocusoutTextarea"
+          t-on-keydown="_onKeydown"
+          t-on-input="_onInput"
+          t-ref="textarea"
+        />
+                <!--
+                    from ComposerTextInput for `mail` module: This is an invisible textarea used to compute the composer
+                     height based on the text content. We need it to downsize
+                     the textarea properly without flicker.
+                -->
+                <textarea
+          class="o_ComposerTextInput_mirroredTextarea o_ComposerTextInput_textareaStyle position-absolute px-3 border-0 overflow-hidden opacity-0"
+          t-att-class="{ 'o-composer-is-compact rounded-0 rounded-start-3': composerView.isCompact, 'rounded-3': !composerView.isCompact }"
+          t-esc="composerView.composer.textInputContent"
+          t-ref="mirroredTextarea"
+          disabled="1"
+        />
+            </div>
+        </t>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread/llm_chat_thread.js
+
+/** @odoo-module **/
+
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+
+const { Component } = owl;
+
+export class LLMChatThread extends Component {
+  get threadView() {
+    return this.props.threadView;
+  }
+
+  /**
+   * @returns {Thread}
+   */
+  get thread() {
+    return this.props.record;
+  }
+
+  /**
+   * @returns {Message[]}
+   */
+  get messages() {
+    // Use ThreadCache's orderedMessages
+    return this.thread.cache?.orderedMessages || [];
+  }
+}
+
+Object.assign(LLMChatThread, {
+  props: {
+    record: Object,
+    threadView: Object,
+  },
+  template: "llm_thread.LLMChatThread",
+});
+
+registerMessagingComponent(LLMChatThread);
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_composer_text_input/llm_chat_composer_text_input.scss
+
+.o_LLMChatComposerTextInput {
+  flex: 1 1 auto;
+
+  &_textarea {
+    resize: none;
+    min-height: 112px !important;
+    max-height: 200px;
+    line-height: 1.5;
+    border-width: 1.5px;
+
+    &::placeholder {
+      color: rgba($gray-600, 0.8);
+    }
+
+    &:hover {
+      border-color: rgba($primary, 0.3);
+    }
+
+    &:focus {
+      border-color: $primary;
+    }
+  }
+}
+
+
+# END FILE CONTENTS
+
+
+# File: gptree_output.txt
+
+# Project Directory Structure:
+.
+├── .gptree_config
+├── components/
+│   ├── llm_chat/
+│   │   ├── llm_chat.js
+│   │   ├── llm_chat.scss
+│   │   └── llm_chat.xml
+│   ├── llm_chat_composer/
+│   │   ├── llm_chat_composer.js
+│   │   ├── llm_chat_composer.scss
+│   │   └── llm_chat_composer.xml
+│   ├── llm_chat_composer_text_input/
+│   │   ├── llm_chat_composer_text_input.js
+│   │   ├── llm_chat_composer_text_input.scss
+│   │   └── llm_chat_composer_text_input.xml
+│   ├── llm_chat_container/
+│   │   ├── llm_chat_container.js
+│   │   ├── llm_chat_container.scss
+│   │   └── llm_chat_container.xml
+│   ├── llm_chat_message_list/
+│   │   ├── llm_chat_message_list.js
+│   │   └── llm_chat_message_list.xml
+│   ├── llm_chat_sidebar/
+│   │   ├── llm_chat_sidebar.js
+│   │   ├── llm_chat_sidebar.scss
+│   │   └── llm_chat_sidebar.xml
+│   ├── llm_chat_thread/
+│   │   ├── llm_chat_thread.js
+│   │   ├── llm_chat_thread.scss
+│   │   └── llm_chat_thread.xml
+│   ├── llm_chat_thread_header/
+│   │   ├── llm_chat_thread_header.js
+│   │   ├── llm_chat_thread_header.scss
+│   │   └── llm_chat_thread_header.xml
+│   ├── llm_chat_thread_list/
+│   │   ├── llm_chat_thread_list.js
+│   │   ├── llm_chat_thread_list.scss
+│   │   └── llm_chat_thread_list.xml
+│   └── llm_chatter_topbar/
+│       └── llm_chatter_topbar.xml
+├── llm_chat_client_action.js
+├── models/
+│   ├── composer.js
+│   ├── composer_view.js
+│   ├── llm_chat.js
+│   ├── llm_chat_thread_header_view.js
+│   ├── llm_chat_view.js
+│   ├── llm_model.js
+│   ├── llm_provider.js
+│   ├── main.js
+│   ├── messaging.js
+│   ├── thread.js
+│   └── thread_view.js
+└── utils/
+    └── markdown_utils.js
+
+# BEGIN FILE CONTENTS
+
+# File: components/llm_chat_thread/llm_chat_thread.scss
+
+.o_LLMChatThread {
+  height: 100%;
+  overflow: hidden;
+}
+
+.o_LLMChatThread_content {
+  flex-grow: 1;
+  overflow: auto;
+  max-height: calc(100% - 150px); /* Adjust based on header + composer */
+  padding: 1rem;
+}
+
+.o_LLMChatThread_composer {
+  background-color: var(--white, #ffffff);
+  flex-shrink: 0;
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_composer/llm_chat_composer.js
+
+/** @odoo-module **/
+
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+import { useComponentToModel } from "@mail/component_hooks/use_component_to_model";
+const { Component } = owl;
+
+export class LLMChatComposer extends Component {
+  /**
+   * @override
+   */
+  setup() {
+    super.setup();
+    useComponentToModel({ fieldName: "component" });
+  }
+  /**
+   * @returns {ComposerView}
+   */
+  get composerView() {
+    return this.props.record;
+  }
+
+  /**
+   * @returns {boolean}
+   */
+  get isDisabled() {
+    return !this.composerView.composer.canPostMessage;
+  }
+
+  //--------------------------------------------------------------------------
+  // Private
+  //--------------------------------------------------------------------------
+
+  /**
+   * Intercept send button click
+   * @private
+   */
+  _onClickSend() {
+    if (this.isDisabled) {
+      return;
+    }
+
+    this.composerView.postUserMessageForAi();
+  }
+}
+
+Object.assign(LLMChatComposer, {
+  props: { record: Object },
+  template: "llm_thread.LLMChatComposer",
+});
+
+registerMessagingComponent(LLMChatComposer);
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_container/llm_chat_container.js
+
+/** @odoo-module **/
+
+import { useModels } from "@mail/component_hooks/use_models";
+import { getMessagingComponent } from "@mail/utils/messaging_component";
+
+const { Component, onWillDestroy } = owl;
+
+export class LLMChatContainer extends Component {
+  setup() {
+    useModels();
+    super.setup();
+    onWillDestroy(() => this._willDestroy());
+
+    this.env.services.messaging.modelManager.messagingCreatedPromise.then(
+      async () => {
+        const { action } = this.props;
+        const initActiveId =
+          (action.context && action.context.active_id) ||
+          (action.params && action.params.default_active_id) ||
+          null;
+
+        if (!this.messaging.llmChat) {
+          this.messaging.update({
+            llmChat: {
+              isInitThreadHandled: false,
+            },
+          });
+        }
+        this.llmChat = this.messaging.llmChat;
+
+        // Create LLMChatView and link it to LLMChat
+        this.llmChat.update({
+          llmChatView: {
+            actionId: action.id,
+          },
+          initActiveId,
+        });
+
+        // Wait for messaging to be initialized
+        await this.messaging.initializedPromise;
+        await this.llmChat.loadLLMModels();
+        // Load threads first
+        await this.llmChat.loadThreads();
+
+        // Then handle initial thread
+        if (!this.llmChat.isInitThreadHandled) {
+          this.llmChat.update({ isInitThreadHandled: true });
+          if (!this.llmChat.activeThread) {
+            this.llmChat.openInitThread();
+          }
+        }
+      }
+    );
+
+    // Keep track of current instance to handle cleanup
+    LLMChatContainer.currentInstance = this;
+  }
+
+  get messaging() {
+    return this.env.services.messaging.modelManager.messaging;
+  }
+
+  _willDestroy() {
+    if (this.llmChat && LLMChatContainer.currentInstance === this) {
+      this.llmChat.close();
+    }
+  }
+}
+
+Object.assign(LLMChatContainer, {
+  props: {
+    action: Object,
+    actionId: { type: Number, optional: 1 },
+    className: String,
+    globalState: { type: Object, optional: 1 },
+  },
+  components: {
+    LLMChat: getMessagingComponent("LLMChat"),
+  },
+  template: "llm_thread.LLMChatContainer",
+});
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat/llm_chat.scss
+
+.o_LLMChat {
+  background-color: $white;
+}
+
+.o_LLMChat_content {
+  overflow: auto; /* Allow scrolling */
+  height: 100%;
+}
+
+.o_LLMChat_noThread {
+  color: $o-main-color-muted;
+  font-style: italic;
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_sidebar/llm_chat_sidebar.js
+
+/** @odoo-module **/
+
+import { useModels } from "@mail/component_hooks/use_models";
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+const { Component } = owl;
+
+export class LLMChatSidebar extends Component {
+  setup() {
+    useModels();
+    super.setup();
+  }
+
+  /**
+   * @returns {LLMChatView}
+   */
+  get llmChatView() {
+    return this.props.record;
+  }
+
+  /**
+   * Handle backdrop click to close sidebar on mobile
+   */
+  _onBackdropClick() {
+    if (this.messaging.device.isSmall) {
+      this.llmChatView.update({ isThreadListVisible: false });
+    }
+  }
+
+  /**
+   * Handle click on New Chat button
+   */
+  async _onClickNewChat() {
+    const llmChat = this.llmChatView.llmChat;
+    await llmChat.createNewThread();
+    this.llmChatView.update({ isThreadListVisible: false });
+  }
+}
+
+Object.assign(LLMChatSidebar, {
+  props: { record: Object },
+  template: "llm_thread.LLMChatSidebar",
+});
+
+registerMessagingComponent(LLMChatSidebar);
+
+
+# END FILE CONTENTS
+
+
+# File: llm_chat_client_action.js
+
+/** @odoo-module **/
+
+import { registry } from "@web/core/registry";
+import { LLMChatContainer } from "@llm_thread/components/llm_chat_container/llm_chat_container";
+
+// Register the client action
+registry
+  .category("actions")
+  .add("llm_thread.chat_client_action", LLMChatContainer);
+
+
+# END FILE CONTENTS
+
+
+# File: models/thread.js
+
+/** @odoo-module **/
+
+import { registerPatch } from "@mail/model/model_core";
+import { one, attr } from "@mail/model/model_field";
+
+registerPatch({
+  name: "Thread",
+  fields: {
+    llmChat: one("LLMChat", {
+      inverse: "threads",
+    }),
+    activeLLMChat: one("LLMChat", {
+      inverse: "activeThread",
+    }),
+    llmModel: one("LLMModel", {
+      inverse: "threads",
+    }),
+    updatedAt: attr(),
+  },
+  recordMethods: {
+    /**
+     * Update thread settings
+     * @param {Object} params
+     * @param {string} [params.name] - New thread name
+     * @param {number} [params.llmModelId] - New model ID
+     * @param {number} [params.llmProviderId] - New provider ID
+     */
+    async updateLLMChatThreadSettings({
+      name,
+      llmModelId,
+      llmProviderId,
+    } = {}) {
+      const values = {};
+
+      // Only include name if it's a non-empty string
+      if (typeof name === "string" && name.trim()) {
+        values.name = name.trim();
+      }
+
+      // Only include model_id if it's a valid ID
+      if (Number.isInteger(llmModelId) && llmModelId > 0) {
+        values.model_id = llmModelId;
+      } else if (this.llmModel?.id) {
+        values.model_id = this.llmModel.id;
+      }
+
+      // Only include provider_id if it's a valid ID
+      if (Number.isInteger(llmProviderId) && llmProviderId > 0) {
+        values.provider_id = llmProviderId;
+      } else if (this.llmModel?.llmProvider?.id) {
+        values.provider_id = this.llmModel.llmProvider.id;
+      }
+
+      // Only make the RPC call if there are values to update
+      if (Object.keys(values).length > 0) {
+        await this.messaging.rpc({
+          model: "llm.thread",
+          method: "write",
+          args: [[this.id], values],
+        });
+      }
+    },
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: models/composer.js
+
+/** @odoo-module **/
+
+import { registerPatch } from "@mail/model/model_core";
+import { attr } from "@mail/model/model_field";
+
+registerPatch({
+  name: "Composer",
+  fields: {
+    placeholderLLMChat: attr({
+      default: "Ask anything...",
+    }),
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_composer_text_input/llm_chat_composer_text_input.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatComposerTextInput" owl="1">
+        <t t-if="composerView">
+            <div
+        class="o_LLMChatComposerTextInput position-relative bg-view flex-grow-1"
+        t-on-paste="composerView.onPasteTextInput"
+        t-ref="root"
+      >
+                <textarea
+          class="o_LLMChatComposerTextInput_textarea form-control border bg-light py-3 px-4"
+          t-att-placeholder="composerView.composer.placeholderLLMChat"
+          t-on-click="composerView.onClickTextarea"
+          t-on-focusin="composerView.onFocusinTextarea"
+          t-on-focusout="composerView.onFocusoutTextarea"
+          t-on-keydown="_onKeydown"
+          t-on-input="_onInput"
+          t-ref="textarea"
+        />
+                <!--
+                    from ComposerTextInput for `mail` module: This is an invisible textarea used to compute the composer
+                     height based on the text content. We need it to downsize
+                     the textarea properly without flicker.
+                -->
+                <textarea
+          class="o_ComposerTextInput_mirroredTextarea o_ComposerTextInput_textareaStyle position-absolute px-3 border-0 overflow-hidden opacity-0"
+          t-att-class="{ 'o-composer-is-compact rounded-0 rounded-start-3': composerView.isCompact, 'rounded-3': !composerView.isCompact }"
+          t-esc="composerView.composer.textInputContent"
+          t-ref="mirroredTextarea"
+          disabled="1"
+        />
+            </div>
+        </t>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: .gptree_config
+
+# GPTree Local Config
+version: 1
+
+# Whether to use .gitignore
+useGitIgnore: true
+# File types to include (e.g., .py,.js)
+includeFileTypes: *
+# File types to exclude when includeFileTypes is '*'
+excludeFileTypes: 
+# Output file name
+outputFile: gptree_output.txt
+# Whether to output the file locally or relative to the project directory
+outputFileLocally: true
+# Whether to copy the output to the clipboard
+copyToClipboard: false
+# Whether to use safe mode (prevent overly large files from being combined)
+safeMode: true
+# Whether to store the files chosen in the config file (--save, -s)
+storeFilesChosen: true
+# Previously selected files (when using the -s or --save flag previously)
+previousFiles: 
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_composer/llm_chat_composer.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatComposer" owl="1">
+        <div class="o_LLMChatComposer">
+            <div
+        class="o_LLMChatComposer_container d-flex align-items-end gap-3 mx-auto"
+        style="max-width: 1200px;"
+      >
+                <LLMChatComposerTextInput record="composerView" />
+                <button
+          class="o_Composer_actionButton o_Composer_button o_Composer_buttonSend btn btn-primary o-last o-composer-is-compact border-start-0"
+          t-on-click="_onClickSend"
+          t-att-disabled="isDisabled"
+        >
+                    <i class="fa fa-paper-plane-o" />
+                </button>
+            </div>
+        </div>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: models/messaging.js
+
+/** @odoo-module **/
+
+import { registerPatch } from "@mail/model/model_core";
+import { one } from "@mail/model/model_field";
+
+registerPatch({
+  name: "Messaging",
+  fields: {
+    llmChat: one("LLMChat", {
+      default: {},
+      isCausal: true,
+    }),
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_sidebar/llm_chat_sidebar.scss
+
+.o_LLMChatSidebar {
+  position: relative;
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.o-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: $zindex-modal + 1;
+    width: 100%;
+    max-width: 300px;
+    transform: translateX(-100%);
+
+    &.o-visible {
+      transform: translateX(0);
+    }
+  }
+
+  &_header {
+    backdrop-filter: blur(10px);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+  }
+
+  &_newChat {
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// Backdrop
+.o_LLMChatSidebar_backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: $zindex-modal;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0ms linear 300ms;
+
+  &.o-visible {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0ms linear;
+  }
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat/llm_chat.js
+
+/** @odoo-module **/
+
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+const { Component } = owl;
+export class LLMChat extends Component {
+  //--------------------------------------------------------------------------
+  // Public
+  //--------------------------------------------------------------------------
+
+  /**
+   * @returns {LLMChatView}
+   */
+  get llmChatView() {
+    return this.props.record;
+  }
+}
+
+Object.assign(LLMChat, {
+  props: { record: Object },
+  template: "llm_thread.LLMChat",
+});
+
+registerMessagingComponent(LLMChat);
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_container/llm_chat_container.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatContainer" owl="1">
+        <div class="o_LLMChatContainer h-100 d-flex flex-column">
+            <LLMChat
+        t-if="messaging and messaging.llmChat and messaging.llmChat.llmChatView and messaging.isInitialized"
+        record="messaging.llmChat.llmChatView"
+      />
+            <div
+        t-else=""
+        class="o_LLMChatContainer_spinner d-flex flex-grow-1 align-items-center justify-content-center"
+      >
+                <i
+          class="o_LLMChatContainer_spinnerIcon fa fa-circle-o-notch fa-spin me-2"
+        />Please wait...
+            </div>
+        </div>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread_list/llm_chat_thread_list.js
+
+/** @odoo-module **/
+
+import { useModels } from "@mail/component_hooks/use_models";
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+
+const { Component, useState } = owl;
+
+export class LLMChatThreadList extends Component {
+  setup() {
+    useModels();
+    super.setup();
+    this.state = useState({
+      isLoading: false,
+    });
+  }
+
+  /**
+   * @returns {LLMChatView}
+   */
+  get llmChatView() {
+    return this.props.record;
+  }
+
+  /**
+   * @returns {Thread}
+   */
+  get activeThread() {
+    return this.llmChatView.llmChat.activeThread;
+  }
+
+  /**
+   * Handle thread click
+   * @param {Thread} thread
+   */
+  async _onThreadClick(thread) {
+    if (this.state.isLoading) return;
+
+    this.state.isLoading = true;
+    try {
+      await this.llmChatView.llmChat.selectThread(thread.id);
+      this.llmChatView.update({
+        isThreadListVisible: false,
+      });
+    } catch (error) {
+      console.error("Error selecting thread:", error);
+      this.messaging.notify({
+        title: "Error",
+        message: "Failed to load thread",
+        type: "danger",
+      });
+    } finally {
+      this.state.isLoading = false;
+    }
+  }
+}
+
+Object.assign(LLMChatThreadList, {
+  props: { record: Object },
+  template: "llm_thread.LLMChatThreadList",
+});
+
+registerMessagingComponent(LLMChatThreadList);
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread_list/llm_chat_thread_list.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatThreadList" owl="1">
+        <div
+      class="o_LLMChatThreadList d-flex flex-column flex-grow-1 overflow-auto"
+    >
+            <t t-if="llmChatView.llmChat.threads.length === 0">
+                <div
+          class="d-flex flex-column align-items-center justify-content-center flex-grow-1 text-muted p-3"
+        >
+                    <i class="fa fa-comments fa-3x mb-3 text-300" />
+                    <span class="fs-6">No chats yet</span>
+                </div>
+            </t>
+            <t t-else="">
+                <div class="o_LLMChatThreadList_items d-flex flex-column">
+                    <t
+            t-foreach="llmChatView.llmChat.orderedThreads"
+            t-as="thread"
+            t-key="thread.id"
+          >
+                        <button
+              class="o_DiscussSidebarCategoryItem btn d-flex align-items-center w-100 px-0 py-2 border-0 rounded-0 fw-normal text-reset bg-100"
+              t-att-class="{'o-active bg-200': thread.id === activeThread?.id}"
+              t-on-click="() => this._onThreadClick(thread)"
+            >
+                            <span
+                class="o_DiscussSidebarCategoryItem_item o_DiscussSidebarCategoryItem_name ms-3 me-2 text-truncate"
+                t-esc="thread.name"
+              />
+                            <div
+                class="o_DiscussSidebarCategoryItem_item flex-grow-1"
+              />
+                        </button>
+                    </t>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: models/composer_view.js
+
+/** @odoo-module **/
+
+import { registerPatch } from "@mail/model/model_core";
+import { attr } from "@mail/model/model_field";
+import { markdownToHtml } from "../utils/markdown_utils";
+
+registerPatch({
+  name: "ComposerView",
+  fields: {
+    // Streaming related fields
+    isStreaming: attr({
+      default: false,
+    }),
+    streamingContent: attr({
+      default: "",
+    }),
+    // computed field from streaming content
+    htmlStreamingContent: attr({
+      compute() {
+        return markdownToHtml(this.streamingContent);
+      },
+    }),
+  },
+  recordMethods: {
+    /**
+     * Post AI message to the thread
+     * @private
+     */
+    async _postAIMessage(body) {
+      const composer = this.composer;
+      const params = {
+        thread_id: composer.thread.id,
+        body,
+      };
+      const messaging = this.messaging;
+      let messageData = await messaging.rpc(
+        { route: `/llm/thread/post_ai_response`, params },
+        { shadow: true }
+      );
+      if (!messaging.exists()) {
+        return;
+      }
+      const message = messaging.models["Message"].insert(
+        messaging.models["Message"].convertData(messageData)
+      );
+      if (messaging.hasLinkPreviewFeature && !message.isBodyEmpty) {
+        messaging.rpc(
+          {
+            route: `/mail/link_preview`,
+            params: {
+              message_id: message.id,
+            },
+          },
+          { shadow: true }
+        );
+      }
+      for (const threadView of message.originThread.threadViews) {
+        // Reset auto scroll to be able to see the newly posted message.
+        threadView.update({ hasAutoScrollOnMessageReceived: true });
+        threadView.addComponentHint("message-posted", { message });
+      }
+    },
+
+    /**
+     * Stop streaming response for this thread
+     */
+    async _stopStreaming() {
+      if (!this.isStreaming) {
+        return;
+      }
+      this.update({ isStreaming: false, streamingContent: "" });
+    },
+    /**
+     * Start streaming response for this thread
+     */
+    async startStreaming() {
+      const defaultContent = "Thinking...";
+      if (this.isStreaming) {
+        return;
+      }
+      const composer = this.composer;
+
+      this.update({ isStreaming: true, streamingContent: defaultContent });
+      const eventSource = new EventSource(
+        `/llm/thread/stream_response?thread_id=${composer.thread.id}`
+      );
+
+      eventSource.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+        switch (data.type) {
+          case "start":
+            break;
+          case "content":
+            if (this.streamingContent === defaultContent) {
+              this.update({ streamingContent: "" });
+            }
+            this.update({
+              streamingContent: this.streamingContent + (data.content || ""),
+            });
+            break;
+          case "error":
+            console.error("Streaming error:", data.error);
+            eventSource.close();
+            this.update({ isStreaming: false });
+            this.messaging.notify({
+              message: data.error,
+              type: "danger",
+            });
+            break;
+          case "end":
+            const htmlStreamingContent = this.htmlStreamingContent;
+            eventSource.close();
+            await this._postAIMessage(htmlStreamingContent);
+            this._stopStreaming();
+            break;
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error("EventSource failed:", error);
+        eventSource.close();
+        this._stopStreaming();
+      };
+    },
+    async postUserMessageForAi() {
+      await this.postMessage();
+      this.update({
+        doFocus: true,
+      });
+      this.startStreaming();
+    },
+
+    onKeydownTextareaForAi(ev) {
+      if (!this.exists()) {
+        return;
+      }
+      switch (ev.key) {
+        case "Escape":
+        // UP, DOWN, TAB: prevent moving cursor if navigation in mention suggestions
+        case "ArrowUp":
+        case "PageUp":
+        case "ArrowDown":
+        case "PageDown":
+        case "Home":
+        case "End":
+        case "Tab":
+          if (this.hasSuggestions) {
+            // We use preventDefault here to avoid keys native actions but actions are handled in keyUp
+            ev.preventDefault();
+          }
+          break;
+        // ENTER: submit the message only if the dropdown mention proposition is not displayed
+        case "Enter":
+          this.onKeydownTextareaEnterForAi(ev);
+          break;
+      }
+    },
+    /**
+     * @param {KeyboardEvent} ev
+     */
+    onKeydownTextareaEnterForAi(ev) {
+      if (!this.exists()) {
+        return;
+      }
+      if (this.hasSuggestions) {
+        ev.preventDefault();
+        return;
+      }
+      if (
+        this.sendShortcuts.includes("ctrl-enter") &&
+        !ev.altKey &&
+        ev.ctrlKey &&
+        !ev.metaKey &&
+        !ev.shiftKey
+      ) {
+        this.postUserMessageForAi();
+        ev.preventDefault();
+        return;
+      }
+      if (
+        this.sendShortcuts.includes("enter") &&
+        !ev.altKey &&
+        !ev.ctrlKey &&
+        !ev.metaKey &&
+        !ev.shiftKey
+      ) {
+        this.postUserMessageForAi();
+        ev.preventDefault();
+        return;
+      }
+      if (
+        this.sendShortcuts.includes("meta-enter") &&
+        !ev.altKey &&
+        !ev.ctrlKey &&
+        ev.metaKey &&
+        !ev.shiftKey
+      ) {
+        this.postUserMessageForAi();
+        ev.preventDefault();
+        return;
+      }
+    },
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: models/llm_chat_view.js
+
+/** @odoo-module **/
+
+import { registerModel } from "@mail/model/model_core";
+import { attr, one } from "@mail/model/model_field";
+import { clear } from "@mail/model/model_field_command";
+
+registerModel({
+  name: "LLMChatView",
+  lifecycleHooks: {
+    _created() {
+      // Initialize thread list visibility based on device size
+      this.update({
+        isThreadListVisible: !this.messaging.device.isSmall,
+      });
+    },
+  },
+  recordMethods: {
+    /**
+     * @private
+     */
+    _onLLMChatActiveThreadChanged() {
+      this.env.services.router.pushState({
+        action: this.llmChat.llmChatView.actionId,
+        active_id: this.llmChat.activeId,
+      });
+    },
+  },
+  fields: {
+    actionId: attr(),
+    isThreadListVisible: attr({
+      default: true,
+    }),
+    llmChat: one("LLMChat", {
+      inverse: "llmChatView",
+      required: true,
+    }),
+    isActive: attr({
+      compute() {
+        return Boolean(this.llmChat);
+      },
+    }),
+    thread: one("Thread", {
+      compute() {
+        return this.llmChat.activeThread;
+      },
+    }),
+    threadViewer: one("ThreadViewer", {
+      compute() {
+        if (!this.llmChat.activeThread) {
+          return clear();
+        }
+        return {
+          hasThreadView: true,
+          thread: this.llmChat.activeThread,
+          threadCache: this.llmChat.threadCache,
+        };
+      },
+    }),
+    threadView: one("ThreadView", {
+      compute() {
+        if (!this.threadViewer) {
+          return clear();
+        }
+        return {
+          threadViewer: this.threadViewer,
+          messageListView: {},
+          llmChatThreadHeaderView: {},
+        };
+      },
+    }),
+    composer: one("Composer", {
+      compute() {
+        if (!this.threadViewer) {
+          return clear();
+        }
+        return { thread: this.threadViewer.thread };
+      },
+    }),
+  },
+  onChanges: [
+    {
+      dependencies: ["llmChat.activeThread"],
+      methodName: "_onLLMChatActiveThreadChanged",
+    },
+  ],
+});
+
+
+# END FILE CONTENTS
+
+
+# File: models/llm_provider.js
+
+/** @odoo-module **/
+
+import { registerModel } from "@mail/model/model_core";
+import { attr, one, many } from "@mail/model/model_field";
+
+registerModel({
+  name: "LLMProvider",
+  fields: {
+    id: attr({
+      identifying: true,
+    }),
+    name: attr({
+      required: true,
+    }),
+    llmModels: many("LLMModel", {
+      inverse: "llmProvider",
+    }),
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_composer/llm_chat_composer.scss
+
+.o_LLMChatComposer {
+  padding: 16px;
+  background-color: rgba($white, 0.95);
+  border-top: 1px solid rgba($border-color, 1);
+
+  &_container {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+}
+
+
+# END FILE CONTENTS
+
+
+# File: models/thread_view.js
+
+/** @odoo-module **/
+
+import { registerPatch } from "@mail/model/model_core";
+import { one } from "@mail/model/model_field";
+
+registerPatch({
+  name: "ThreadView",
+  fields: {
+    llmChatThreadHeaderView: one("LLMChatThreadHeaderView", {
+      inverse: "threadView",
+    }),
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread_header/llm_chat_thread_header.scss
+
+.o_ThreadViewTopbar {
+  // Only keep styles that are specific to our use case and not covered by Odoo's classes
+  .o_ThreadViewTopbar_threadName {
+    max-width: 180px; // Limit thread name width on mobile
+
+    @include media-breakpoint-up(sm) {
+      max-width: none;
+    }
+  }
+
+  .o_ThreadViewTopbar_threadDescription {
+    display: inline-flex;
+    align-items: center;
+    font-size: 13px;
+    max-width: 200px; // Limit description width
+
+    @include media-breakpoint-down(sm) {
+      font-size: 12px;
+      max-width: 150px; // More constrained on mobile
+    }
+  }
+
+  .o_ThreadViewTopbar_providerName {
+    color: $info;
+  }
+
+  .o_ThreadViewTopbar_modelName {
+    color: $primary;
+    min-width: 0; // Enable truncation
+  }
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chatter_topbar/llm_chatter_topbar.xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+    <!--Overwrite the templates "mail.ChatterTopbar" to rearrange the view and added classes-->
+<templates xml:space="preserve">
+    <t name="llm_thread.ChatterTopbar"
+       t-inherit="mail.ChatterTopbar"
+       t-inherit-mode="extension"
+       owl="1">
+        <xpath expr="//div[hasclass('o_ChatterTopbar_borderLeft')]" position="after">
+           <button 
+            class="o_ChatterTopbar_button btn btn-light text-nowrap" type="button" 
+            t-on-click="chatterTopbar.chatter.onClickScheduleActivity" 
+            >
+                <span>AI</span>
+            </button>
+        </xpath>
+    </t>
+</templates>
+
+# END FILE CONTENTS
+
+
+# File: models/llm_model.js
+
+/** @odoo-module **/
+
+import { registerModel } from "@mail/model/model_core";
+import { attr, one, many } from "@mail/model/model_field";
+
+registerModel({
+  name: "LLMModel",
+  fields: {
+    id: attr({
+      identifying: true,
+    }),
+    name: attr({
+      required: true,
+    }),
+    llmProvider: one("LLMProvider", {
+      inverse: "llmModels",
+    }),
+    threads: many("Thread", {
+      inverse: "llmModel",
+    }),
+    default: attr({
+      default: false,
+    }),
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_message_list/llm_chat_message_list.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatMessageList" owl="1">
+        <t t-if="messageListView">
+            <div
+        class="o_MessageList bg-view d-flex flex-column overflow-auto"
+        t-att-class="{ 'o-empty align-items-center justify-content-center': messageListView.threadViewOwner.messages.length === 0, 'pb-4': messageListView.threadViewOwner.messages.length !== 0 }"
+        t-attf-class="{{ className }}"
+        t-on-scroll="onScroll"
+        t-ref="root"
+      >
+                <!-- LOADING (if order asc)-->
+                <t
+          t-if="messageListView.threadViewOwner.threadCache.hasLoadingFailed"
+        >
+                    <div
+            class="o_MessageList_alertLoadingFailed d-flex align-items-center alert alert-info"
+          >
+                        <div>An error occurred while fetching messages.</div>
+                        <button
+              class="o_MessageList_alertLoadingFailedRetryButton btn btn-link"
+              t-on-click="messageListView.onClickRetryLoadMoreMessages"
+            >Click here to retry</button>
+                    </div>
+                </t>
+                <t
+          t-if="!messageListView.threadViewOwner.threadCache.hasLoadingFailed and messageListView.threadViewOwner.order === 'asc'"
+        >
+                    <t t-call="llm_thread.LLMChatMessageList.loadMore" />
+                </t>
+                <div
+          t-if="messageListView.threadViewOwner.order === 'asc' and messageListView.threadViewOwner.threadCache.orderedNonEmptyMessages.length !== 0 and !(messageListView.threadViewOwner.thread and messageListView.threadViewOwner.thread.mailbox)"
+          style="flex: 0 0 auto;"
+        />
+                <!-- MESSAGES -->
+                <t t-set="current_day" t-value="0" />
+                <t
+          t-foreach="messageListView.messageListViewItems"
+          t-as="messageListViewItem"
+          t-key="messageListViewItem.localId"
+        >
+                    <Transition
+            visible="messageListViewItem.message === messageListView.threadViewOwner.thread.messageAfterNewMessageSeparator"
+            name="'o-fade'"
+            t-slot-scope="transition"
+          >
+                        <div
+              class="o_MessageList_separator o_MessageList_separatorNewMessages o_MessageList_item d-flex flex-shrink-0 align-items-center me-4 p-0 fw-bolder"
+              t-att-class="{ 'o-disable-animation': messaging.disableAnimation, 'opacity-0': transition.className.includes('o-fade-leave') }"
+              t-attf-class="{{transition.className}}"
+            >
+                            <hr
+                class="o_MessageList_separatorLine o_MessageList_separatorLineNewMessages flex-grow-1 w-auto"
+              /><span
+                class="o_MessageList_separatorLabel o_MessageList_separatorLabelNewMessages px-3"
+              >New messages</span>
+                        </div>
+                    </Transition>
+                    <t t-if="!messageListViewItem.message.isEmpty">
+                        <t
+              t-set="message_day"
+              t-value="messageListViewItem.message.dateDay"
+            />
+                        <t t-if="current_day !== message_day">
+                            <div
+                class="o_MessageList_separator o_MessageList_separatorDate o_MessageList_item d-flex flex-shrink-0 align-items-center pt-4 pb-0 px-0 fw-bolder"
+              >
+                                <hr
+                  class="o_MessageList_separatorLine flex-grow-1 w-auto border-top"
+                /><span
+                  class="o_MessageList_separatorLabel o_MessageList_separatorLabelDate px-3"
+                ><t t-esc="message_day" /></span><hr
+                  class="o_MessageList_separatorLine flex-grow-1 w-auto border-top"
+                />
+                                <t t-set="current_day" t-value="message_day" />
+                            </div>
+                        </t>
+                        <NotificationMessageView
+              t-if="messageListViewItem.notificationMessageView"
+              record="messageListViewItem.notificationMessageView"
+            />
+                        <Message
+              t-if="messageListViewItem.messageView"
+              record="messageListViewItem.messageView"
+            />
+                    </t>
+                </t>
+                <!-- Streaming Message -->
+                <t t-if="composerView.isStreaming and htmlStreamingContent">
+                    <div class="o_Message position-relative py-1 px-3">
+                        <div class="position-relative d-flex flex-shrink-0">
+                            <div class="o_Message_sidebar d-flex flex-shrink-0">
+                                <div
+                  class="o_Message_authorAvatarContainer o_Message_sidebarItem position-relative"
+                >
+                                    <img
+                    class="o_Message_authorAvatar w-100 h-100 rounded-circle o_object_fit_cover"
+                    src="/mail/static/src/img/smiley/avatar.jpg"
+                    alt="AI Avatar"
+                  />
+                                </div>
+                            </div>
+                            <div class="o_Message_core flex-grow-1">
+                                <div
+                  class="o_Message_header d-flex flex-wrap align-items-baseline"
+                >
+                                    <a
+                    class="o_Message_authorName me-2 text-truncate text-muted"
+                  >
+                                        <strong>AI</strong>
+                                    </a>
+                                </div>
+                                <div
+                  class="o_Message_bubbleWrap position-relative d-flex align-items-start"
+                >
+                                    <div
+                    class="o_Message_bubble position-relative w-100 text-muted"
+                  >
+                                        <div
+                      class="o_Message_background position-absolute start-0 top-0 w-100 h-100"
+                    />
+                                        <div
+                      class="o_Message_content position-relative text-break"
+                    >
+                                            <div class="o_Message_prettyBody">
+                                                <t
+                          t-out="htmlStreamingContent"
+                        />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+                <!-- LOADING (if order desc)-->
+                <t
+          t-if="!messageListView.threadViewOwner.threadCache.hasLoadingFailed and messageListView.threadViewOwner.order === 'desc'"
+        >
+                    <t t-call="llm_thread.LLMChatMessageList.loadMore" />
+                </t>
+            </div>
+        </t>
+    </t>
+
+    <t t-name="llm_thread.LLMChatMessageList.loadMore" owl="1">
+        <t t-if="messageListView.threadViewOwner.threadCache.isLoadingMore">
+            <div
+        class="o_MessageList_item o_MessageList_isLoadingMore align-self-center"
+      >
+                <i
+          class="o_MessageList_isLoadingMoreIcon fa fa-spin fa-circle-o-notch me-1"
+        />
+                Loading...
+            </div>
+        </t>
+        <t
+      t-elif="!messageListView.threadViewOwner.threadCache.isAllHistoryLoaded and !messageListView.threadViewOwner.thread.isTemporary"
+    >
+            <a
+        class="o_MessageList_item o_MessageList_loadMore align-self-center"
+        href="#"
+        t-on-click="messageListView.onClickLoadMore"
+        t-ref="loadMore"
+      >
+                Load more
+            </a>
+        </t>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_composer_text_input/llm_chat_composer_text_input.scss
+
+.o_LLMChatComposerTextInput {
+  flex: 1 1 auto;
+
+  &_textarea {
+    resize: none;
+    min-height: 112px !important;
+    max-height: 200px;
+    line-height: 1.5;
+    border-width: 1.5px;
+
+    &::placeholder {
+      color: rgba($gray-600, 0.8);
+    }
+
+    &:hover {
+      border-color: rgba($primary, 0.3);
+    }
+
+    &:focus {
+      border-color: $primary;
+    }
+  }
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_sidebar/llm_chat_sidebar.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatSidebar" owl="1">
+        <!-- Backdrop -->
+        <t t-if="messaging.device.isSmall">
+            <div
+        class="o_LLMChatSidebar_backdrop"
+        t-att-class="{ 'o-visible': llmChatView.isThreadListVisible }"
+        t-on-click="_onBackdropClick"
+      />
+        </t>
+
+        <!-- Sidebar -->
+        <div
+      class="o_LLMChatSidebar o_DiscussSidebar d-flex flex-column overflow-auto o_Discuss_sidebar flex-shrink-0 h-100 pt-3 border-end bg-light"
+      t-att-class="{
+                'o-mobile': messaging.device.isSmall,
+                'o-visible': !messaging.device.isSmall || llmChatView.isThreadListVisible
+            }"
+    >
+            <!-- New Chat Button -->
+            <div class="d-flex justify-content-center">
+                    <button
+          class="o_DiscussSidebar_startAMeetingButton btn btn-primary rounded"
+          t-on-click="_onClickNewChat"
+        >
+                        <i class="fa fa-plus me-2" />
+                        <span>New Chat</span>
+                    </button>
+            </div>
+
+            <!-- Thread List -->
+            <div class="o_LLMChatSidebar_threadList flex-grow-1 overflow-auto">
+                <LLMChatThreadList record="llmChatView" />
+            </div>
+        </div>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread/llm_chat_thread.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatThread" owl="1">
+        <div class="o_LLMChatThread d-flex flex-column h-100">
+            <!-- Header -->
+            <LLMChatThreadHeader record="threadView.llmChatThreadHeaderView" />
+
+            <!-- Messages -->
+            <div class="o_LLMChatThread_content flex-grow-1 overflow-auto">
+                <t t-if="thread.cache?.isLoading">
+                    <div
+            class="d-flex justify-content-center align-items-center h-100"
+          >
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </t>
+                <t t-else="">
+                    <!-- Message List -->
+                    <LLMChatMessageList
+            record="threadView.messageListView"
+            composerView="threadView.composerView"
+          />
+                </t>
+            </div>
+
+            <!-- Chat Composer - Moved outside scrollable area -->
+            <div class="o_LLMChatThread_composer p-3">
+                <LLMChatComposer record="threadView.composerView" />
+            </div>
+        </div>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: models/main.js
+
+/** @odoo-module **/
+
+// Import all models to ensure they are registered
+import "@llm_thread/models/llm_chat";
+import "@llm_thread/models/llm_chat_view";
+import "@llm_thread/models/messaging";
+import "@llm_thread/models/thread";
+import "@llm_thread/models/composer";
+import "@llm_thread/models/composer_view";
+import "@llm_thread/models/llm_model";
+import "@llm_thread/models/llm_provider";
+import "@llm_thread/models/thread_view";
+import "@llm_thread/models/llm_chat_thread_header_view";
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread/llm_chat_thread.js
+
+/** @odoo-module **/
+
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+
+const { Component } = owl;
+
+export class LLMChatThread extends Component {
+  get threadView() {
+    return this.props.threadView;
+  }
+
+  /**
+   * @returns {Thread}
+   */
+  get thread() {
+    return this.props.record;
+  }
+
+  /**
+   * @returns {Message[]}
+   */
+  get messages() {
+    // Use ThreadCache's orderedMessages
+    return this.thread.cache?.orderedMessages || [];
+  }
+}
+
+Object.assign(LLMChatThread, {
+  props: {
+    record: Object,
+    threadView: Object,
+  },
+  template: "llm_thread.LLMChatThread",
+});
+
+registerMessagingComponent(LLMChatThread);
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_container/llm_chat_container.scss
+
+.o_LLMChatContainer {
+  background-color: $o-view-background-color;
+
+  .o_LLMChatContainer_spinner {
+    color: $o-main-text-color;
+    font-size: 1.1em;
+
+    .o_LLMChatContainer_spinnerIcon {
+      font-size: 1.3em;
+      color: $o-brand-primary;
+    }
+  }
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_composer_text_input/llm_chat_composer_text_input.js
+
+/** @odoo-module **/
+import { ComposerTextInput } from "@mail/components/composer_text_input/composer_text_input";
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+
+export class LLMChatComposerTextInput extends ComposerTextInput {
+  /**
+   * Intercept input event before passing to composer view
+   * @private
+   * @param {InputEvent} ev
+   */
+  _onInput(ev) {
+    // Call original handler
+    this.composerView.onInputTextarea(ev);
+  }
+
+  /**
+   * Intercept keydown event
+   * @private
+   * @param {KeyboardEvent} ev
+   */
+  _onKeydown(ev) {
+    this.composerView.onKeydownTextareaForAi(ev);
+  }
+}
+
+Object.assign(LLMChatComposerTextInput, {
+  props: { record: Object },
+  template: "llm_thread.LLMChatComposerTextInput",
+});
+
+registerMessagingComponent(LLMChatComposerTextInput);
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread_list/llm_chat_thread_list.scss
+
+.o_LLMChatThreadList {
+  padding-top: 16px;
+  padding-bottom: 16px;
+
+  .o_DiscussSidebarCategoryItem {
+    position: relative; // For absolute positioning of border
+
+    &.o-active {
+      &::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background-color: $primary;
+      }
+    }
+  }
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread_header/llm_chat_thread_header.js
+
+/** @odoo-module **/
+
+import { useRefToModel } from "@mail/component_hooks/use_ref_to_model";
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+const { Component, useRef, useState } = owl;
+
+export class LLMChatThreadHeader extends Component {
+  /**
+   * @override
+   */
+  setup() {
+    super.setup();
+    useRefToModel({
+      fieldName: "llmChatThreadNameInputRef",
+      refName: "threadNameInput",
+    });
+  }
+
+  get llmChatThreadHeaderView() {
+    return this.props.record;
+  }
+
+  get threadView() {
+    return this.llmChatThreadHeaderView.threadView;
+  }
+
+  get thread() {
+    return this.threadView.thread;
+  }
+
+  get llmChat() {
+    return this.thread.llmChat;
+  }
+
+  get llmProviders() {
+    return this.llmChat.llmProviders;
+  }
+
+  get llmModels() {
+    return this.llmChat.llmModels;
+  }
+
+  get isSmall() {
+    return this.messaging.device.isSmall;
+  }
+
+  /**
+   * @param {Object} provider
+   */
+  onSelectProvider(provider) {
+    if (provider.id !== this.llmChatThreadHeaderView.selectedProviderId) {
+      const defaultModel = this.getDefaultModelForProvider(provider.id);
+      // it should trigger onChange event
+      this.llmChatThreadHeaderView.saveSelectedModel(defaultModel?.id);
+      this.messaging.notify({
+        title: "Model have been reset",
+        message: "We have auto updated model to default one for this provider",
+        type: "info",
+      });
+    }
+  }
+
+  getDefaultModelForProvider(providerId) {
+    const availableModels =
+      this.llmModels?.filter((model) => model.llmProvider?.id === providerId) ||
+      [];
+    const defaultModel = availableModels.find((model) => model.default);
+
+    if (defaultModel) {
+      return defaultModel;
+    } else if (availableModels.length > 0) {
+      return availableModels[0];
+    }
+    return null;
+  }
+
+  /**
+   * @param {Object} model
+   */
+  onSelectModel(model) {
+    this.llmChatThreadHeaderView.saveSelectedModel(model.id);
+  }
+
+  /**
+   * Toggle thread list visibility on mobile
+   */
+  _onToggleThreadList() {
+    this.thread.llmChat.llmChatView.update({
+      isThreadListVisible: !this.thread.llmChat.llmChatView.isThreadListVisible,
+    });
+  }
+
+  /**
+   * Handle keydown in thread name input
+   * @param {KeyboardEvent} ev
+   */
+  onKeyDownThreadNameInput(ev) {
+    switch (ev.key) {
+      case "Enter":
+        ev.preventDefault();
+        this.llmChatThreadHeaderView.saveThreadName();
+        break;
+      case "Escape":
+        ev.preventDefault();
+        this.llmChatThreadHeaderView.discardThreadNameEdition();
+        break;
+    }
+  }
+
+  /**
+   * Handle input value change
+   * @param {Event} ev
+   */
+  onInputThreadNameInput(ev) {
+    this.llmChatThreadHeaderView.update({ pendingName: ev.target.value });
+  }
+}
+
+Object.assign(LLMChatThreadHeader, {
+  props: { record: Object },
+  template: "llm_thread.LLMChatThreadHeader",
+});
+
+registerMessagingComponent(LLMChatThreadHeader);
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_message_list/llm_chat_message_list.js
+
+/** @odoo-module **/
+
+import { MessageList } from "@mail/components/message_list/message_list";
+import { Transition } from "@web/core/transition";
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+import { markup } from "@odoo/owl";
+import { useEffect, useRef } from "@odoo/owl";
+
+export class LLMChatMessageList extends MessageList {
+  setup() {
+    super.setup();
+    this.rootRef = useRef("root");
+    useEffect(
+      () => {
+        if (this.composerView.isStreaming && this.htmlStreamingContent) {
+          this._scrollToEnd();
+        }
+      },
+      () => [this.htmlStreamingContent]
+    );
+  }
+
+  get htmlStreamingContent() {
+    return this.composerView.htmlStreamingContent
+      ? markup(this.composerView.htmlStreamingContent)
+      : "";
+  }
+
+  get composerView() {
+    return this.props.composerView;
+  }
+
+  _scrollToEnd() {
+    const scrollable = this.rootRef.el.closest(".o_LLMChatThread_content");
+    if (scrollable) {
+      const scrollHeight = scrollable.scrollHeight;
+      const clientHeight = scrollable.clientHeight;
+      const scrollTop = scrollHeight - clientHeight;
+      scrollable.scrollTop = scrollTop;
+    } else {
+      // Fallback to original behavior
+      const fallbackScrollable = this.rootRef.el;
+      if (fallbackScrollable) {
+        const scrollHeight = fallbackScrollable.scrollHeight;
+        const clientHeight = fallbackScrollable.clientHeight;
+        const scrollTop = scrollHeight - clientHeight;
+        fallbackScrollable.scrollTop = scrollTop;
+      }
+    }
+  }
+}
+
+Object.assign(LLMChatMessageList, {
+  components: { Transition },
+  props: { record: Object, composerView: Object },
+  template: "llm_thread.LLMChatMessageList",
+});
+
+registerMessagingComponent(LLMChatMessageList);
+
+
+# END FILE CONTENTS
+
+
+# File: models/llm_chat_thread_header_view.js
+
+/** @odoo-module **/
+
+import { registerModel } from "@mail/model/model_core";
+import { attr, many, one } from "@mail/model/model_field";
+import { clear } from "@mail/model/model_field_command";
+
+registerModel({
+  name: "LLMChatThreadHeaderView",
+  lifecycleHooks: {
+    _created() {
+      // Set initial values without triggering backend update
+      this._initializeState();
+    },
+  },
+  fields: {
+    threadView: one("ThreadView", {
+      inverse: "llmChatThreadHeaderView",
+    }),
+    isEditingName: attr({
+      default: false,
+    }),
+    pendingName: attr({
+      default: "",
+    }),
+    llmChatThreadNameInputRef: attr(),
+    selectedProviderId: attr(),
+    selectedModelId: attr(),
+    _isInitializing: attr({
+      default: false,
+    }),
+    selectedProvider: one("LLMProvider", {
+      compute() {
+        if (!this.selectedProviderId) {
+          return clear();
+        } else {
+          return this.threadView.thread.llmChat.llmProviders.find(
+            (p) => p.id === this.selectedProviderId
+          );
+        }
+      },
+    }),
+    selectedModel: one("LLMModel", {
+      compute() {
+        if (!this.selectedModelId) {
+          return clear();
+        } else {
+          const matchedModel = this.threadView.thread.llmChat.llmModels.find(
+            (m) => m.id === this.selectedModelId
+          );
+          return matchedModel || clear();
+        }
+      },
+    }),
+    modelsAvailableToSelect: many("LLMModel", {
+      compute() {
+        if (!this.selectedProviderId) {
+          return [];
+        }
+        return (
+          this.threadView.thread.llmChat?.llmModels?.filter(
+            (model) => model.llmProvider?.id === this.selectedProviderId
+          ) || []
+        );
+      },
+    }),
+  },
+  recordMethods: {
+    /**
+     * Initialize or reset state based on current thread
+     * @private
+     */
+    _initializeState() {
+      this.update({
+        selectedProviderId: this.threadView.thread.llmModel?.llmProvider?.id,
+        selectedModelId: this.threadView.thread.llmModel?.id,
+      });
+    },
+
+    /**
+     * Handle thread changes
+     * @private
+     */
+    _onThreadViewChange() {
+      this._initializeState();
+    },
+
+    /**
+     * Handle model changes
+     * @private
+     */
+    async saveSelectedModel(selectedModelId) {
+      // Skip backend update during initialization
+      if (!selectedModelId || selectedModelId === this.selectedModelId) {
+        return;
+      }
+
+      this.update({
+        selectedModelId,
+      });
+      const provider = this.selectedModel.llmProvider;
+      this.update({
+        selectedProviderId: provider.id,
+      });
+
+      await this.threadView.thread.updateLLMChatThreadSettings({
+        llmModelId: this.selectedModel.id,
+        llmProviderId: provider.id,
+      });
+    },
+
+    /**
+     * Opens the thread form view for editing
+     */
+    async openThreadSettings() {
+      await this.env.services.action.doAction(
+        {
+          type: "ir.actions.act_window",
+          res_model: "llm.thread",
+          res_id: this.threadView.thread.id,
+          views: [[false, "form"]],
+          target: "new",
+          flags: {
+            mode: "edit",
+          },
+        },
+        {
+          onClose: () => {
+            // Reload thread data when form is closed
+            this.threadView.thread.llmChat.loadThreads();
+          },
+        }
+      );
+    },
+
+    /**
+     * Start editing thread name
+     */
+    onClickTopbarThreadName() {
+      if (this.isEditingName || this.messaging.device.isSmall) {
+        return;
+      }
+      this.update({
+        isEditingName: true,
+        pendingName: this.threadView.thread.name,
+      });
+    },
+
+    /**
+     * Save thread name changes to server
+     */
+    async saveThreadName() {
+      const thread = this.threadView.thread;
+      if (!this.pendingName.trim()) {
+        this.discardThreadNameEdition();
+        return;
+      }
+
+      const newName = this.pendingName.trim();
+      if (newName === thread.name) {
+        this.discardThreadNameEdition();
+        return;
+      }
+
+      try {
+        await thread.updateLLMChatThreadSettings({ name: newName });
+        await thread.llmChat.loadThreads();
+        this.update({
+          isEditingName: false,
+          pendingName: "",
+        });
+      } catch (error) {
+        console.error("Error updating thread name:", error);
+        this.messaging.notify({
+          message: this.env._t("Failed to update thread name"),
+          type: "danger",
+        });
+        this.discardThreadNameEdition();
+      }
+    },
+
+    /**
+     * Discard thread name changes
+     */
+    discardThreadNameEdition() {
+      this.update({
+        isEditingName: false,
+        pendingName: "",
+      });
+    },
+  },
+  onChanges: [
+    {
+      dependencies: ["threadView.thread.llmChat.activeThread.id"],
+      methodName: "_onThreadViewChange",
+    },
+  ],
+});
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread_header/llm_chat_thread_header.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatThreadHeader" owl="1">
+        <div
+      class="o_ThreadViewTopbar d-flex flex-shrink-0 w-100 px-3 bg-100 border-bottom"
+      t-ref="root"
+    >
+            <button
+        t-if="isSmall"
+        class="o_ThreadViewTopbar_button btn px-2 border-none rounded shadow-none me-2"
+        t-on-click="_onToggleThreadList"
+      >
+                <i
+          class="fa fa-lg fa-bars text-700"
+          role="img"
+          aria-label="Toggle thread list"
+        />
+            </button>
+
+            <div
+        class="o_ThreadViewTopbar_title d-flex flex-grow-1 align-self-center align-items-center min-w-0"
+      >
+                <t t-if="!llmChatThreadHeaderView.isEditingName || isSmall">
+                    <div
+            class="o_ThreadViewTopbar_threadName o_ThreadViewTopbar_editableItem lead flex-shrink-1 px-1 border text-truncate fw-bold"
+            t-att-title="thread.name"
+            t-on-click="llmChatThreadHeaderView.onClickTopbarThreadName"
+            t-attf-class="{{ 'border-light' }}"
+          >
+                        <t t-esc="thread.name" />
+                    </div>
+                </t>
+                <t t-if="llmChatThreadHeaderView.isEditingName and !isSmall">
+                    <input
+            class="o_ThreadViewTopbar_threadNameInput form-control lead fw-bold o_input_tooltip"
+            type="text"
+            autofocus="autofocus"
+            t-att-value="llmChatThreadHeaderView.pendingName"
+            t-on-input="onInputThreadNameInput"
+            t-on-keydown="onKeyDownThreadNameInput"
+            t-ref="threadNameInput"
+            title="Press Enter to save, Esc to cancel"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+          />
+                </t>
+            </div>
+
+            <div t-if="!isSmall" class="d-flex align-items-center">
+                <!-- LLM Provider Dropdown -->
+                <div class="dropdown">
+                    <button
+            class="btn btn-light dropdown-toggle d-flex align-items-center gap-2"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            style="max-width: 200px;"
+          >
+                        <div class="text-truncate">
+                            <t t-if="llmChatThreadHeaderView.selectedProvider">
+                                <t
+                  t-esc="llmChatThreadHeaderView.selectedProvider.name"
+                />
+                            </t>
+                            <t t-else="">
+                                Select Provider
+                            </t>
+                        </div>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <t
+              t-foreach="llmProviders"
+              t-as="provider"
+              t-key="provider.id"
+            >
+                            <li>
+                                <a
+                  class="dropdown-item text-truncate"
+                  href="#"
+                  t-on-click="() => this.onSelectProvider(provider)"
+                  t-att-title="provider.name"
+                >
+                                    <t t-esc="provider.name" />
+                                </a>
+                            </li>
+                        </t>
+                    </ul>
+                </div>
+
+                <!-- LLM Model Dropdown -->
+                <div class="dropdown ms-2">
+                    <button
+            class="btn btn-light dropdown-toggle d-flex align-items-center gap-2"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            style="max-width: 200px;"
+          >
+                        <div class="text-truncate">
+                            <t t-if="llmChatThreadHeaderView.selectedModel">
+                                <t
+                  t-esc="llmChatThreadHeaderView.selectedModel.name"
+                />
+                            </t>
+                            <t t-else="">
+                                Select Model
+                            </t>
+                        </div>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <t
+              t-foreach="llmChatThreadHeaderView.modelsAvailableToSelect"
+              t-as="model"
+              t-key="model.id"
+            >
+                            <li>
+                                <a
+                  class="dropdown-item text-truncate"
+                  href="#"
+                  t-on-click="() => this.onSelectModel(model)"
+                  t-att-title="model.name"
+                >
+                                    <t t-esc="model.name" />
+                                </a>
+                            </li>
+                        </t>
+                    </ul>
+                </div>
+            </div>
+
+            <button
+        class="o_ThreadViewTopbar_button btn px-2 border-none rounded shadow-none"
+        t-if="isSmall"
+        t-on-click="llmChatThreadHeaderView.openThreadSettings"
+        title="Settings"
+      >
+                <i class="fa fa-lg fa-gear text-700" />
+            </button>
+        </div>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: utils/markdown_utils.js
+
+/** @odoo-module **/
+
+/**
+ * Converts a Markdown string to HTML using the marked library.
+ * @param {string} markdown - The Markdown text to convert.
+ * @returns {string} The resulting HTML string.
+ */
+export function markdownToHtml(markdown) {
+  return window.marked.parse(markdown);
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat/llm_chat.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChat" owl="1">
+        <div class="o_LLMChat d-flex h-100">
+            <!-- Thread List Section -->
+            <LLMChatSidebar record="llmChatView" />
+
+            <!-- Chat Section -->
+            <div class="o_LLMChat_content flex-grow-1">
+                <t t-if="llmChatView.llmChat.activeThread">
+                    <LLMChatThread
+            record="llmChatView.llmChat.activeThread"
+            threadView="llmChatView.threadView"
+          />
+                </t>
+                <t t-else="">
+                    <div
+            class="o_LLMChat_noThread d-flex align-items-center justify-content-center h-100"
+          >
+                        <span>Select a conversation to start chatting</span>
+                    </div>
+                </t>
+            </div>
+        </div>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: models/llm_chat.js
+
+/** @odoo-module **/
+
+import { registerModel } from "@mail/model/model_core";
+import { attr, one, many } from "@mail/model/model_field";
+import { clear } from "@mail/model/model_field_command";
+
+registerModel({
+  name: "LLMChat",
+  recordMethods: {
+    /**
+     * Close the LLM chat. Should reset its internal state.
+     */
+    close() {
+      this.update({ llmChatView: clear() });
+    },
+
+    /**
+     * Opens thread from init active id if the thread exists.
+     */
+    openInitThread() {
+      if (!this.initActiveId) {
+        // If no initial thread specified, select the first thread
+        if (this.threads.length > 0) {
+          this.selectThread(this.threads[0].id);
+        }
+        return;
+      }
+
+      const [model, id] =
+        typeof this.initActiveId === "number"
+          ? ["llm.thread", this.initActiveId]
+          : this.initActiveId.split("_");
+      const thread = this.messaging.models["Thread"].findFromIdentifyingData({
+        id: Number(id),
+        model,
+      });
+      if (!thread) {
+        // If specified thread not found, select first thread
+        if (this.threads.length > 0) {
+          this.selectThread(this.threads[0].id);
+        }
+        return;
+      }
+      this.selectThread(thread.id);
+    },
+
+    /**
+     * Opens the given thread in LLMChat
+     *
+     * @param {Thread} thread
+     */
+    async openThread(thread) {
+      this.update({ thread });
+      if (!this.llmChatView) {
+        this.env.services.action.doAction("llm_thread.action_llm_chat", {
+          name: this.env._t("Chat"),
+          active_id: this.threadToActiveId(thread),
+          clearBreadcrumbs: false,
+        });
+      }
+    },
+
+    /**
+     * @param {Thread} thread
+     * @returns {string}
+     */
+    threadToActiveId(thread) {
+      return `${thread.model}_${thread.id}`;
+    },
+
+    async loadThreads() {
+      const result = await this.messaging.rpc({
+        model: "llm.thread",
+        method: "search_read",
+        kwargs: {
+          domain: [],
+          fields: [
+            "name",
+            "message_ids",
+            "create_uid",
+            "create_date",
+            "write_date",
+            "model_id",
+            "provider_id",
+          ],
+          order: "write_date desc",
+        },
+      });
+
+      // Convert results to Thread records
+      const threadData = result.map((thread) => ({
+        id: thread.id,
+        model: "llm.thread",
+        name: thread.name,
+        message_needaction_counter: 0,
+        creator: thread.create_uid ? { id: thread.create_uid } : undefined,
+        isServerPinned: true,
+        updatedAt: thread.write_date,
+        llmModel: thread.model_id
+          ? {
+              id: thread.model_id[0],
+              name: thread.model_id[1],
+              llmProvider: {
+                id: thread.provider_id[0],
+                name: thread.provider_id[1],
+              },
+            }
+          : undefined,
+      }));
+
+      // Update threads in the store
+      this.update({ threads: threadData });
+    },
+    /**
+     * @param {integer} threadId
+     */
+    async selectThread(threadId) {
+      const thread = this.messaging.models["Thread"].findFromIdentifyingData({
+        id: threadId,
+        model: "llm.thread",
+      });
+
+      if (thread) {
+        // Update active thread - ThreadCache will handle message loading
+        this.update({ activeThread: thread });
+      }
+    },
+
+    open() {
+      this.update({ llmChatView: {} });
+    },
+
+    async loadLLMModels() {
+      const result = await this.messaging.rpc({
+        model: "llm.model",
+        method: "search_read",
+        kwargs: {
+          domain: [],
+          fields: ["name", "id", "provider_id", "default"],
+        },
+      });
+
+      // Convert results to LLMModel records
+      const llmModelData = result.map((model) => ({
+        id: model.id,
+        name: model.name,
+        llmProvider: model.provider_id
+          ? { id: model.provider_id[0], name: model.provider_id[1] }
+          : undefined,
+        default: model.default,
+      }));
+
+      // Update llmModels in the store
+      this.update({ llmModels: llmModelData });
+    },
+    async createNewThread() {
+      // Get the default model or first available model
+      const defaultModel = this.defaultLLMModel;
+      if (!defaultModel) {
+        this.messaging.notify({
+          title: "No LLMModel available",
+          message: "Please add a new LLMModel to use this feature",
+          type: "warning",
+        });
+        return;
+      }
+      const threadName = `New Chat ${new Date().toLocaleString()}`;
+      // Create new thread via RPC
+      const threadId = await this.messaging.rpc({
+        model: "llm.thread",
+        method: "create",
+        args: [
+          [
+            {
+              model_id: defaultModel.id,
+              provider_id: defaultModel.llmProvider.id,
+              name: threadName,
+            },
+          ],
+        ],
+      });
+
+      const threadDetails = await this.messaging.rpc({
+        model: "llm.thread",
+        method: "read",
+        args: [[threadId], ["name", "model_id", "provider_id", "write_date"]],
+      });
+      if (!threadDetails || !threadDetails[0]) {
+        return;
+      }
+
+      // Insert the thread into frontend models
+      await this.messaging.models["Thread"].insert({
+        id: threadId,
+        model: "llm.thread",
+        name: threadDetails[0].name,
+        message_needaction_counter: 0,
+        isServerPinned: true,
+        llmModel: defaultModel,
+        llmChat: this,
+        updatedAt: threadDetails[0].write_date,
+      });
+      this.selectThread(threadId);
+    },
+  },
+  fields: {
+    /**
+     * Formatted active id of the current thread
+     */
+    activeId: attr({
+      compute() {
+        if (!this.activeThread) {
+          return clear();
+        }
+        return this.threadToActiveId(this.activeThread);
+      },
+    }),
+    /**
+     * View component for this LLMChat
+     */
+    llmChatView: one("LLMChatView", {
+      inverse: "llmChat",
+      isCausal: true,
+    }),
+    /**
+     * Determines if the logic for opening a thread via the `initActiveId`
+     * has been processed.
+     */
+    isInitThreadHandled: attr({
+      default: false,
+    }),
+    /**
+     * Formatted init thread on opening chat for the first time
+     * Format: <threadModel>_<threadId>
+     */
+    initActiveId: attr({
+      default: null,
+    }),
+    /**
+     * Currently active thread
+     */
+    activeThread: one("Thread", {
+      inverse: "activeLLMChat",
+    }),
+    /**
+     * All threads in this chat
+     */
+    threads: many("Thread", {
+      inverse: "llmChat",
+    }),
+    orderedThreads: many("Thread", {
+      compute() {
+        if (!this.threads) {
+          return clear();
+        }
+        const sortedThreads = this.threads.slice().sort((a, b) => {
+          const dateA = a.updatedAt
+            ? new Date(a.updatedAt.replace(" ", "T"))
+            : new Date(0);
+          const dateB = b.updatedAt
+            ? new Date(b.updatedAt.replace(" ", "T"))
+            : new Date(0);
+          return dateB - dateA;
+        });
+        return sortedThreads;
+      },
+    }),
+    threadCache: one("ThreadCache", {
+      compute() {
+        if (!this.activeThread) {
+          return clear();
+        }
+        return {
+          thread: this.activeThread,
+        };
+      },
+    }),
+    llmModels: many("LLMModel"),
+    llmProviders: many("LLMProvider", {
+      compute() {
+        if (!this.llmModels) {
+          return clear();
+        }
+        // Create a map to track unique providers by ID
+        const providersMap = new Map();
+
+        // Extract unique providers from llmModels' data
+        for (const model of this.llmModels) {
+          const providerId = model.llmProvider?.id;
+          const providerName = model.llmProvider?.name;
+          if (providerId && !providersMap.has(providerId)) {
+            providersMap.set(providerId, {
+              id: providerId,
+              name: providerName,
+            });
+          }
+        }
+
+        // Convert map values to array
+        return Array.from(providersMap.values());
+      },
+    }),
+    defaultLLMModel: one("LLMModel", {
+      compute() {
+        if (!this.llmModels) {
+          return clear();
+        }
+        return (
+          this.llmModels.find((model) => model.default) ||
+          this.llmModels[0] ||
+          clear()
+        );
+      },
+    }),
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# END FILE CONTENTS
+
+
+# File: llm_chat_client_action.js
+
+/** @odoo-module **/
+
+import { registry } from "@web/core/registry";
+import { LLMChatContainer } from "@llm_thread/components/llm_chat_container/llm_chat_container";
+
+// Register the client action
+registry
+  .category("actions")
+  .add("llm_thread.chat_client_action", LLMChatContainer);
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chatter_topbar/llm_chatter_topbar.xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+    <!--Overwrite the templates "mail.ChatterTopbar" to rearrange the view and added classes-->
+<templates xml:space="preserve">
+    <t name="llm_thread.ChatterTopbar"
+       t-inherit="mail.ChatterTopbar"
+       t-inherit-mode="extension"
+       owl="1">
+        <xpath expr="//div[hasclass('o_ChatterTopbar_borderLeft')]" position="after">
+           <button 
+            class="o_ChatterTopbar_button btn btn-light text-nowrap" type="button" 
+            t-on-click="chatterTopbar.chatter.printStuffs" 
+            >
+                <span>AI</span>
+            </button>
+        </xpath>
+    </t>
+</templates>
+
+# END FILE CONTENTS
+
+
+# File: models/thread.js
+
+/** @odoo-module **/
+
+import { registerPatch } from "@mail/model/model_core";
+import { one, attr } from "@mail/model/model_field";
+
+registerPatch({
+  name: "Thread",
+  fields: {
+    llmChat: one("LLMChat", {
+      inverse: "threads",
+    }),
+    activeLLMChat: one("LLMChat", {
+      inverse: "activeThread",
+    }),
+    llmModel: one("LLMModel", {
+      inverse: "threads",
+    }),
+    updatedAt: attr(),
+    relatedThreadModel: attr(),  // Added
+    relatedThreadId: attr(),     // Added
+    relatedThread: one("Thread", {
+        compute() {
+            if (!this.relatedThreadModel || !this.relatedThreadId) {
+                return;
+            }
+            return {
+                model: this.relatedThreadModel,
+                id: this.relatedThreadId,
+            };
+        },
+    }),
+  },
+  recordMethods: {
+    /**
+     * Update thread settings
+     * @param {Object} params
+     * @param {string} [params.name] - New thread name
+     * @param {number} [params.llmModelId] - New model ID
+     * @param {number} [params.llmProviderId] - New provider ID
+     */
+    async updateLLMChatThreadSettings({
+      name,
+      llmModelId,
+      llmProviderId,
+    } = {}) {
+      const values = {};
+
+      // Only include name if it's a non-empty string
+      if (typeof name === "string" && name.trim()) {
+        values.name = name.trim();
+      }
+
+      // Only include model_id if it's a valid ID
+      if (Number.isInteger(llmModelId) && llmModelId > 0) {
+        values.model_id = llmModelId;
+      } else if (this.llmModel?.id) {
+        values.model_id = this.llmModel.id;
+      }
+
+      // Only include provider_id if it's a valid ID
+      if (Number.isInteger(llmProviderId) && llmProviderId > 0) {
+        values.provider_id = llmProviderId;
+      } else if (this.llmModel?.llmProvider?.id) {
+        values.provider_id = this.llmModel.llmProvider.id;
+      }
+
+      // Only make the RPC call if there are values to update
+      if (Object.keys(values).length > 0) {
+        await this.messaging.rpc({
+          model: "llm.thread",
+          method: "write",
+          args: [[this.id], values],
+        });
+      }
+    },
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: models/messaging.js
+
+/** @odoo-module **/
+
+import { registerPatch } from "@mail/model/model_core";
+import { one } from "@mail/model/model_field";
+
+registerPatch({
+  name: "Messaging",
+  fields: {
+    llmChat: one("LLMChat", {
+      default: {},
+      isCausal: true,
+    }),
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread_list/llm_chat_thread_list.scss
+
+.o_LLMChatThreadList {
+  padding-top: 16px;
+  padding-bottom: 16px;
+
+  .o_DiscussSidebarCategoryItem {
+    position: relative; // For absolute positioning of border
+
+    &.o-active {
+      &::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background-color: $primary;
+      }
+    }
+  }
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_sidebar/llm_chat_sidebar.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatSidebar" owl="1">
+        <!-- Backdrop -->
+        <t t-if="messaging.device.isSmall">
+            <div
+        class="o_LLMChatSidebar_backdrop"
+        t-att-class="{ 'o-visible': llmChatView.isThreadListVisible }"
+        t-on-click="_onBackdropClick"
+      />
+        </t>
+
+        <!-- Sidebar -->
+        <div
+      class="o_LLMChatSidebar o_DiscussSidebar d-flex flex-column overflow-auto o_Discuss_sidebar flex-shrink-0 h-100 pt-3 border-end bg-light"
+      t-att-class="{
+                'o-mobile': messaging.device.isSmall,
+                'o-visible': !messaging.device.isSmall || llmChatView.isThreadListVisible
+            }"
+    >
+            <!-- New Chat Button -->
+            <div class="d-flex justify-content-center">
+                    <button
+          class="o_DiscussSidebar_startAMeetingButton btn btn-primary rounded"
+          t-on-click="_onClickNewChat"
+        >
+                        <i class="fa fa-plus me-2" />
+                        <span>New Chat</span>
+                    </button>
+            </div>
+
+            <!-- Thread List -->
+            <div class="o_LLMChatSidebar_threadList flex-grow-1 overflow-auto">
+                <LLMChatThreadList record="llmChatView" />
+            </div>
+        </div>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_composer/llm_chat_composer.scss
+
+.o_LLMChatComposer {
+  padding: 16px;
+  background-color: rgba($white, 0.95);
+  border-top: 1px solid rgba($border-color, 1);
+
+  &_container {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat/llm_chat.js
+
+/** @odoo-module **/
+
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+const { Component } = owl;
+export class LLMChat extends Component {
+  //--------------------------------------------------------------------------
+  // Public
+  //--------------------------------------------------------------------------
+
+  /**
+   * @returns {LLMChatView}
+   */
+  get llmChatView() {
+    return this.props.record;
+  }
+}
+
+Object.assign(LLMChat, {
+  props: { record: Object },
+  template: "llm_thread.LLMChat",
+});
+
+registerMessagingComponent(LLMChat);
+
+
+# END FILE CONTENTS
+
+
+# File: models/llm_provider.js
+
+/** @odoo-module **/
+
+import { registerModel } from "@mail/model/model_core";
+import { attr, one, many } from "@mail/model/model_field";
+
+registerModel({
+  name: "LLMProvider",
+  fields: {
+    id: attr({
+      identifying: true,
+    }),
+    name: attr({
+      required: true,
+    }),
+    llmModels: many("LLMModel", {
+      inverse: "llmProvider",
+    }),
+  },
+});
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread/llm_chat_thread.scss
+
+.o_LLMChatThread {
+  height: 100%;
+  overflow: hidden;
+}
+
+.o_LLMChatThread_content {
+  flex-grow: 1;
+  overflow: auto;
+  max-height: calc(100% - 150px); /* Adjust based on header + composer */
+  padding: 1rem;
+}
+
+.o_LLMChatThread_composer {
+  background-color: var(--white, #ffffff);
+  flex-shrink: 0;
+}
+
+
+# END FILE CONTENTS
+
+
+# File: components/llm_chat_thread_header/llm_chat_thread_header.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="llm_thread.LLMChatThreadHeader" owl="1">
+        <div
+      class="o_ThreadViewTopbar d-flex flex-shrink-0 w-100 px-3 bg-100 border-bottom"
+      t-ref="root"
+    >
+            <button
+        t-if="isSmall"
+        class="o_ThreadViewTopbar_button btn px-2 border-none rounded shadow-none me-2"
+        t-on-click="_onToggleThreadList"
+      >
+                <i
+          class="fa fa-lg fa-bars text-700"
+          role="img"
+          aria-label="Toggle thread list"
+        />
+            </button>
+
+            <div
+        class="o_ThreadViewTopbar_title d-flex flex-grow-1 align-self-center align-items-center min-w-0"
+      >
+                <t t-if="!llmChatThreadHeaderView.isEditingName || isSmall">
+                    <div
+            class="o_ThreadViewTopbar_threadName o_ThreadViewTopbar_editableItem lead flex-shrink-1 px-1 border text-truncate fw-bold"
+            t-att-title="thread.name"
+            t-on-click="llmChatThreadHeaderView.onClickTopbarThreadName"
+            t-attf-class="{{ 'border-light' }}"
+          >
+                        <t t-esc="thread.name" />
+                    </div>
+                </t>
+                <t t-if="llmChatThreadHeaderView.isEditingName and !isSmall">
+                    <input
+            class="o_ThreadViewTopbar_threadNameInput form-control lead fw-bold o_input_tooltip"
+            type="text"
+            autofocus="autofocus"
+            t-att-value="llmChatThreadHeaderView.pendingName"
+            t-on-input="onInputThreadNameInput"
+            t-on-keydown="onKeyDownThreadNameInput"
+            t-ref="threadNameInput"
+            title="Press Enter to save, Esc to cancel"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+          />
+                </t>
+            </div>
+
+            <div t-if="!isSmall" class="d-flex align-items-center">
+                <!-- LLM Provider Dropdown -->
+                <div class="dropdown">
+                    <button
+            class="btn btn-light dropdown-toggle d-flex align-items-center gap-2"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            style="max-width: 200px;"
+          >
+                        <div class="text-truncate">
+                            <t t-if="llmChatThreadHeaderView.selectedProvider">
+                                <t
+                  t-esc="llmChatThreadHeaderView.selectedProvider.name"
+                />
+                            </t>
+                            <t t-else="">
+                                Select Provider
+                            </t>
+                        </div>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <t
+              t-foreach="llmProviders"
+              t-as="provider"
+              t-key="provider.id"
+            >
+                            <li>
+                                <a
+                  class="dropdown-item text-truncate"
+                  href="#"
+                  t-on-click="() => this.onSelectProvider(provider)"
+                  t-att-title="provider.name"
+                >
+                                    <t t-esc="provider.name" />
+                                </a>
+                            </li>
+                        </t>
+                    </ul>
+                </div>
+
+                <!-- LLM Model Dropdown -->
+                <div class="dropdown ms-2">
+                    <button
+            class="btn btn-light dropdown-toggle d-flex align-items-center gap-2"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            style="max-width: 200px;"
+          >
+                        <div class="text-truncate">
+                            <t t-if="llmChatThreadHeaderView.selectedModel">
+                                <t
+                  t-esc="llmChatThreadHeaderView.selectedModel.name"
+                />
+                            </t>
+                            <t t-else="">
+                                Select Model
+                            </t>
+                        </div>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <t
+              t-foreach="llmChatThreadHeaderView.modelsAvailableToSelect"
+              t-as="model"
+              t-key="model.id"
+            >
+                            <li>
+                                <a
+                  class="dropdown-item text-truncate"
+                  href="#"
+                  t-on-click="() => this.onSelectModel(model)"
+                  t-att-title="model.name"
+                >
+                                    <t t-esc="model.name" />
+                                </a>
+                            </li>
+                        </t>
+                    </ul>
+                </div>
+            </div>
+
+            <button
+        class="o_ThreadViewTopbar_button btn px-2 border-none rounded shadow-none"
+        t-if="isSmall"
+        t-on-click="llmChatThreadHeaderView.openThreadSettings"
+        title="Settings"
+      >
+                <i class="fa fa-lg fa-gear text-700" />
+            </button>
+        </div>
+    </t>
+</templates>
+
+
+# END FILE CONTENTS

@@ -43,6 +43,9 @@ class LLMThread(models.Model):
         domain=lambda self: [("model", "=", self._name)],
     )
 
+    related_thread_model = fields.Char("Related Thread Model")
+    related_thread_id = fields.Integer("Related Thread ID")
+
     @api.model_create_multi
     def create(self, vals_list):
         """Set default title if not provided"""

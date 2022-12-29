@@ -8,7 +8,7 @@
         <xpath expr="//div[hasclass('o_ChatterTopbar_borderLeft')]" position="after">
            <button 
             class="o_ChatterTopbar_button btn btn-light text-nowrap" type="button" 
-            t-on-click="chatterTopbar.chatter.onClickScheduleActivity" 
+            t-on-click="chatterTopbar.chatter.toggleAIChat" 
             >
                 <span>AI</span>
             </button>
