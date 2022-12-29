@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+    <!--Overwrite the templates "mail.ChatterTopbar" to rearrange the view and added classes-->
+<templates xml:space="preserve">
+    <t name="llm_thread.ChatterTopbar"
+       t-inherit="mail.ChatterTopbar"
+       t-inherit-mode="extension"
+       owl="1">
+        <xpath expr="//div[hasclass('o_ChatterTopbar_borderLeft')]" position="after">
+           <button 
+            class="o_ChatterTopbar_button btn btn-light text-nowrap" type="button" 
+            t-on-click="chatterTopbar.chatter.onClickScheduleActivity" 
+            >
+                <span>AI</span>
+            </button>
+        </xpath>
+    </t>
+</templates>
