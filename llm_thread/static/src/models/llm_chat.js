@@ -73,7 +73,7 @@ registerModel({
         model: "llm.thread",
         method: "search_read",
         kwargs: {
-          domain: [],
+          domain: [["create_uid", "=", this.env.services.user.userId]],
           fields: [
             "name",
             "message_ids",
