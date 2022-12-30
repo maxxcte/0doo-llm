@@ -16,18 +16,18 @@ registerPatch({
       inverse: "threads",
     }),
     updatedAt: attr(),
-    relatedThreadModel: attr(),  // Added
-    relatedThreadId: attr(),     // Added
+    relatedThreadModel: attr(), // Added
+    relatedThreadId: attr(), // Added
     relatedThread: one("Thread", {
-        compute() {
-            if (!this.relatedThreadModel || !this.relatedThreadId) {
-                return;
-            }
-            return {
-                model: this.relatedThreadModel,
-                id: this.relatedThreadId,
-            };
-        },
+      compute() {
+        if (!this.relatedThreadModel || !this.relatedThreadId) {
+          return;
+        }
+        return {
+          model: this.relatedThreadModel,
+          id: this.relatedThreadId,
+        };
+      },
     }),
   },
   recordMethods: {

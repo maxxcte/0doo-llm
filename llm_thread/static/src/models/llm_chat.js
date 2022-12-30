@@ -8,18 +8,17 @@ registerModel({
   name: "LLMChat",
   recordMethods: {
     /**
-     * Close the LLM chat. Should reset its internal state.
+     * Closes the LLM chat and resets its view state.
      */
     close() {
       this.update({ llmChatView: clear() });
     },
 
     /**
-     * Opens thread from init active id if the thread exists.
+     * Opens the initial thread based on initActiveId or defaults to the first thread.
      */
     openInitThread() {
       if (!this.initActiveId) {
-        // If no initial thread specified, select the first thread
         if (this.threads.length > 0) {
           this.selectThread(this.threads[0].id);
         }
@@ -34,19 +33,15 @@ registerModel({
         id: Number(id),
         model,
       });
-      if (!thread) {
-        // If specified thread not found, select first thread
-        if (this.threads.length > 0) {
-          this.selectThread(this.threads[0].id);
-        }
-        return;
+      if (!thread && this.threads.length > 0) {
+        this.selectThread(this.threads[0].id);
+      } else if (thread) {
+        this.selectThread(thread.id);
       }
-      this.selectThread(thread.id);
     },
 
     /**
-     * Opens the given thread in LLMChat
-     *
+     * Opens a specific thread in the LLM chat UI.
      * @param {Thread} thread
      */
     async openThread(thread) {
@@ -61,6 +56,7 @@ registerModel({
     },
 
     /**
+     * Formats a thread into an active ID string.
      * @param {Thread} thread
      * @returns {string}
      */
@@ -68,6 +64,9 @@ registerModel({
       return `${thread.model}_${thread.id}`;
     },
 
+    /**
+     * Loads threads from the server for the current user.
+     */
     async loadThreads() {
       const result = await this.messaging.rpc({
         model: "llm.thread",
@@ -89,7 +88,6 @@ registerModel({
         },
       });
 
-      // Convert results to Thread records
       const threadData = result.map((thread) => ({
         id: thread.id,
         model: "llm.thread",
@@ -112,28 +110,33 @@ registerModel({
           : undefined,
       }));
 
-      // Update threads in the store
       this.update({ threads: threadData });
     },
+
     /**
-     * @param {integer} threadId
+     * Selects a thread by ID as the active thread.
+     * @param {number} threadId
      */
     async selectThread(threadId) {
       const thread = this.messaging.models["Thread"].findFromIdentifyingData({
         id: threadId,
         model: "llm.thread",
       });
-
       if (thread) {
-        // Update active thread - ThreadCache will handle message loading
         this.update({ activeThread: thread });
       }
     },
 
+    /**
+     * Opens the LLM chat view.
+     */
     open() {
       this.update({ llmChatView: {} });
     },
 
+    /**
+     * Loads LLM models from the server.
+     */
     async loadLLMModels() {
       const result = await this.messaging.rpc({
         model: "llm.model",
@@ -144,7 +147,6 @@ registerModel({
         },
       });
 
-      // Convert results to LLMModel records
       const llmModelData = result.map((model) => ({
         id: model.id,
         name: model.name,
@@ -154,11 +156,18 @@ registerModel({
         default: model.default,
       }));
 
-      // Update llmModels in the store
       this.update({ llmModels: llmModelData });
     },
-    async createNewThread() {
-      // Get the default model or first available model
+
+    /**
+     * Creates a new thread with optional related thread info.
+     * @param {Object} params - Thread creation parameters
+     * @param {string} params.name - Thread name
+     * @param {string} [params.relatedThreadModel] - Related thread model
+     * @param {number} [params.relatedThreadId] - Related thread ID
+     * @returns {Object} The created thread or null if failed
+     */
+    async createThread({ name, relatedThreadModel, relatedThreadId }) {
       const defaultModel = this.defaultLLMModel;
       if (!defaultModel) {
         this.messaging.notify({
@@ -166,22 +175,23 @@ registerModel({
           message: "Please add a new LLMModel to use this feature",
           type: "warning",
         });
-        return;
+        return null;
       }
-      const threadName = `New Chat ${new Date().toLocaleString()}`;
-      // Create new thread via RPC
+
+      const threadData = {
+        name,
+        model_id: defaultModel.id,
+        provider_id: defaultModel.llmProvider.id,
+      };
+      if (relatedThreadModel && relatedThreadId) {
+        threadData.related_thread_model = relatedThreadModel;
+        threadData.related_thread_id = relatedThreadId;
+      }
+
       const threadId = await this.messaging.rpc({
         model: "llm.thread",
         method: "create",
-        args: [
-          [
-            {
-              model_id: defaultModel.id,
-              provider_id: defaultModel.llmProvider.id,
-              name: threadName,
-            },
-          ],
-        ],
+        args: [[threadData]],
       });
 
       const threadDetails = await this.messaging.rpc({
@@ -189,12 +199,12 @@ registerModel({
         method: "read",
         args: [[threadId], ["name", "model_id", "provider_id", "write_date"]],
       });
+
       if (!threadDetails || !threadDetails[0]) {
-        return;
+        return null;
       }
 
-      // Insert the thread into frontend models
-      await this.messaging.models["Thread"].insert({
+      const thread = this.messaging.models["Thread"].insert({
         id: threadId,
         model: "llm.thread",
         name: threadDetails[0].name,
@@ -203,61 +213,77 @@ registerModel({
         llmModel: defaultModel,
         llmChat: this,
         updatedAt: threadDetails[0].write_date,
+        ...(relatedThreadModel && { relatedThreadModel }),
+        ...(relatedThreadId && { relatedThreadId }),
       });
-      this.selectThread(threadId);
+
+      return thread;
+    },
+
+    /**
+     * Ensures LLM models and threads are loaded, creating a thread if needed.
+     * @param {Object} [options] - Optional parameters
+     * @param {string} [options.relatedThreadModel] - Related thread model
+     * @param {number} [options.relatedThreadId] - Related thread ID
+     * @returns {Object} The active or created thread
+     */
+    async ensureThread({ relatedThreadModel, relatedThreadId } = {}) {
+      if (this.llmModels.length === 0) {
+        await this.loadLLMModels();
+      }
+      if (this.threads.length === 0) {
+        await this.loadThreads();
+      }
+
+      if (relatedThreadModel && relatedThreadId) {
+        const existingThread = this.threads.find(
+          (thread) =>
+            thread.relatedThreadModel === relatedThreadModel &&
+            thread.relatedThreadId === relatedThreadId
+        );
+        if (existingThread) {
+          return existingThread;
+        }
+
+        const name = `AI Chat for ${relatedThreadModel} ${relatedThreadId}`;
+        return await this.createThread({
+          name,
+          relatedThreadModel,
+          relatedThreadId,
+        });
+      }
+
+      if (this.threads.length > 0) {
+        return this.threads[0];
+      }
+
+      const name = `New Chat ${new Date().toLocaleString()}`;
+      return await this.createThread({ name });
+    },
+
+    async createNewThread() {
+      const name = `New Chat ${new Date().toLocaleString()}`;
+      const thread = await this.createThread({ name });
+      this.selectThread(thread.id);
     },
   },
   fields: {
-    /**
-     * Formatted active id of the current thread
-     */
     activeId: attr({
       compute() {
-        if (!this.activeThread) {
-          return clear();
-        }
-        return this.threadToActiveId(this.activeThread);
+        return this.activeThread
+          ? this.threadToActiveId(this.activeThread)
+          : clear();
       },
     }),
-    /**
-     * View component for this LLMChat
-     */
-    llmChatView: one("LLMChatView", {
-      inverse: "llmChat",
-      isCausal: true,
-    }),
-    /**
-     * Determines if the logic for opening a thread via the `initActiveId`
-     * has been processed.
-     */
-    isInitThreadHandled: attr({
-      default: false,
-    }),
-    /**
-     * Formatted init thread on opening chat for the first time
-     * Format: <threadModel>_<threadId>
-     */
-    initActiveId: attr({
-      default: null,
-    }),
-    /**
-     * Currently active thread
-     */
-    activeThread: one("Thread", {
-      inverse: "activeLLMChat",
-    }),
-    /**
-     * All threads in this chat
-     */
-    threads: many("Thread", {
-      inverse: "llmChat",
-    }),
+    llmChatView: one("LLMChatView", { inverse: "llmChat", isCausal: true }),
+    isInitThreadHandled: attr({ default: false }),
+    initActiveId: attr({ default: null }),
+    activeThread: one("Thread", { inverse: "activeLLMChat" }),
+    threads: many("Thread", { inverse: "llmChat" }),
     orderedThreads: many("Thread", {
       compute() {
-        if (!this.threads) {
-          return clear();
-        }
-        const sortedThreads = this.threads.slice().sort((a, b) => {
+        if (!this.threads) return clear();
+        return this.threads.slice().sort((a, b) => {
           const dateA = a.updatedAt
             ? new Date(a.updatedAt.replace(" ", "T"))
             : new Date(0);
@@ -266,29 +292,18 @@ registerModel({
             : new Date(0);
           return dateB - dateA;
         });
-        return sortedThreads;
       },
     }),
     threadCache: one("ThreadCache", {
       compute() {
-        if (!this.activeThread) {
-          return clear();
-        }
-        return {
-          thread: this.activeThread,
-        };
+        return this.activeThread ? { thread: this.activeThread } : clear();
       },
     }),
     llmModels: many("LLMModel"),
     llmProviders: many("LLMProvider", {
       compute() {
-        if (!this.llmModels) {
-          return clear();
-        }
-        // Create a map to track unique providers by ID
+        if (!this.llmModels) return clear();
         const providersMap = new Map();
-
-        // Extract unique providers from llmModels' data
         for (const model of this.llmModels) {
           const providerId = model.llmProvider?.id;
           const providerName = model.llmProvider?.name;
@@ -299,16 +314,12 @@ registerModel({
             });
           }
         }
-
-        // Convert map values to array
         return Array.from(providersMap.values());
       },
     }),
     defaultLLMModel: one("LLMModel", {
       compute() {
-        if (!this.llmModels) {
-          return clear();
-        }
+        if (!this.llmModels) return clear();
         return (
           this.llmModels.find((model) => model.default) ||
           this.llmModels[0] ||
