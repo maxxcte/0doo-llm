@@ -83,13 +83,6 @@
     </record>
 
     <!-- Menu Items -->
-    <menuitem
-    id="menu_llm_thread"
-    name="Chat Threads"
-    action="llm_thread_action"
-    parent="llm.menu_llm_root"
-    sequence="20"
-  />
     <!-- Chat Client Action -->
     <record id="action_llm_chat" model="ir.actions.client">
         <field name="name">Chat</field>
@@ -99,10 +92,17 @@
 
     <!-- Chat Menu Item -->
     <menuitem
-    id="menu_llm_chat"
-    name="Chat"
-    action="action_llm_chat"
-    parent="llm.menu_llm_root"
-    sequence="30"
-  />
+        id="menu_llm_chat"
+        name="Chat"
+        action="action_llm_chat"
+        parent="llm.menu_llm_root"
+        sequence="20"
+    />
+     <menuitem
+        id="menu_llm_thread"
+        name="Chat Threads"
+        action="llm_thread_action"
+        parent="llm.menu_llm_config"
+        sequence="40"
+    />
 </odoo>
