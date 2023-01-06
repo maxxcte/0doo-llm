@@ -1,12 +1,12 @@
 {
-    "name": "LLM Thread",
-    "summary": "LLM Chat Threads",
+    "name": "Easy AI Chat",
+    "summary": "Simple AI Chat for Odoo",
     "description": """
-LLM Chat Threads for Odoo
-========================
-This module adds support for LLM chat threads.
+Easy AI Chat for Odoo
+=====================
+A user-friendly module that brings AI-powered chat to your Odoo environment. Integrate with multiple AI providers, manage real-time conversations, and enhance workflows with multimodal support.
     """,
-    "category": "Productivity",
+    "category": "Productivity, Discuss",
     "version": "16.0.1.0.0",
     "depends": ["base", "mail", "web", "llm"],
     "external_dependencies": {},
