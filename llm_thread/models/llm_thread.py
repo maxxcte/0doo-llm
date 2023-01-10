@@ -1,5 +1,5 @@
 import logging
-
+import emoji
 from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
@@ -57,9 +57,9 @@ class LLMThread(models.Model):
     def post_ai_response(self, **kwargs):
         """Post a message to the thread"""
         _logger.debug("Posting message - kwargs: %s", kwargs)
-
+        body = emoji.demojize(kwargs.get("body"))
         message = self.message_post(
-            body=kwargs.get("body"),
+            body=body,
             message_type="comment",
             author_id=False,  # No author for AI messages
             email_from=f"{self.model_id.name} <ai@{self.provider_id.name.lower()}.ai>",
