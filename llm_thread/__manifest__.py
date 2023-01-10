@@ -9,6 +9,8 @@ A user-friendly module that brings AI-powered chat to your Odoo environment. Int
     "category": "Productivity, Discuss",
     "version": "16.0.1.0.0",
     "depends": ["base", "mail", "web", "llm"],
+    "author": "Apexive Solutions LLC",
+    "website": "https://github.com/apexive/odoo-llm",
     "external_dependencies": {"python": ["emoji"]},
     "data": [
         "security/llm_thread_security.xml",
