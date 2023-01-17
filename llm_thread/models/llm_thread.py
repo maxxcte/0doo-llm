@@ -1,5 +1,7 @@
 import logging
+
 import emoji
+
 from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)

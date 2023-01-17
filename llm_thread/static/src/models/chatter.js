@@ -47,8 +47,8 @@ registerPatch({
           messaging.update({ llmChat: { isInitThreadHandled: false } });
           llmChat = messaging.llmChat;
         }
-        if(!llmChat.llmChatView) {
-            llmChat.open();
+        if (!llmChat.llmChatView) {
+          llmChat.open();
         }
 
         try {
