@@ -18,7 +18,10 @@
         "python": ["requests"],
     },
     "data": [
+        "security/push_models_security.xml",
         "data/llm_publisher.xml",
+        "views/provider_views.xml",
+        "wizards/push_models_wizard_views.xml",
     ],
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",

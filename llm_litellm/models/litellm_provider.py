@@ -6,6 +6,23 @@ from .http_client import LiteLLMClient
 class LLMProvider(models.Model):
     _inherit = "llm.provider"
 
+    def action_push_models(self):
+        """Open the push models wizard"""
+        self.ensure_one()
+
+        # Return action to open wizard
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Push Models to LiteLLM",
+            "res_model": "llm.push.models.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "active_id": self.id,
+                "active_model": self._name,
+            },
+        }
+
     @api.model
     def _get_available_services(self):
         services = super()._get_available_services()
