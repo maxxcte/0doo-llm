@@ -5,6 +5,22 @@
 Easy AI Chat for Odoo
 =====================
 A user-friendly module that brings AI-powered chat to your Odoo environment. Integrate with multiple AI providers, manage real-time conversations, and enhance workflows with multimodal support.
+
+Key Features:
+- Multiple AI Providers: OpenAI, Anthropic, Grok, Ollama, DeepSeek, and more
+- Real-Time Chat: Instant AI conversations integrated with Odoo's mail system
+- Multimodal Support: Go beyond text with advanced AI models
+- Full Odoo Integration: Link chats to any Odoo record for context
+
+Getting Started:
+1. Install this module and the "LLM Integration Base" dependency
+2. Configure your AI provider API keys
+3. Fetch available models with one click
+4. Start chatting from anywhere in Odoo
+
+Use cases include customer support automation, data analysis, training assistance, and custom AI workflows for your business.
+
+Contact: support@apexive.com
     """,
     "category": "Productivity, Discuss",
     "version": "16.0.1.0.0",
