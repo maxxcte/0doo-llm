@@ -8,6 +8,8 @@
     "category": "Technical",
     "version": "16.0.1.0.0",
     "depends": ["llm"],
+    "author": "Apexive Solutions LLC",
+    "website": "https://github.com/apexive/odoo-llm",
     "external_dependencies": {
         "python": ["anthropic"],
     },
