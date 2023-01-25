@@ -6,10 +6,10 @@
     "author": "Odoo",
     "website": "https://www.odoo.com",
     "license": "LGPL-3",
-    "depends": ["base", "mail", "llm"],
+    "depends": ["base", "mail", "llm", "llm_thread", "llm_openai"],
     "data": [
         "security/ir.model.access.csv",
-        "data/llm_tool_data.xml",
+        "views/llm_thread_views.xml",
     ],
     "auto_install": False,
     "application": False,
