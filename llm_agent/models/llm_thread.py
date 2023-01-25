@@ -1,4 +1,7 @@
 from odoo import fields, models
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class LLMThread(models.Model):
     _inherit = "llm.thread"
@@ -63,8 +66,8 @@ class LLMThread(models.Model):
                     })
             
             if content:
-                self._logger.debug("Got assistant response: %s", content)
+                _logger.info("Got assistant response: %s", content)
                 
         except Exception as e:
-            self._logger.error("Error getting AI response: %s", str(e))
+            _logger.error("Error getting AI response: %s", str(e))
             yield {"error": str(e)}

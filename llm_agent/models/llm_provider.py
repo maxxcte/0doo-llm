@@ -169,3 +169,7 @@ class LLMProvider(models.Model):
                                     }
                             else:
                                 _logger.error(f"Tool {tool_name} not found")
+                        
+    def chat(self, messages, model=None, stream=False, tools=None, tool_choice="auto"):
+        """Send chat messages using this provider"""
+        return self._dispatch("chat", messages, model=model, stream=stream, tools=tools, tool_choice=tool_choice)
