@@ -10,6 +10,7 @@
     "data": [
         "security/ir.model.access.csv",
         "views/llm_thread_views.xml",
+        "views/llm_tool_views.xml",
     ],
     "auto_install": False,
     "application": False,
