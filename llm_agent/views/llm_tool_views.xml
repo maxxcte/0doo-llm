@@ -35,10 +35,6 @@
                             <field name="service"/>
                             <field name="default"/>
                         </group>
-                        <group>
-                            <field name="schema_valid" invisible="1"/>
-                            <field name="schema_error" invisible="1" attrs="{'invisible': [('schema_valid', '=', True)]}"/>
-                        </group>
                     </group>
                     <notebook>
                         <page string="Description">

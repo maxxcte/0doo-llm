@@ -20,30 +20,12 @@ class LLMTool(models.Model):
     )
     active = fields.Boolean(default=True)
     schema = fields.Text(
-        required=True, 
         help="JSON Schema for the tool parameters in JSON format"
     )
     default = fields.Boolean(
         default=False,
         help="Set to true if this is a default tool to be included in all LLM requests"
     )
-    
-    # Computed field to validate schema
-    schema_valid = fields.Boolean(compute="_compute_schema_valid", store=False)
-    schema_error = fields.Char(compute="_compute_schema_valid", store=False)
-    
-    @api.depends('schema')
-    def _compute_schema_valid(self):
-        for record in self:
-            record.schema_valid = True
-            record.schema_error = False
-            
-            try:
-                if record.schema:
-                    json.loads(record.schema)
-            except json.JSONDecodeError as e:
-                record.schema_valid = False
-                record.schema_error = str(e)
     
     def _dispatch(self, method, *args, **kwargs):
         """Dispatch method call to appropriate service implementation"""
