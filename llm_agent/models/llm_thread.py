@@ -63,9 +63,9 @@ class LLMThread(models.Model):
                     })
                     
                     # Display raw tool output
-                    raw_output = f"**Tool:** {tool_call['function']['name']}\n"
-                    raw_output += f"**Arguments:** ```json\n{tool_call['function']['arguments']}\n```\n"
-                    raw_output += f"**Result:** ```json\n{tool_call['result']}\n```\n"
+                    raw_output = f"<strong>Tool:</strong> {tool_call['function']['name']}<br><br>"
+                    raw_output += f"<strong>Arguments:</strong> <pre><code class='language-json'>{tool_call['function']['arguments']}</code></pre><br>"
+                    raw_output += f"<strong>Result:</strong> <pre><code class='language-json'>{tool_call['result']}</code></pre><br>"
                     
                     yield {
                         "role": "assistant",
