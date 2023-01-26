@@ -107,21 +107,28 @@ class LLMProvider(models.Model):
             tool_call_chunks = {}
             
             for chunk in response:
-                if hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content is not None:
+                delta = chunk.choices[0].delta
+                
+                # Handle normal content
+                if hasattr(delta, 'content') and delta.content is not None:
                     yield {
                         "role": "assistant",
-                        "content": chunk.choices[0].delta.content,
+                        "content": delta.content,
                     }
                 
                 # Handle streaming tool calls
-                if hasattr(chunk.choices[0].delta, 'tool_calls') and chunk.choices[0].delta.tool_calls:
-                    for tool_call_chunk in chunk.choices[0].delta.tool_calls:
-                        tool_call_id = tool_call_chunk.id
+                if hasattr(delta, 'tool_calls') and delta.tool_calls:
+                    _logger.info(f"Received tool call chunk: {delta.tool_calls}")
+                    
+                    for tool_call_chunk in delta.tool_calls:
+                        index = tool_call_chunk.index
+                        _logger.info(f"Processing tool call chunk with index: {index}")
                         
                         # Initialize tool call data if it's a new one
-                        if tool_call_id not in tool_call_chunks:
-                            tool_call_chunks[tool_call_id] = {
-                                "id": tool_call_id,
+                        if index not in tool_call_chunks:
+                            _logger.info(f"Initializing new tool call with index: {index}")
+                            tool_call_chunks[index] = {
+                                "id": tool_call_chunk.id,
                                 "type": "function",
                                 "function": {
                                     "name": "",
@@ -129,46 +136,77 @@ class LLMProvider(models.Model):
                                 }
                             }
                         
-                        # Update function name if present
-                        if hasattr(tool_call_chunk, 'function') and hasattr(tool_call_chunk.function, 'name'):
-                            tool_call_chunks[tool_call_id]["function"]["name"] += (tool_call_chunk.function.name or "")
+                        # First chunk typically contains id, name and type
+                        if tool_call_chunk.id:
+                            tool_call_chunks[index]["id"] = tool_call_chunk.id
+                            _logger.info(f"Setting tool call ID: {tool_call_chunk.id}")
                         
-                        # Update arguments if present
-                        if hasattr(tool_call_chunk, 'function') and hasattr(tool_call_chunk.function, 'arguments'):
-                            tool_call_chunks[tool_call_id]["function"]["arguments"] += (tool_call_chunk.function.arguments or "")
+                        if tool_call_chunk.type:
+                            tool_call_chunks[index]["type"] = tool_call_chunk.type
+                        
+                        # Update function name if present
+                        if (hasattr(tool_call_chunk, 'function') and 
+                            hasattr(tool_call_chunk.function, 'name') and 
+                            tool_call_chunk.function.name):
                             
-                        # Check if we need to execute the tool (when we receive the closing bracket)
-                        if (tool_call_chunks[tool_call_id]["function"]["arguments"] and 
-                            tool_call_chunks[tool_call_id]["function"]["arguments"].endswith('}')):
+                            tool_call_chunks[index]["function"]["name"] = tool_call_chunk.function.name
+                            _logger.info(f"Setting tool name: '{tool_call_chunk.function.name}'")
+                        
+                        # Update arguments if present - this continues across multiple chunks
+                        if (hasattr(tool_call_chunk, 'function') and 
+                            hasattr(tool_call_chunk.function, 'arguments') and 
+                            tool_call_chunk.function.arguments is not None):
                             
-                            # Find and execute the tool
-                            tool_name = tool_call_chunks[tool_call_id]["function"]["name"]
-                            tool = self.env['llm.tool'].search([('name', '=', tool_name)], limit=1)
+                            arg_chunk = tool_call_chunk.function.arguments
+                            tool_call_chunks[index]["function"]["arguments"] += arg_chunk
+                            _logger.info(f"Added argument chunk: '{arg_chunk}' to tool call {index}")
+                            _logger.info(f"Current arguments: '{tool_call_chunks[index]['function']['arguments']}'")
                             
-                            if tool:
-                                try:
-                                    arguments = json.loads(tool_call_chunks[tool_call_id]["function"]["arguments"])
+                        # Check if we received a complete JSON object - indicating arguments are complete
+                        current_args = tool_call_chunks[index]["function"]["arguments"]
+                        
+                        if current_args and current_args.endswith('}'):
+                            try:
+                                # Validate JSON is complete by parsing it
+                                json.loads(current_args)
+                                
+                                # Find and execute the tool
+                                tool_name = tool_call_chunks[index]["function"]["name"]
+                                _logger.info(f"Arguments complete. Looking for tool: '{tool_name}'")
+                                
+                                if not tool_name:
+                                    _logger.warning(f"Empty tool name for index: {index}")
+                                    continue
+                                    
+                                tool = self.env['llm.tool'].search([('name', '=', tool_name)], limit=1)
+                                _logger.info(f"Tool search result: {tool}, tool.id: {tool.id if tool else 'Not found'}")
+                                
+                                if tool:
+                                    _logger.info(f"Executing tool '{tool_name}' with arguments: {current_args}")
+                                    arguments = json.loads(current_args)
                                     result = tool.execute(arguments)
                                     
                                     # Add result to tool call data
-                                    tool_call_chunks[tool_call_id]["result"] = json.dumps(result)
+                                    tool_call_chunks[index]["result"] = json.dumps(result)
                                     
                                     # Yield the tool call with result
                                     yield {
                                         "role": "assistant",
-                                        "tool_call": tool_call_chunks[tool_call_id]
+                                        "tool_call": tool_call_chunks[index]
                                     }
-                                except Exception as e:
-                                    _logger.exception(f"Error executing tool {tool_name}: {str(e)}")
-                                    tool_call_chunks[tool_call_id]["result"] = json.dumps({"error": str(e)})
-                                    
-                                    # Yield the tool call with error
-                                    yield {
-                                        "role": "assistant",
-                                        "tool_call": tool_call_chunks[tool_call_id]
-                                    }
-                            else:
-                                _logger.error(f"Tool {tool_name} not found")
+                                else:
+                                    _logger.error(f"Tool '{tool_name}' not found")
+                            except json.JSONDecodeError:
+                                # JSON not complete yet, continue accumulating
+                                _logger.info("JSON arguments incomplete, continuing to accumulate")
+                            except Exception as e:
+                                _logger.exception(f"Error executing tool: {str(e)}")
+                                tool_call_chunks[index]["result"] = json.dumps({"error": str(e)})
+                                
+                                yield {
+                                    "role": "assistant",
+                                    "tool_call": tool_call_chunks[index]
+                                }
                         
     def chat(self, messages, model=None, stream=False, tools=None, tool_choice="auto"):
         """Send chat messages using this provider"""

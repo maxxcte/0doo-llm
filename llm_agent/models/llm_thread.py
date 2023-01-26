@@ -29,13 +29,15 @@ class LLMThread(models.Model):
                 # Handle normal content
                 if response.get("content") is not None:  # Check for None instead of truthiness
                     content += response.get("content", "")
+                    _logger.info(f"Yielding content chunk of length {len(response.get('content', ''))}")
                     yield response
                 
                 # Handle tool calls
                 if response.get("tool_call"):
                     # Format tool call for UI
                     tool_call = response.get("tool_call")
-                    _logger.info(f"Tool call received: {tool_call}")
+                    _logger.info(f"Tool call received for processing in thread: {tool_call}")
+                    _logger.info(f"Tool name: '{tool_call['function']['name']}', args length: {len(tool_call['function']['arguments'])}")
                     
                     tool_content = f"**Using tool:** {tool_call['function']['name']}\n"
                     tool_content += f"**Arguments:** ```json\n{tool_call['function']['arguments']}\n```\n"
