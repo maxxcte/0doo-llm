@@ -1,5 +1,5 @@
-from odoo import fields, models
 import logging
+from odoo import fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -35,6 +35,8 @@ class LLMThread(models.Model):
                 if response.get("tool_call"):
                     # Format tool call for UI
                     tool_call = response.get("tool_call")
+                    _logger.info(f"Tool call received: {tool_call}")
+                    
                     tool_content = f"**Using tool:** {tool_call['function']['name']}\n"
                     tool_content += f"**Arguments:** ```json\n{tool_call['function']['arguments']}\n```\n"
                     tool_content += f"**Result:** ```json\n{tool_call.get('result', '{}')}\n```\n"
@@ -43,30 +45,9 @@ class LLMThread(models.Model):
                         "role": "assistant",
                         "content": tool_content
                     }
-                    
-                    # Add tool result as a new message for the model to use
-                    # This simulates the OpenAI tool calling flow
-                    messages.append({
-                        "role": "assistant", 
-                        "content": None,
-                        "tool_calls": [{
-                            "id": tool_call["id"],
-                            "type": "function",
-                            "function": {
-                                "name": tool_call["function"]["name"],
-                                "arguments": tool_call["function"]["arguments"]
-                            }
-                        }]
-                    })
-                    
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call["id"],
-                        "content": tool_call.get("result", "{}")
-                    })
             
             if content:
-                _logger.info("Got assistant response: %s", content)
+                _logger.debug("Got assistant response: %s", content)
                 
         except Exception as e:
             _logger.error("Error getting AI response: %s", str(e))

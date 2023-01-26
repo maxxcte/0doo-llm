@@ -110,7 +110,7 @@ class LLMProvider(models.Model):
                 if chunk.choices[0].delta.content:
                     yield {
                         "role": "assistant",
-                        "content": chunk.choices[0].delta.content,
+                        "content": chunk.choices[0].delta.content or "",
                     }
                 
                 # Handle streaming tool calls
