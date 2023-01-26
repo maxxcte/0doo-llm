@@ -60,7 +60,7 @@ class LLMProvider(models.Model):
         if not stream:
             message = {
                 "role": response.choices[0].message.role,
-                "content": response.choices[0].message.content,
+                "content": response.choices[0].message.content or "",  # Handle None content
             }
             
             # Handle tool calls if present
@@ -107,10 +107,10 @@ class LLMProvider(models.Model):
             tool_call_chunks = {}
             
             for chunk in response:
-                if chunk.choices[0].delta.content:
+                if hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content is not None:
                     yield {
                         "role": "assistant",
-                        "content": chunk.choices[0].delta.content or "",
+                        "content": chunk.choices[0].delta.content,
                     }
                 
                 # Handle streaming tool calls
@@ -131,11 +131,11 @@ class LLMProvider(models.Model):
                         
                         # Update function name if present
                         if hasattr(tool_call_chunk, 'function') and hasattr(tool_call_chunk.function, 'name'):
-                            tool_call_chunks[tool_call_id]["function"]["name"] += tool_call_chunk.function.name
+                            tool_call_chunks[tool_call_id]["function"]["name"] += (tool_call_chunk.function.name or "")
                         
                         # Update arguments if present
                         if hasattr(tool_call_chunk, 'function') and hasattr(tool_call_chunk.function, 'arguments'):
-                            tool_call_chunks[tool_call_id]["function"]["arguments"] += tool_call_chunk.function.arguments
+                            tool_call_chunks[tool_call_id]["function"]["arguments"] += (tool_call_chunk.function.arguments or "")
                             
                         # Check if we need to execute the tool (when we receive the closing bracket)
                         if (tool_call_chunks[tool_call_id]["function"]["arguments"] and 

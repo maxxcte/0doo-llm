@@ -27,7 +27,7 @@ class LLMThread(models.Model):
                 tools=tool_ids
             ):
                 # Handle normal content
-                if response.get("content"):
+                if response.get("content") is not None:  # Check for None instead of truthiness
                     content += response.get("content", "")
                     yield response
                 
