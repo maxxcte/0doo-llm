@@ -1,70 +1,70 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Access Rights for Push Models Wizard -->
     <record id="access_push_models_wizard_manager" model="ir.model.access">
         <field name="name">llm.push.models.wizard.manager</field>
-        <field name="model_id" ref="model_llm_push_models_wizard" />
-        <field name="group_id" ref="llm.group_llm_manager" />
-        <field name="perm_read" eval="1" />
-        <field name="perm_write" eval="1" />
-        <field name="perm_create" eval="1" />
-        <field name="perm_unlink" eval="1" />
+        <field name="model_id" ref="model_llm_push_models_wizard"/>
+        <field name="group_id" ref="llm.group_llm_manager"/>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="1"/>
     </record>
 
     <!-- Access Rights for Push Models Wizard Line -->
     <record id="access_push_models_line_manager" model="ir.model.access">
         <field name="name">llm.push.models.line.manager</field>
-        <field name="model_id" ref="model_llm_push_models_line" />
-        <field name="group_id" ref="llm.group_llm_manager" />
-        <field name="perm_read" eval="1" />
-        <field name="perm_write" eval="1" />
-        <field name="perm_create" eval="1" />
-        <field name="perm_unlink" eval="1" />
+        <field name="model_id" ref="model_llm_push_models_line"/>
+        <field name="group_id" ref="llm.group_llm_manager"/>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="1"/>
     </record>
 
     <!-- Access Rights for User Group -->
     <record id="access_push_models_wizard_user" model="ir.model.access">
         <field name="name">llm.push.models.wizard.user</field>
-        <field name="model_id" ref="model_llm_push_models_wizard" />
-        <field name="group_id" ref="base.group_user" />
-        <field name="perm_read" eval="1" />
-        <field name="perm_write" eval="0" />
-        <field name="perm_create" eval="0" />
-        <field name="perm_unlink" eval="0" />
+        <field name="model_id" ref="model_llm_push_models_wizard"/>
+        <field name="group_id" ref="base.group_user"/>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="0"/>
     </record>
 
     <record id="access_push_models_line_user" model="ir.model.access">
         <field name="name">llm.push.models.line.user</field>
-        <field name="model_id" ref="model_llm_push_models_line" />
-        <field name="group_id" ref="base.group_user" />
-        <field name="perm_read" eval="1" />
-        <field name="perm_write" eval="0" />
-        <field name="perm_create" eval="0" />
-        <field name="perm_unlink" eval="0" />
+        <field name="model_id" ref="model_llm_push_models_line"/>
+        <field name="group_id" ref="base.group_user"/>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="0"/>
     </record>
 
     <!-- Record Rules -->
     <!-- Allow managers to access all model push operations -->
     <record id="rule_push_models_wizard_manager" model="ir.rule">
         <field name="name">LLM Manager Push Models Access</field>
-        <field name="model_id" ref="model_llm_push_models_wizard" />
+        <field name="model_id" ref="model_llm_push_models_wizard"/>
         <field name="domain_force">[(1, '=', 1)]</field>
-        <field name="groups" eval="[(4, ref('llm.group_llm_manager'))]" />
-        <field name="perm_read" eval="1" />
-        <field name="perm_write" eval="1" />
-        <field name="perm_create" eval="1" />
-        <field name="perm_unlink" eval="1" />
+        <field name="groups" eval="[(4, ref('llm.group_llm_manager'))]"/>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="1"/>
     </record>
 
     <!-- Allow managers to access all model push line operations -->
     <record id="rule_push_models_line_manager" model="ir.rule">
         <field name="name">LLM Manager Push Model Lines Access</field>
-        <field name="model_id" ref="model_llm_push_models_line" />
+        <field name="model_id" ref="model_llm_push_models_line"/>
         <field name="domain_force">[(1, '=', 1)]</field>
-        <field name="groups" eval="[(4, ref('llm.group_llm_manager'))]" />
-        <field name="perm_read" eval="1" />
-        <field name="perm_write" eval="1" />
-        <field name="perm_create" eval="1" />
-        <field name="perm_unlink" eval="1" />
+        <field name="groups" eval="[(4, ref('llm.group_llm_manager'))]"/>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="1"/>
     </record>
 </odoo>
