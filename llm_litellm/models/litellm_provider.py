@@ -1,4 +1,5 @@
 from odoo import api, models
+
 from .http_client import LiteLLMClient
 
 
@@ -40,34 +41,23 @@ class LLMProvider(models.Model):
 
         # Send chat request
         response = self.client.chat_completion(
-            messages=messages,
-            model=model.name,
-            stream=stream
+            messages=messages, model=model.name, stream=stream
         )
 
         if not stream:
             choice = response["choices"][0]["message"]
-            yield {
-                "role": choice["role"],
-                "content": choice["content"]
-            }
+            yield {"role": choice["role"], "content": choice["content"]}
         else:
             for chunk in response:
                 delta = chunk["choices"][0].get("delta", {})
                 if "content" in delta and delta["content"]:
-                    yield {
-                        "role": "assistant",
-                        "content": delta["content"]
-                    }
+                    yield {"role": "assistant", "content": delta["content"]}
 
     def litellm_embedding(self, texts, model=None):
         """Generate embeddings using LiteLLM proxy"""
         model = self.get_model(model, "embedding")
 
-        response = self.client.create_embeddings(
-            texts=texts,
-            model=model.name
-        )
+        response = self.client.create_embeddings(texts=texts, model=model.name)
         return [data["embedding"] for data in response["data"]]
 
     def litellm_models(self):
@@ -83,7 +73,9 @@ class LLMProvider(models.Model):
             capabilities = ["chat"]  # Default capability
             if "embed" in model_id.lower():
                 capabilities = ["embedding"]
-            elif any(kw in model_id.lower() for kw in ["vision", "image", "multimodal"]):
+            elif any(
+                kw in model_id.lower() for kw in ["vision", "image", "multimodal"]
+            ):
                 capabilities = ["chat", "multimodal"]
 
             yield {

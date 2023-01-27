@@ -3,155 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLM Integration Module</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        h1, h2 {
-            color: #6f42c1;
-        }
-        .feature-list {
-            list-style-type: none;
-            padding-left: 0;
-        }
-        .note {
-            background-color: #f0f0f0;
-            border-left: 5px solid #6f42c1;
-            padding: 10px;
-            margin: 20px 0;
-        }
-        .banner {
-            width: 100%;
-            max-height: 300px;
-            object-fit: cover;
-            margin-bottom: 20px;
-        }
-        .project-info {
-            background-color: #f3e5ff;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-    </style>
+    <meta name="description" content="Easy AI Chat for Odoo: A user-friendly AI chat module. Integrate multiple AI providers, enjoy real-time chat, and build custom AI use cases in your Odoo workflows.">
+    <meta name="keywords" content="Easy AI Chat, Odoo AI Chat, AI Chat Module, Odoo Chatbot, Real-time AI Chat, Enterprise AI, Multimodal AI, Odoo Productivity Tools, Apexive">
+    <meta name="author" content="Apexive">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="Easy AI Chat for Odoo - Seamless AI Chat Solution">
+    <meta property="og:description" content="Transform your Odoo experience with Easy AI Chat. Connect AI providers, chat in real time, and create custom AI solutions effortlessly.">
+    <meta property="og:image" content="banner.jpeg">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="mailto:support@apexive.com">
+    <title>Easy AI Chat for Odoo - Your Simple AI Chat Solution | Apexive</title>
 </head>
 <body>
+    <div class="container py-4 bg-light">
+        <!-- Header Section -->
+        <header class="bg-white rounded shadow p-4 text-center mb-5">
+            <img src="banner.jpeg" alt="Easy AI Chat Interface for Odoo" class="img-fluid rounded mb-3" style="max-height: 300px; object-fit: cover;">
+            <h1 class="text-primary fw-bold">Easy AI Chat for Odoo</h1>
+            <div class="bg-light p-3 rounded mt-3 fw-semibold text-primary">
+                <p class="mb-0">A simple, powerful AI chat module to supercharge your Odoo workflows with real-time conversations.</p>
+            </div>
+        </header>
 
-<img src="banner.jpeg" alt="LLM Integration Banner" class="banner">
+        <!-- Why Easy AI Chat Section -->
+        <section class="mb-5">
+            <h2 class="text-primary fw-bold mb-4 border-bottom border-primary pb-2 d-inline-block">Why Easy AI Chat?</h2>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 shadow-sm" style="transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body">
+                            <div class="mb-3 p-2 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: rgba(0, 123, 255, 0.05);">
+                                <span class="text-primary fw-bold">1</span>
+                            </div>
+                            <h3 class="card-title h5 fw-bold text-primary">Multiple AI Providers</h3>
+                            <p class="card-text">Connect with OpenAI, Anthropic, Grok, Ollama, DeepSeek, and more. Switch models instantly.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 shadow-sm" style="transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body">
+                            <div class="mb-3 p-2 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: rgba(0, 123, 255, 0.05);">
+                                <span class="text-primary fw-bold">2</span>
+                            </div>
+                            <h3 class="card-title h5 fw-bold text-primary">Real-Time Chat</h3>
+                            <p class="card-text">Chat instantly with AI, integrated into Odoo's mail system, with full conversation history.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 shadow-sm" style="transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body">
+                            <div class="mb-3 p-2 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: rgba(0, 123, 255, 0.05);">
+                                <span class="text-primary fw-bold">3</span>
+                            </div>
+                            <h3 class="card-title h5 fw-bold text-primary">Multimodal Power</h3>
+                            <p class="card-text">Go beyond text—use advanced AI models for rich, actionable responses.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 shadow-sm" style="transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body">
+                            <div class="mb-3 p-2 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: rgba(0, 123, 255, 0.05);">
+                                <span class="text-primary fw-bold">4</span>
+                            </div>
+                            <h3 class="card-title h5 fw-bold text-primary">Odoo Integration</h3>
+                            <p class="card-text">Link chats to any Odoo app or object for smarter workflows.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-<h1>LLM Integration Module</h1>
+        <!-- Get Started Section -->
+        <section class="mb-5">
+            <h2 class="text-primary fw-bold mb-4 border-bottom border-primary pb-2 d-inline-block">Get Started with Easy AI Chat</h2>
+            <p>Follow these steps to set up and start chatting:</p>
+            
+            <div class="row g-4 mt-2">
+                <div class="col-md-6">
+                    <div class="card h-100 border-0" style="background-color: rgba(0, 123, 255, 0.05);">
+                        <div class="card-body p-4">
+                            <div class="d-flex">
+                                <div class="me-3 bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <span class="text-primary fw-bold">1</span>
+                                </div>
+                                <div>
+                                    <h3 class="h5 fw-bold">Install the Module</h3>
+                                    <p class="mb-0">Add "Easy AI Chat" and its dependency "LLM Integration Base" to your Odoo environment.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100 border-0" style="background-color: rgba(0, 123, 255, 0.05);">
+                        <div class="card-body p-4">
+                            <div class="d-flex">
+                                <div class="me-3 bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <span class="text-primary fw-bold">2</span>
+                                </div>
+                                <div>
+                                    <h3 class="h5 fw-bold">Set Up Providers</h3>
+                                    <p class="mb-0">Go to <strong>LLM > Configuration > Providers</strong>, create a new provider, and add your API key.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100 border-0" style="background-color: rgba(0, 123, 255, 0.05);">
+                        <div class="card-body p-4">
+                            <div class="d-flex">
+                                <div class="me-3 bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <span class="text-primary fw-bold">3</span>
+                                </div>
+                                <div>
+                                    <h3 class="h5 fw-bold">Fetch Models</h3>
+                                    <p class="mb-0">Click "Fetch Models" in the provider form to import available AI models using your API key.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100 border-0" style="background-color: rgba(0, 123, 255, 0.05);">
+                        <div class="card-body p-4">
+                            <div class="d-flex">
+                                <div class="me-3 bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <span class="text-primary fw-bold">4</span>
+                                </div>
+                                <div>
+                                    <h3 class="h5 fw-bold">Start Chatting</h3>
+                                    <p class="mb-0">Navigate to <strong>Chat</strong> in the Odoo menu, create a new thread, and ask AI anything!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info mt-4" style="background-color: rgba(23, 162, 184, 0.05);">
+                <p class="mb-0"><strong>Pro Tip:</strong> Get API keys from providers like OpenAI or Anthropic. Ensure your "LLM Integration Base" module is installed first.</p>
+            </div>
+        </section>
 
-<div class="project-info">
-    <p><strong>This module provides seamless integration with various Large Language Model (LLM) providers in Odoo.</strong></p>
-</div>
+        <!-- How to Use Section -->
+        <section class="mb-5">
+            <h2 class="text-primary fw-bold mb-4 border-bottom border-primary pb-2 d-inline-block">How to Use Easy AI Chat</h2>
+            
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <p>Once set up, chatting with AI is simple and flexible:</p>
+                    
+                    <div class="row g-3 mt-3">
+                        <div class="col-md-6">
+                            <div class="p-3 rounded" style="background-color: rgba(0, 123, 255, 0.05);">
+                                <p class="mb-0"><strong>Start from Anywhere:</strong> Look for the "AI" button in any Odoo record's chat area to start a conversation.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded" style="background-color: rgba(0, 123, 255, 0.05);">
+                                <p class="mb-0"><strong>Create a Thread:</strong> Click "New Chat" from the sidebar to start a fresh conversation.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded" style="background-color: rgba(0, 123, 255, 0.05);">
+                                <p class="mb-0"><strong>Switch Models:</strong> Pick different AI providers or models from the thread header.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded" style="background-color: rgba(0, 123, 255, 0.05);">
+                                <p class="mb-0"><strong>Integrate:</strong> Link chats to Odoo records via the chatter for context.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="mailto:support@apexive.com" class="btn btn-primary">Contact Us to Get Started</a>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-<p>The LLM Integration module enables direct interaction with AI language models from multiple providers within your Odoo environment. It offers a unified interface for chat completions, text embeddings, and model management across different LLM providers.</p>
+        <!-- Use Cases Section -->
+        <section class="mb-5">
+            <h2 class="text-primary fw-bold mb-4 border-bottom border-primary pb-2 d-inline-block">Build More with Easy AI Chat</h2>
+            
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-lg-4 mb-3 mb-lg-0">
+                            <h3 class="h4 fw-bold text-primary">Potential Use Cases</h3>
+                            <p>Your foundation for limitless AI-powered chat solutions in Odoo.</p>
+                        </div>
+                        <div class="col-lg-8">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item bg-transparent px-0">Create AI-driven customer support bots</li>
+                                <li class="list-group-item bg-transparent px-0">Automate data analysis chats</li>
+                                <li class="list-group-item bg-transparent px-0">Build interactive training assistants</li>
+                                <li class="list-group-item bg-transparent px-0">Design custom AI workflows for your business</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-<h2>Key Features</h2>
-<ul class="feature-list">
-    <li>Integration with multiple LLM providers (OpenAI, Anthropic, Ollama, Replicate)</li>
-    <li>Unified chat interface for AI interactions</li>
-    <li>Support for text embeddings and completions</li>
-    <li>Flexible model management and configuration</li>
-    <li>Real-time streaming responses</li>
-    <li>Thread-based conversation history</li>
-</ul>
+        <!-- Footer -->
+        <footer class="bg-white rounded shadow p-4 text-center">
+            <h2 class="h4 fw-bold text-primary">Support & Resources</h2>
+            <p class="mb-3">Need help? We've got you covered:</p>
+            <a href="mailto:support@apexive.com" class="btn btn-outline-primary">support@apexive.com</a>
+        </footer>
+    </div>
 
-<h2>Supported Providers</h2>
-<h3>OpenAI</h3>
-<ul>
-    <li>Chat completions with GPT models</li>
-    <li>Text embeddings</li>
-    <li>Automatic model discovery</li>
-</ul>
-
-<h3>Anthropic</h3>
-<ul>
-    <li>Integration with Claude models</li>
-    <li>Support for latest Claude-3 models</li>
-    <li>Multimodal capabilities</li>
-</ul>
-
-<h3>Ollama</h3>
-<ul>
-    <li>Local model deployment</li>
-    <li>Support for various open-source models</li>
-    <li>Custom model configuration</li>
-</ul>
-
-<h3>Replicate</h3>
-<ul>
-    <li>Access to diverse AI models</li>
-    <li>Support for specialized models</li>
-    <li>Easy model deployment</li>
-</ul>
-
-<div class="note">
-    <strong>Note:</strong> Each provider requires appropriate API credentials and configuration. Please refer to the module documentation for setup instructions.
-</div>
-
-<h2>Key Components</h2>
-<h3>Chat Interface</h3>
-<p>The module provides a modern, responsive chat interface featuring:</p>
-<ul>
-    <li>Real-time message streaming</li>
-    <li>Markdown support</li>
-    <li>Message history</li>
-    <li>Export functionality</li>
-    <li>Thread management</li>
-</ul>
-
-<h3>Model Management</h3>
-<p>Comprehensive model management capabilities including:</p>
-<ul>
-    <li>Automatic model discovery</li>
-    <li>Model capability tracking</li>
-    <li>Default model configuration</li>
-    <li>Model-specific parameters</li>
-</ul>
-
-<h2>Security</h2>
-<p>The module implements robust security features:</p>
-<ul>
-    <li>Role-based access control</li>
-    <li>Secure API key management</li>
-    <li>Thread-level privacy</li>
-    <li>Company-specific configurations</li>
-</ul>
-
-<h2>Installation</h2>
-<p>The module requires the following Python packages:</p>
-<pre>
-anthropic
-ollama
-openai
-replicate
-</pre>
-
-<h2>Configuration</h2>
-<p>After installation:</p>
-<ol>
-    <li>Configure LLM providers in the Settings menu</li>
-    <li>Set up API credentials for each provider</li>
-    <li>Configure default models for different use cases</li>
-    <li>Grant appropriate access rights to users</li>
-</ol>
-
-<div class="note">
-    <strong>Integration:</strong> This module can be extended to add AI capabilities to other Odoo modules through its flexible API.
-</div>
-
-<h2>Support</h2>
-<p>For questions or support needs, please contact:</p>
-<p><a href="https://github.com/smartops-aero/flight">https://github.com/smartops-aero/flight</a></p>
-
-<p>For more information about Apexive and our other projects, visit:</p>
-<p><a href="https://apexive.com">https://apexive.com</a></p>
-
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Easy AI Chat for Odoo",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Any",
+        "description": "Easy AI Chat is a user-friendly Odoo module for seamless AI chat integration. Connect multiple AI providers, manage real-time chats from any record, and build custom AI solutions.",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "provider": {
+            "@type": "Organization",
+            "name": "Apexive",
+            "url": "mailto:support@apexive.com"
+        },
+        "keywords": "Easy AI Chat, Odoo AI Chat, AI Chat Module, Odoo Chatbot, Real-time AI Chat"
+    }
+    </script>
 </body>
 </html>

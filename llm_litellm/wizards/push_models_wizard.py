@@ -1,6 +1,6 @@
 # wizards/push_models_wizard.py
 
-from odoo import fields, models, api
+from odoo import api, fields, models
 from odoo.exceptions import UserError
 
 
@@ -112,8 +112,7 @@ class PushModelsWizard(models.TransientModel):
         # Get all models from all providers
         lines = []
         existing_models = {
-            model.name: model
-            for model in self.env["llm.model"].search([])
+            model.name: model for model in self.env["llm.model"].search([])
         }
 
         # Map each provider's models to LiteLLM format
@@ -130,14 +129,18 @@ class PushModelsWizard(models.TransientModel):
                 status = "modified" if existing.details != model.details else "existing"
 
             lines.append(
-                (0, 0, {
-                    "name": litellm_name,
-                    "provider_id": model.provider_id.id,
-                    "model_use": model.model_use,
-                    "status": status,
-                    "details": model.details,
-                    "existing_model_id": existing.id if status != "new" else False,
-                })
+                (
+                    0,
+                    0,
+                    {
+                        "name": litellm_name,
+                        "provider_id": model.provider_id.id,
+                        "model_use": model.model_use,
+                        "status": status,
+                        "details": model.details,
+                        "existing_model_id": existing.id if status != "new" else False,
+                    },
+                )
             )
 
         if lines:

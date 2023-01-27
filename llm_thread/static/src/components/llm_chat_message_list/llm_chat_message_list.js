@@ -1,0 +1,59 @@
+/** @odoo-module **/
+
+import { MessageList } from "@mail/components/message_list/message_list";
+import { Transition } from "@web/core/transition";
+import { registerMessagingComponent } from "@mail/utils/messaging_component";
+import { markup } from "@odoo/owl";
+import { useEffect, useRef } from "@odoo/owl";
+
+export class LLMChatMessageList extends MessageList {
+  setup() {
+    super.setup();
+    this.rootRef = useRef("root");
+    useEffect(
+      () => {
+        if (this.composerView.isStreaming && this.htmlStreamingContent) {
+          this._scrollToEnd();
+        }
+      },
+      () => [this.htmlStreamingContent]
+    );
+  }
+
+  get htmlStreamingContent() {
+    return this.composerView.htmlStreamingContent
+      ? markup(this.composerView.htmlStreamingContent)
+      : "";
+  }
+
+  get composerView() {
+    return this.props.composerView;
+  }
+
+  _scrollToEnd() {
+    const scrollable = this.rootRef.el.closest(".o_LLMChatThread_content");
+    if (scrollable) {
+      const scrollHeight = scrollable.scrollHeight;
+      const clientHeight = scrollable.clientHeight;
+      const scrollTop = scrollHeight - clientHeight;
+      scrollable.scrollTop = scrollTop;
+    } else {
+      // Fallback to original behavior
+      const fallbackScrollable = this.rootRef.el;
+      if (fallbackScrollable) {
+        const scrollHeight = fallbackScrollable.scrollHeight;
+        const clientHeight = fallbackScrollable.clientHeight;
+        const scrollTop = scrollHeight - clientHeight;
+        fallbackScrollable.scrollTop = scrollTop;
+      }
+    }
+  }
+}
+
+Object.assign(LLMChatMessageList, {
+  components: { Transition },
+  props: { record: Object, composerView: Object },
+  template: "llm_thread.LLMChatMessageList",
+});
+
+registerMessagingComponent(LLMChatMessageList);
