@@ -266,6 +266,29 @@ registerModel({
       const thread = await this.createThread({ name });
       this.selectThread(thread.id);
     },
+
+    async initializeLLMChat(action, initActiveId) {
+      this.update({
+        llmChatView: {
+          actionId: action.id,
+        },
+        initActiveId,
+      });
+
+      // Wait for messaging to be initialized
+      await this.messaging.initializedPromise;
+      await this.loadLLMModels();
+      // Load threads first
+      await this.loadThreads();
+
+      // Then handle initial thread
+      if (!this.isInitThreadHandled) {
+        this.update({ isInitThreadHandled: true });
+        if (!this.activeThread) {
+          this.openInitThread();
+        }
+      }
+    }
   },
   fields: {
     activeId: attr({
