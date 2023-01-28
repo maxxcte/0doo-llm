@@ -17,7 +17,7 @@ patch(LLMChatThreadHeader.prototype, 'llm_agent/static/src/components/llm_chat_t
      * @param {Event} ev - The checkbox change event
      * @param {Object} tool - The tool object being selected/deselected
      */
-    onToolSelectChange(ev, tool) {
+    async onToolSelectChange(ev, tool) {
         const checked = ev.target.checked;
         
         const newSelectedToolIds = checked
@@ -25,6 +25,10 @@ patch(LLMChatThreadHeader.prototype, 'llm_agent/static/src/components/llm_chat_t
             : this.thread.selectedToolIds.filter(id => id !== tool.id);
 
         // Update the thread settings with the new tool IDs
-        this.thread.updateLLMChatThreadSettings({ toolIds: newSelectedToolIds });
+        
+        await this.thread.updateLLMChatThreadSettings({ toolIds: newSelectedToolIds });
+        this.thread.update({
+            selectedToolIds: newSelectedToolIds,
+        });
     },
 });
