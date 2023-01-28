@@ -15,11 +15,11 @@
     ],
     "assets": {
         "web.assets_backend": [
-            "static/src/components/llm_chat_thread_header/llm_chat_thread_header.xml",
-            "static/src/components/llm_chat_thread_header/llm_chat_thread_header_patch.js",
-            "static/src/models/llm_chat.js",
-            "static/src/models/llm_thread.js",
-            "static/src/models/llm_tool.js",
+            "llm_agent/static/src/models/llm_chat.js",
+            "llm_agent/static/src/models/llm_thread.js",
+            "llm_agent/static/src/models/llm_tool.js",
+            "llm_agent/static/src/components/llm_chat_thread_header/llm_chat_thread_header_patch.js",
+            "llm_agent/static/src/components/llm_chat_thread_header/llm_chat_thread_header.xml",
         ],
     },
     "auto_install": False,

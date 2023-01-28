@@ -6,7 +6,7 @@
     t-inherit-mode="extension"
     owl="1"
   >
-        <t t-jquery=".d-flex.align-items-center" t-operation="append">
+    <xpath expr="//div[hasclass('o_ThreadViewTopbar')]" position="inside">
             <!-- Tools Dropdown -->
             <div class="dropdown ms-2">
                 <button
@@ -32,7 +32,7 @@
                                 class="form-check-input"
                                 t-att-value="tool.id"
                                 t-att-checked="thread.selectedToolIds.includes(tool.id)"
-                                t-on-change="(ev) => this.onToolSelectChange(ev, tool)"
+                                t-on-change="(ev) => onToolSelectChange(ev, tool)"
                             />
                             <label class="form-check-label">
                                 <t t-esc="tool.name" />
@@ -41,6 +41,6 @@
                     </t>
                 </div>
             </div>
-        </t>
+        </xpath>
     </t>
 </templates>

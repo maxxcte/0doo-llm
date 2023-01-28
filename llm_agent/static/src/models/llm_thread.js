@@ -8,7 +8,9 @@ registerPatch({
     name: "Thread",
     fields: {
         // Track selected tool IDs for this thread
-        selectedToolIds: many("number"),
+        selectedToolIds: attr({
+            default: [],
+        }),
         
         // Computed field to get selected tools information
         selectedTools: many("LLMTool", {
