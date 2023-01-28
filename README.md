@@ -15,15 +15,16 @@ This repository provides a comprehensive framework for integrating Large Languag
 
 ## 📦 Modules
 
-| Module | Description |
-|--------|-------------|
-| `llm` | Base module with core functionality and provider framework |
-| `llm_thread` | Chat threads and conversation management |
-| `llm_openai` | OpenAI (GPT) provider integration |
-| `llm_anthropic` | Anthropic (Claude) provider integration |
-| `llm_ollama` | Ollama provider for local model deployment |
-| `llm_litellm` | LiteLLM proxy for centralized model management |
-| `llm_replicate` | Replicate.com integration |
+| Module          | Description                                                          |
+|-----------------|----------------------------------------------------------------------|
+| `llm`           | Base module with core functionality and provider framework           |
+| `llm_agent`     | Adds tool functionality that allows LLMs to perform actions in Odoo  |
+| `llm_thread`    | Chat threads and conversation management                             |
+| `llm_openai`    | OpenAI (GPT) provider integration                                    |
+| `llm_anthropic` | Anthropic (Claude) provider integration                              |
+| `llm_ollama`    | Ollama provider for local model deployment                           |
+| `llm_litellm`   | LiteLLM proxy for centralized model management                       |
+| `llm_replicate` | Replicate.com integration                                            |
 
 ## 🛠️ Installation
 
