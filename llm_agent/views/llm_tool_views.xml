@@ -7,7 +7,7 @@
         <field name="arch" type="xml">
             <tree string="LLM Tools">
                 <field name="name"/>
-                <field name="service"/>
+                <field name="implementation"/>
                 <field name="default"/>
                 <field name="active"/>
             </tree>
@@ -32,7 +32,7 @@
                     </div>
                     <group>
                         <group>
-                            <field name="service"/>
+                            <field name="implementation"/>
                             <field name="default"/>
                         </group>
                     </group>
@@ -60,11 +60,11 @@
         <field name="arch" type="xml">
             <search string="Search LLM Tools">
                 <field name="name"/>
-                <field name="service"/>
+                <field name="implementation"/>
                 <filter string="Default Tools" name="default" domain="[('default', '=', True)]"/>
                 <filter string="Active" name="active" domain="[('active', '=', True)]"/>
                 <group expand="0" string="Group By">
-                    <filter string="Service" name="group_by_service" context="{'group_by': 'service'}"/>
+                    <filter string="Implementation" name="group_by_implementation" context="{'group_by': 'implementation'}"/>
                 </group>
             </search>
         </field>

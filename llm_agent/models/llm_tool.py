@@ -13,10 +13,10 @@ class LLMTool(models.Model):
     name = fields.Char(required=True, tracking=True)
     description = fields.Text(required=True, tracking=True, 
                              help="Description of what the tool does. This will be sent to the LLM.")
-    service = fields.Selection(
-        selection=lambda self: self._selection_service(),
+    implementation = fields.Selection(
+        selection=lambda self: self._selection_implementation(),
         required=True,
-        help="The service that implements this tool",
+        help="The implementation that provides this tool's functionality",
     )
     active = fields.Boolean(default=True)
     schema = fields.Text(
@@ -28,28 +28,28 @@ class LLMTool(models.Model):
     )
     
     def _dispatch(self, method, *args, **kwargs):
-        """Dispatch method call to appropriate service implementation"""
-        if not self.service:
-            raise UserError(_("Tool service not configured"))
+        """Dispatch method call to appropriate implementation"""
+        if not self.implementation:
+            raise UserError(_("Tool implementation not configured"))
 
-        service_method = f"{self.service}_{method}"
-        if not hasattr(self, service_method):
+        implementation_method = f"{self.implementation}_{method}"
+        if not hasattr(self, implementation_method):
             raise NotImplementedError(
-                _("Method %s not implemented for service %s") % (method, self.service)
+                _("Method %s not implemented for implementation %s") % (method, self.implementation)
             )
 
-        return getattr(self, service_method)(*args, **kwargs)
+        return getattr(self, implementation_method)(*args, **kwargs)
     
     @api.model
-    def _selection_service(self):
-        """Get all available services from tool implementations"""
-        services = []
-        for service in self._get_available_services():
-            services.append(service)
-        return services
+    def _selection_implementation(self):
+        """Get all available implementations from tool implementations"""
+        implementations = []
+        for implementation in self._get_available_implementations():
+            implementations.append(implementation)
+        return implementations
     
     @api.model
-    def _get_available_services(self):
+    def _get_available_implementations(self):
         """Hook method for registering tool services"""
         return []
     

@@ -8,17 +8,17 @@
         <field name="arch" type="xml">
             <!-- Add server action field -->
             <xpath expr="//group[1]" position="after">
-                <group string="Server Action" attrs="{'invisible': [('service', '!=', 'server_action')]}">
+                <group string="Server Action" attrs="{'invisible': [('implementation', '!=', 'server_action')]}">
                     <field name="server_action_id" 
                            options="{'no_create': True}" 
                            domain="[('state', '!=', False)]"
-                           attrs="{'required': [('service', '=', 'server_action')]}"/>
+                           attrs="{'required': [('implementation', '=', 'server_action')]}"/>
                 </group>
             </xpath>
             
             <!-- Add a new page for server action tools -->
             <xpath expr="//notebook" position="inside">
-                <page string="Server Action Settings" attrs="{'invisible': [('service', '!=', 'server_action')]}">
+                <page string="Server Action Settings" attrs="{'invisible': [('implementation', '!=', 'server_action')]}">
                     <group>
                         <group string="Audit">
                             <div colspan="2" class="text-muted">

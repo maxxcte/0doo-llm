@@ -15,16 +15,16 @@ class LLMToolServerAction(models.Model):
     )
     
     @api.model
-    def _get_available_services(self):
-        services = super()._get_available_services()
-        return services + [
+    def _get_available_implementations(self):
+        implementations = super()._get_available_implementations()
+        return implementations + [
             ("server_action", "Odoo Server Action")
         ]
     
     @api.onchange('server_action_id')
     def _onchange_server_action_id(self):
         """Update tool name and description based on the selected server action"""
-        if self.server_action_id and self.service == 'server_action':
+        if self.server_action_id and self.implementation == 'server_action':
             # Generate a suitable name if not already set
             if not self.name or self.name.startswith('run_'):
                 action_name = self.server_action_id.name.lower().replace(' ', '_')

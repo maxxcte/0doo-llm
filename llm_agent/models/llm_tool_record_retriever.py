@@ -8,9 +8,9 @@ class LLMToolRecordRetriever(models.Model):
     _inherit = "llm.tool"
     
     @api.model
-    def _get_available_services(self):
-        services = super()._get_available_services()
-        return services + [
+    def _get_available_implementations(self):
+        implementations = super()._get_available_implementations()
+        return implementations + [
             ("odoo_record_retriever", "Odoo Record Retriever")
         ]
     
