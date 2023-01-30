@@ -1,6 +1,7 @@
 import json
 import logging
 from odoo import api, models, _
+from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 
@@ -13,6 +14,14 @@ class LLMToolRecordRetriever(models.Model):
         return implementations + [
             ("odoo_record_retriever", "Odoo Record Retriever")
         ]
+    
+    def odoo_record_retriever_get_pydantic_model(self):
+        class RecordRetrieverParams(BaseModel):
+            model: str = Field(..., description="The Odoo model to retrieve records from")
+            domain: list = Field([], description="Domain to filter records")
+            fields: list = Field([], description="Fields to retrieve")
+            limit: int = Field(100, description="Maximum number of records to retrieve")
+        return RecordRetrieverParams
     
     # Implementation of the Odoo Record Retriever tool
     def odoo_record_retriever_execute(self, parameters):

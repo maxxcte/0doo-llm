@@ -2,7 +2,8 @@ import json
 import logging
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
-
+from pydantic import ValidationError
+from langchain_core.utils.function_calling import convert_to_openai_function
 _logger = logging.getLogger(__name__)
 
 class LLMTool(models.Model):
@@ -19,13 +20,33 @@ class LLMTool(models.Model):
         help="The implementation that provides this tool's functionality",
     )
     active = fields.Boolean(default=True)
-    schema = fields.Text(
-        help="JSON Schema for the tool parameters in JSON format"
-    )
+    schema = fields.Text(compute='_compute_schema', store=True, readonly=True)
     default = fields.Boolean(
         default=False,
         help="Set to true if this is a default tool to be included in all LLM requests"
     )
+
+    def get_pydantic_model(self):
+        return self._dispatch("get_pydantic_model")
+
+    @api.depends('implementation')
+    def _compute_schema(self):
+        for record in self:
+            pydantic_model = record.get_pydantic_model()
+            if pydantic_model:
+                record.schema = convert_to_openai_function(pydantic_model)
+            else:
+                record.schema = '{}'
+
+    def execute(self, parameters):
+        pydantic_model = self.get_pydantic_model()
+        if pydantic_model:
+            try:
+                validated_params = pydantic_model(**parameters)
+                return self._dispatch("execute", validated_params.model_dump())
+            except ValidationError as e:
+                raise UserError(_("Invalid parameters: %s") % str(e))
+        return self._dispatch("execute", parameters)
     
     def _dispatch(self, method, *args, **kwargs):
         """Dispatch method call to appropriate implementation"""
@@ -52,10 +73,6 @@ class LLMTool(models.Model):
     def _get_available_implementations(self):
         """Hook method for registering tool services"""
         return []
-    
-    def execute(self, parameters):
-        """Execute the tool with the given parameters"""
-        return self._dispatch("execute", parameters)
     
     def to_tool_definition(self):
         """Convert tool to OpenAI compatible tool definition"""

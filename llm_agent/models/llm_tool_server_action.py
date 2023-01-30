@@ -10,7 +10,7 @@ class LLMToolServerAction(models.Model):
     
     # Add a field to store the bound server action
     server_action_id = fields.Many2one(
-        'ir.actions.server', string='Bound Server Action',
+        'ir.actions.server', string='Related Server Action',
         help='The specific server action this tool will execute'
     )
     
@@ -20,7 +20,14 @@ class LLMToolServerAction(models.Model):
         return implementations + [
             ("server_action", "Odoo Server Action")
         ]
-    
+    def server_action_get_pydantic_model(self):
+        if not self.server_action_id:
+            return None
+        class ServerActionParams(BaseModel):
+            context: Optional[dict] = Field(default={}, description="Additional context variables for the action")
+            record_id: Optional[int] = Field(default=None, description="ID of the record to set as active_id")
+        return ServerActionParams
+
     @api.onchange('server_action_id')
     def _onchange_server_action_id(self):
         """Update tool name and description based on the selected server action"""
@@ -36,40 +43,7 @@ class LLMToolServerAction(models.Model):
                     f"Run the '{self.server_action_id.name}' server action. "
                     f"This action works on the '{self.server_action_id.model_id.name}' model."
                 )
-            
-            # Update schema based on the action type
-            self._update_schema_for_server_action()
     
-    def _update_schema_for_server_action(self):
-        """Update the JSON schema based on the server action type"""
-        if not self.server_action_id:
-            return
-            
-        schema = {
-            "type": "object",
-            "properties": {}
-        }
-        
-        # All server actions can accept a context
-        schema["properties"]["context"] = {
-            "type": "object",
-            "description": "Additional context variables for the action"
-        }
-        
-        # Add model-specific properties if it's not a multi-action
-        if self.server_action_id.state != 'multi':
-            # Add model and record_id fields
-            schema["properties"]["record_id"] = {
-                "type": "integer",
-                "description": f"ID of the record to set as active_id"
-            }
-            
-            # If it's a write or create action, it might need more specific fields
-            if self.server_action_id.state in ['object_write', 'object_create']:
-                # We might add specific fields here based on the model fields
-                pass
-        
-        self.schema = json.dumps(schema, indent=2)
     
     # Implementation of the Odoo Server Action tool
     def server_action_execute(self, parameters):
