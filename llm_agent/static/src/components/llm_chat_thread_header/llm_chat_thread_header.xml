@@ -6,7 +6,7 @@
     t-inherit-mode="extension"
     owl="1"
   >
-    <xpath expr="//div[hasclass('o_ThreadViewTopbar')]" position="inside">
+    <xpath expr="//div[hasclass('o_ThreadDropdowns')]" position="inside">
             <!-- Tools Dropdown -->
             <t t-if="!isSmall">
                 <div class="dropdown ms-2">
