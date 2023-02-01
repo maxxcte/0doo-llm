@@ -1,8 +1,9 @@
 import json
 import logging
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError, AccessError
-
+from odoo.exceptions import AccessError
+from pydantic import BaseModel, Field, ConfigDict
+from langchain_core.utils.function_calling import convert_to_openai_tool
 _logger = logging.getLogger(__name__)
 
 class LLMToolServerAction(models.Model):
@@ -13,19 +14,48 @@ class LLMToolServerAction(models.Model):
         'ir.actions.server', string='Related Server Action',
         help='The specific server action this tool will execute'
     )
-    
+    schema = fields.Text(compute='_compute_schema', store=True, readonly=True)
+
+    @api.depends('implementation', 'name', 'description', 'server_action_id')
+    def _compute_schema(self):
+        _logger.info("server_action_id: %s", self.server_action_id)
+        for record in self:
+            # Only attempt to get schema for existing records with implementation
+            if record.id and record.implementation:
+                try:
+                    pydantic_model = record.get_pydantic_model()
+                    _logger.info("Pydantic model: %s", pydantic_model)
+                    if pydantic_model:
+                        schema_dict = convert_to_openai_tool(pydantic_model)
+                        _logger.info("Schema dict: %s", schema_dict)
+                        record.schema = json.dumps(schema_dict)
+                    else:
+                        record.schema = '{}'
+                except Exception:
+                    record.schema = '{}'
+            else:
+                record.schema = '{}'
+
     @api.model
     def _get_available_implementations(self):
         implementations = super()._get_available_implementations()
         return implementations + [
             ("server_action", "Odoo Server Action")
         ]
+        
     def server_action_get_pydantic_model(self):
+        _logger.info("server_action_get_pydantic_model called")
         if not self.server_action_id:
+            _logger.info("No server action selected")
             return None
         class ServerActionParams(BaseModel):
-            context: Optional[dict] = Field(default={}, description="Additional context variables for the action")
-            record_id: Optional[int] = Field(default=None, description="ID of the record to set as active_id")
+            """This function takes the parameters required for server action, including context and record_id and executes it"""
+            model_config = ConfigDict(
+                title = self.name or "odoo_server_action",
+            )
+            context: dict = Field(default={}, description="Additional context variables for the action, this field is optional")
+            record_id: int = Field(default=None, description="ID of the record to set as active_id")
+                
         return ServerActionParams
 
     @api.onchange('server_action_id')
@@ -43,6 +73,8 @@ class LLMToolServerAction(models.Model):
                     f"Run the '{self.server_action_id.name}' server action. "
                     f"This action works on the '{self.server_action_id.model_id.name}' model."
                 )
+        elif self.server_action_id and self.implementation != 'server_action':
+            self.server_action_id = None
     
     
     # Implementation of the Odoo Server Action tool

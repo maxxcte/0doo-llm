@@ -3,7 +3,8 @@ import logging
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from pydantic import ValidationError
-from langchain_core.utils.function_calling import convert_to_openai_function
+from langchain_core.utils.function_calling import convert_to_openai_tool
+
 _logger = logging.getLogger(__name__)
 
 class LLMTool(models.Model):
@@ -27,16 +28,54 @@ class LLMTool(models.Model):
     )
 
     def get_pydantic_model(self):
-        return self._dispatch("get_pydantic_model")
+        _logger.info(f"Calling get_pydantic_model for tool {self.name} (impl: {self.implementation})")
+        result = self._dispatch("get_pydantic_model")
+        _logger.info(f"Got Pydantic model for {self.name}: {result.__name__ if result else 'None'}")
+        return result
 
-    @api.depends('implementation')
+    @api.depends('implementation', 'name', 'description')
     def _compute_schema(self):
         for record in self:
-            pydantic_model = record.get_pydantic_model()
-            if pydantic_model:
-                record.schema = convert_to_openai_function(pydantic_model)
+            _logger.info(f"START _compute_schema for tool {record.name} (id: {record.id}, impl: {record.implementation})")
+            if record.id and record.implementation:
+                try:
+                    pydantic_model = record.get_pydantic_model()
+                    if pydantic_model:
+                        # Directly convert Pydantic model to OpenAI tool schema
+                        tool_schema = convert_to_openai_tool(pydantic_model)
+                        record.schema = json.dumps(tool_schema)
+                        _logger.info(f"Stored schema for {record.name}: {record.schema}")
+                    else:
+                        record.schema = json.dumps({
+                            "type": "function",
+                            "function": {
+                                "name": record.name,
+                                "description": record.description,
+                                "parameters": {},
+                            }
+                        })
+                        _logger.info(f"No Pydantic model for {record.name}, stored default schema")
+                except Exception as e:
+                    _logger.exception(f"Error computing schema for {record.name}: {str(e)}")
+                    record.schema = json.dumps({
+                        "type": "function",
+                        "function": {
+                            "name": record.name,
+                            "description": record.description,
+                            "parameters": {},
+                        }
+                    })
             else:
-                record.schema = '{}'
+                record.schema = json.dumps({
+                    "type": "function",
+                    "function": {
+                        "name": record.name or "unnamed_tool",
+                        "description": record.description or "",
+                        "parameters": {},
+                    }
+                })
+                _logger.info(f"No id or impl for {record.name}, stored default schema")
+            _logger.info(f"END _compute_schema for {record.name}, schema: {record.schema}")
 
     def execute(self, parameters):
         pydantic_model = self.get_pydantic_model()
@@ -52,13 +91,11 @@ class LLMTool(models.Model):
         """Dispatch method call to appropriate implementation"""
         if not self.implementation:
             raise UserError(_("Tool implementation not configured"))
-
         implementation_method = f"{self.implementation}_{method}"
         if not hasattr(self, implementation_method):
             raise NotImplementedError(
                 _("Method %s not implemented for implementation %s") % (method, self.implementation)
             )
-
         return getattr(self, implementation_method)(*args, **kwargs)
     
     @api.model
@@ -75,12 +112,18 @@ class LLMTool(models.Model):
         return []
     
     def to_tool_definition(self):
-        """Convert tool to OpenAI compatible tool definition"""
-        return {
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": json.loads(self.schema),
+        _logger.info(f"START to_tool_definition for tool {self.name} with schema: {self.schema}")
+        try:
+            result = json.loads(self.schema)
+            _logger.info(f"END to_tool_definition for {self.name}, returning: {json.dumps(result)}")
+            return result
+        except json.JSONDecodeError as e:
+            _logger.error(f"Invalid schema for tool {self.name}: {str(e)}")
+            return {
+                "type": "function",
+                "function": {
+                    "name": self.name,
+                    "description": self.description,
+                    "parameters": {},
+                }
             }
-        }

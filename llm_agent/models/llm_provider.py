@@ -54,7 +54,7 @@ class LLMProvider(models.Model):
             if formatted_tools:
                 params["tools"] = formatted_tools
                 params["tool_choice"] = tool_choice
-        
+
         response = self.client.chat.completions.create(**params)
         
         if not stream:

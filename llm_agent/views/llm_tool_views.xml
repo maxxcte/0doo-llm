@@ -29,6 +29,7 @@
                     <div class="oe_title">
                         <label for="name" class="oe_edit_only"/>
                         <h1><field name="name" placeholder="e.g. retrieve_records"/></h1>
+                        <field name="description"/>
                     </div>
                     <group>
                         <group>
