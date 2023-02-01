@@ -26,6 +26,22 @@ class LLMTool(models.Model):
         default=False,
         help="Set to true if this is a default tool to be included in all LLM requests"
     )
+    override_tool_description = fields.Boolean(
+        default=False,
+        help="If true, uses the description field as-is instead of any generated description"
+    )
+    override_tool_schema = fields.Boolean(
+        default=False,
+        help="If true, uses the overriden_schema field instead of computed schema"
+    )
+    overriden_schema = fields.Text(
+        help="Custom schema to use when override_tool_schema is true"
+    )
+
+    server_action_id = fields.Many2one(
+        'ir.actions.server', string='Related Server Action',
+        help='The specific server action this tool will execute'
+    )
 
     def get_pydantic_model(self):
         _logger.info(f"Calling get_pydantic_model for tool {self.name} (impl: {self.implementation})")
@@ -33,7 +49,7 @@ class LLMTool(models.Model):
         _logger.info(f"Got Pydantic model for {self.name}: {result.__name__ if result else 'None'}")
         return result
 
-    @api.depends('implementation', 'name', 'description')
+    @api.depends('implementation', 'name', 'description', 'override_tool_description','server_action_id')
     def _compute_schema(self):
         for record in self:
             _logger.info(f"START _compute_schema for tool {record.name} (id: {record.id}, impl: {record.implementation})")
@@ -41,8 +57,9 @@ class LLMTool(models.Model):
                 try:
                     pydantic_model = record.get_pydantic_model()
                     if pydantic_model:
-                        # Directly convert Pydantic model to OpenAI tool schema
                         tool_schema = convert_to_openai_tool(pydantic_model)
+                        if record.override_tool_description:
+                            tool_schema["function"]["description"] = record.description
                         record.schema = json.dumps(tool_schema)
                         _logger.info(f"Stored schema for {record.name}: {record.schema}")
                     else:
@@ -114,16 +131,28 @@ class LLMTool(models.Model):
     def to_tool_definition(self):
         _logger.info(f"START to_tool_definition for tool {self.name} with schema: {self.schema}")
         try:
-            result = json.loads(self.schema)
+            # If schema override is enabled and we have an overriden schema
+            if self.override_tool_schema and self.overriden_schema:
+                result = json.loads(self.overriden_schema)
+            else:
+                # Use the computed schema
+                result = json.loads(self.schema)
+            
+            if self.override_tool_description and "function" in result:
+                result["function"]["description"] = self.description
+
             _logger.info(f"END to_tool_definition for {self.name}, returning: {json.dumps(result)}")
             return result
         except json.JSONDecodeError as e:
             _logger.error(f"Invalid schema for tool {self.name}: {str(e)}")
-            return {
+            # Fallback to basic schema
+            result = {
                 "type": "function",
                 "function": {
                     "name": self.name,
-                    "description": self.description,
+                    "description": self.description if self.override_tool_description else "Default tool description",
                     "parameters": {},
                 }
             }
+            _logger.info(f"Falling back to default schema for {self.name}: {json.dumps(result)}")
+            return result

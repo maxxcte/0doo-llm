@@ -9,33 +9,6 @@ _logger = logging.getLogger(__name__)
 class LLMToolServerAction(models.Model):
     _inherit = "llm.tool"
     
-    # Add a field to store the bound server action
-    server_action_id = fields.Many2one(
-        'ir.actions.server', string='Related Server Action',
-        help='The specific server action this tool will execute'
-    )
-    schema = fields.Text(compute='_compute_schema', store=True, readonly=True)
-
-    @api.depends('implementation', 'name', 'description', 'server_action_id')
-    def _compute_schema(self):
-        _logger.info("server_action_id: %s", self.server_action_id)
-        for record in self:
-            # Only attempt to get schema for existing records with implementation
-            if record.id and record.implementation:
-                try:
-                    pydantic_model = record.get_pydantic_model()
-                    _logger.info("Pydantic model: %s", pydantic_model)
-                    if pydantic_model:
-                        schema_dict = convert_to_openai_tool(pydantic_model)
-                        _logger.info("Schema dict: %s", schema_dict)
-                        record.schema = json.dumps(schema_dict)
-                    else:
-                        record.schema = '{}'
-                except Exception:
-                    record.schema = '{}'
-            else:
-                record.schema = '{}'
-
     @api.model
     def _get_available_implementations(self):
         implementations = super()._get_available_implementations()

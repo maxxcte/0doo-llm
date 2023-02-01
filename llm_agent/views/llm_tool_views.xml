@@ -10,6 +10,8 @@
                 <field name="implementation"/>
                 <field name="default"/>
                 <field name="active"/>
+                <field name="override_tool_description" optional="hide"/>
+                <field name="override_tool_schema" optional="hide"/>
             </tree>
         </field>
     </record>
@@ -35,6 +37,8 @@
                         <group>
                             <field name="implementation"/>
                             <field name="default"/>
+                            <field name="override_tool_description" widget="boolean_toggle"/>
+                            <field name="override_tool_schema" widget="boolean_toggle"/>
                         </group>
                     </group>
                     <notebook>
@@ -42,7 +46,11 @@
                             <field name="description" placeholder="Describe what this tool does and when to use it"/>
                         </page>
                         <page string="Schema">
-                            <field name="schema" widget="text" placeholder="{...}"/>
+                            <field name="schema" widget="text" placeholder="{...}" readonly="1"/>
+                            <separator string="Override Schema" attrs="{'invisible': [('override_tool_schema', '=', False)]}"/>
+                            <field name="overriden_schema" widget="text" 
+                                   placeholder="Enter custom JSON schema here"
+                                   attrs="{'invisible': [('override_tool_schema', '=', False)], 'required': [('override_tool_schema', '=', True)]}"/>
                         </page>
                     </notebook>
                 </sheet>
@@ -64,8 +72,11 @@
                 <field name="implementation"/>
                 <filter string="Default Tools" name="default" domain="[('default', '=', True)]"/>
                 <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Override Description" name="override_desc" domain="[('override_tool_description', '=', True)]"/>
+                <filter string="Override Schema" name="override_schema" domain="[('override_tool_schema', '=', True)]"/>
                 <group expand="0" string="Group By">
                     <filter string="Implementation" name="group_by_implementation" context="{'group_by': 'implementation'}"/>
+                    <filter string="Override Schema" name="group_by_override_schema" context="{'group_by': 'override_tool_schema'}"/>
                 </group>
             </search>
         </field>
