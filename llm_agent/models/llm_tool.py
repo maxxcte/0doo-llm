@@ -44,15 +44,12 @@ class LLMTool(models.Model):
     )
 
     def get_pydantic_model(self):
-        _logger.info(f"Calling get_pydantic_model for tool {self.name} (impl: {self.implementation})")
         result = self._dispatch("get_pydantic_model")
-        _logger.info(f"Got Pydantic model for {self.name}: {result.__name__ if result else 'None'}")
         return result
 
     @api.depends('implementation', 'name', 'description', 'override_tool_description','server_action_id')
     def _compute_schema(self):
         for record in self:
-            _logger.info(f"START _compute_schema for tool {record.name} (id: {record.id}, impl: {record.implementation})")
             if record.id and record.implementation:
                 try:
                     pydantic_model = record.get_pydantic_model()
@@ -61,7 +58,6 @@ class LLMTool(models.Model):
                         if record.override_tool_description:
                             tool_schema["function"]["description"] = record.description
                         record.schema = json.dumps(tool_schema)
-                        _logger.info(f"Stored schema for {record.name}: {record.schema}")
                     else:
                         record.schema = json.dumps({
                             "type": "function",
@@ -71,7 +67,6 @@ class LLMTool(models.Model):
                                 "parameters": {},
                             }
                         })
-                        _logger.info(f"No Pydantic model for {record.name}, stored default schema")
                 except Exception as e:
                     _logger.exception(f"Error computing schema for {record.name}: {str(e)}")
                     record.schema = json.dumps({
@@ -91,9 +86,8 @@ class LLMTool(models.Model):
                         "parameters": {},
                     }
                 })
-                _logger.info(f"No id or impl for {record.name}, stored default schema")
-            _logger.info(f"END _compute_schema for {record.name}, schema: {record.schema}")
-
+            _logger.info(f"No id or impl for {record.name}, stored default schema")
+    
     def execute(self, parameters):
         pydantic_model = self.get_pydantic_model()
         if pydantic_model:
@@ -129,7 +123,6 @@ class LLMTool(models.Model):
         return []
     
     def to_tool_definition(self):
-        _logger.info(f"START to_tool_definition for tool {self.name} with schema: {self.schema}")
         try:
             # If schema override is enabled and we have an overriden schema
             if self.override_tool_schema and self.overriden_schema:
@@ -141,7 +134,6 @@ class LLMTool(models.Model):
             if self.override_tool_description and "function" in result:
                 result["function"]["description"] = self.description
 
-            _logger.info(f"END to_tool_definition for {self.name}, returning: {json.dumps(result)}")
             return result
         except json.JSONDecodeError as e:
             _logger.error(f"Invalid schema for tool {self.name}: {str(e)}")

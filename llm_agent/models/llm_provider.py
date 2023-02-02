@@ -118,15 +118,12 @@ class LLMProvider(models.Model):
                 
                 # Handle streaming tool calls
                 if hasattr(delta, 'tool_calls') and delta.tool_calls:
-                    _logger.info(f"Received tool call chunk: {delta.tool_calls}")
                     
                     for tool_call_chunk in delta.tool_calls:
                         index = tool_call_chunk.index
-                        _logger.info(f"Processing tool call chunk with index: {index}")
                         
                         # Initialize tool call data if it's a new one
                         if index not in tool_call_chunks:
-                            _logger.info(f"Initializing new tool call with index: {index}")
                             tool_call_chunks[index] = {
                                 "id": tool_call_chunk.id,
                                 "type": "function",
@@ -139,7 +136,6 @@ class LLMProvider(models.Model):
                         # First chunk typically contains id, name and type
                         if tool_call_chunk.id:
                             tool_call_chunks[index]["id"] = tool_call_chunk.id
-                            _logger.info(f"Setting tool call ID: {tool_call_chunk.id}")
                         
                         if tool_call_chunk.type:
                             tool_call_chunks[index]["type"] = tool_call_chunk.type
@@ -150,7 +146,6 @@ class LLMProvider(models.Model):
                             tool_call_chunk.function.name):
                             
                             tool_call_chunks[index]["function"]["name"] = tool_call_chunk.function.name
-                            _logger.info(f"Setting tool name: '{tool_call_chunk.function.name}'")
                         
                         # Update arguments if present - this continues across multiple chunks
                         if (hasattr(tool_call_chunk, 'function') and 
@@ -159,8 +154,6 @@ class LLMProvider(models.Model):
                             
                             arg_chunk = tool_call_chunk.function.arguments
                             tool_call_chunks[index]["function"]["arguments"] += arg_chunk
-                            _logger.info(f"Added argument chunk: '{arg_chunk}' to tool call {index}")
-                            _logger.info(f"Current arguments: '{tool_call_chunks[index]['function']['arguments']}'")
                             
                         # Check if we received a complete JSON object - indicating arguments are complete
                         current_args = tool_call_chunks[index]["function"]["arguments"]
@@ -171,18 +164,15 @@ class LLMProvider(models.Model):
                                 json.loads(current_args)
                                 
                                 # Find and execute the tool
-                                tool_name = tool_call_chunks[index]["function"]["name"]
-                                _logger.info(f"Arguments complete. Looking for tool: '{tool_name}'")
+                                tool_name = tool_call_chunks[index]["function"]["name"] 
                                 
                                 if not tool_name:
                                     _logger.warning(f"Empty tool name for index: {index}")
                                     continue
                                     
                                 tool = self.env['llm.tool'].search([('name', '=', tool_name)], limit=1)
-                                _logger.info(f"Tool search result: {tool}, tool.id: {tool.id if tool else 'Not found'}")
                                 
                                 if tool:
-                                    _logger.info(f"Executing tool '{tool_name}' with arguments: {current_args}")
                                     arguments = json.loads(current_args)
                                     result = tool.execute(arguments)
                                     

@@ -17,9 +17,7 @@ class LLMToolServerAction(models.Model):
         ]
         
     def server_action_get_pydantic_model(self):
-        _logger.info("server_action_get_pydantic_model called")
         if not self.server_action_id:
-            _logger.info("No server action selected")
             return None
         class ServerActionParams(BaseModel):
             """This function takes the parameters required for server action, including context and record_id and executes it"""
@@ -58,7 +56,6 @@ class LLMToolServerAction(models.Model):
             - record_id: Optional record ID to set as active_id
             - context: Optional context variables for the action
         """
-        _logger.info(f"Executing Odoo Server Action with parameters: {parameters}")
         
         # Use the bound server action
         if not self.server_action_id:
