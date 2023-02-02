@@ -16,6 +16,7 @@ class LLMToolRecordRetriever(models.Model):
         ]
     
     def odoo_record_retriever_get_pydantic_model(self):
+        # the docstring is used as default description for the tool
         class RecordRetrieverParams(BaseModel):
             """This function takes the parameters required for record retriever, including model, domain, fields, and limit."""
             model_config = ConfigDict(

@@ -20,6 +20,7 @@ class LLMToolServerAction(models.Model):
         if not self.server_action_id:
             return None
         class ServerActionParams(BaseModel):
+            # the docstring is used as default description for the tool
             """This function takes the parameters required for server action, including context and record_id and executes it"""
             model_config = ConfigDict(
                 title = self.name or "odoo_server_action",
