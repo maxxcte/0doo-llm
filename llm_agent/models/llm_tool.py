@@ -43,6 +43,11 @@ class LLMTool(models.Model):
         help='The specific server action this tool will execute'
     )
 
+    requires_user_consent = fields.Boolean(
+        default=False,
+        help="If true, the user must consent to the execution of this tool"
+    )
+
     def get_pydantic_model(self):
         result = self._dispatch("get_pydantic_model")
         return result

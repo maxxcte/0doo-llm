@@ -10,6 +10,7 @@
                 <field name="implementation"/>
                 <field name="default"/>
                 <field name="active"/>
+                <field name="requires_user_consent"/>
                 <field name="override_tool_description" optional="hide"/>
                 <field name="override_tool_schema" optional="hide"/>
             </tree>
@@ -37,6 +38,7 @@
                         <group>
                             <field name="implementation"/>
                             <field name="default"/>
+                            <field name="requires_user_consent"/>
                             <field name="override_tool_description" widget="boolean_toggle"/>
                             <field name="override_tool_schema" widget="boolean_toggle"/>
                         </group>
@@ -97,11 +99,4 @@
             </p>
         </field>
     </record>
-
-    <!-- Menu Item -->
-    <menuitem id="menu_llm_tool"
-              name="Tools"
-              parent="llm.menu_llm_config"
-              action="action_llm_tool"
-              sequence="20"/>
 </odoo>

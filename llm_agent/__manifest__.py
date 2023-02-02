@@ -9,6 +9,7 @@
     "depends": ["base", "mail", "llm", "llm_thread", "llm_openai"],
     "data": [
         "security/ir.model.access.csv",
+        "views/menu_views.xml",
         "views/llm_thread_views.xml",
         "views/llm_tool_views.xml",
         "views/llm_tool_server_action_views.xml",
