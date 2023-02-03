@@ -69,40 +69,7 @@ class LLMTool(models.Model):
     def _compute_schema(self):
         for record in self:
             if record.id and record.implementation:
-                try:
-                    pydantic_model = record.get_pydantic_model()
-                    if pydantic_model:
-                        tool_schema = convert_to_openai_tool(pydantic_model)
-                        if record.override_tool_description:
-                            tool_schema["function"]["description"] = record.description
-                        record.schema = json.dumps(tool_schema)
-                    else:
-                        record.schema = json.dumps(
-                            {
-                                "type": "function",
-                                "function": {
-                                    "name": record.name,
-                                    "description": record.description,
-                                    "parameters": {},
-                                },
-                            }
-                        )
-                except Exception as e:
-                    _logger.exception(
-                        f"Error computing schema for {record.name}: {str(e)}"
-                    )
-                    record.schema = json.dumps(
-                        {
-                            "type": "function",
-                            "function": {
-                                "name": record.name,
-                                "description": record.description,
-                                "parameters": {},
-                            },
-                        }
-                    )
-            else:
-                record.schema = json.dumps(
+                fallback_schema = json.dumps(
                     {
                         "type": "function",
                         "function": {
@@ -112,6 +79,22 @@ class LLMTool(models.Model):
                         },
                     }
                 )
+                try:
+                    pydantic_model = record.get_pydantic_model()
+                    if pydantic_model:
+                        tool_schema = convert_to_openai_tool(pydantic_model)
+                        if record.override_tool_description:
+                            tool_schema["function"]["description"] = record.description
+                        record.schema = json.dumps(tool_schema)
+                    else:
+                        record.schema = fallback_schema
+                except Exception as e:
+                    _logger.exception(
+                        f"Error computing schema for {record.name}: {str(e)}"
+                    )
+                    record.schema = fallback_schema
+            else:
+                record.schema = fallback_schema
             _logger.info(f"No id or impl for {record.name}, stored default schema")
 
     def execute(self, parameters):
