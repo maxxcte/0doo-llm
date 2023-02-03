@@ -27,28 +27,7 @@ export class LLMChatContainer extends Component {
           });
         }
         this.llmChat = this.messaging.llmChat;
-
-        // Create LLMChatView and link it to LLMChat
-        this.llmChat.update({
-          llmChatView: {
-            actionId: action.id,
-          },
-          initActiveId,
-        });
-
-        // Wait for messaging to be initialized
-        await this.messaging.initializedPromise;
-        await this.llmChat.loadLLMModels();
-        // Load threads first
-        await this.llmChat.loadThreads();
-
-        // Then handle initial thread
-        if (!this.llmChat.isInitThreadHandled) {
-          this.llmChat.update({ isInitThreadHandled: true });
-          if (!this.llmChat.activeThread) {
-            this.llmChat.openInitThread();
-          }
-        }
+        this.llmChat.initializeLLMChat(action, initActiveId);
       }
     );
 
