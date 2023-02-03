@@ -76,5 +76,4 @@ docs/_build/
 .ruff_cache
 .claudesync
 llm_thread/gptree_output.txt
-**/.gptree_config
-**/gptree_output.txt
+llm_thread/.gptree_config

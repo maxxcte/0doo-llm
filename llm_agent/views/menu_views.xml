@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <!-- Menu Item -->
-    <menuitem id="menu_llm_tool"
-              name="Tools"
-              parent="llm.menu_llm_config"
-              action="action_llm_tool"
-              sequence="20"/>
-</odoo>
