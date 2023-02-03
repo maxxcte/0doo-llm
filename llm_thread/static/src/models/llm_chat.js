@@ -288,7 +288,7 @@ registerModel({
           this.openInitThread();
         }
       }
-    }
+    },
   },
   fields: {
     activeId: attr({

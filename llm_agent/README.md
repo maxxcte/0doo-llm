@@ -64,5 +64,6 @@ Adding a new tool involves:
 ## Security
 
 The module includes security access control rules:
+
 - Regular users can read tools
 - System administrators can create, update, and delete tools
