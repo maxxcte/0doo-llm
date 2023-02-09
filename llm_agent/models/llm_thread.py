@@ -32,7 +32,7 @@ class LLMThread(models.Model):
                 # Handle content
                 if response.get("content") is not None:
                     content += response.get("content", "")
-                    yield {"type": "content", "role": "assistant", "content": response.get("content", "")}
+                    yield response
 
                 # Handle tool calls
                 if response.get("tool_call"):
@@ -67,31 +67,33 @@ class LLMThread(models.Model):
                         }
                     )
 
-                    # Signal tool call start
-                    yield {
-                        "type": "tool_start",
-                        "tool_call_id": tool_call["id"],
-                        "function_name": tool_call["function"]["name"],
-                        "arguments": tool_call["function"]["arguments"]
-                    }
-
                     # Display raw tool output
                     raw_output = f"<strong>Tool:</strong> {tool_call['function']['name']}<br><br>"
                     raw_output += f"<strong>Arguments:</strong> <pre><code class='language-json'>{tool_call['function']['arguments']}</code></pre><br>"
                     raw_output += f"<strong>Result:</strong> <pre><code class='language-json'>{tool_call['result']}</code></pre><br>"
 
-                    # Signal tool call end with result
-                    yield {
-                        "type": "tool_end",
-                        "role": "tool",
-                        "tool_call_id": tool_call["id"],
-                        "content": tool_call["result"],
-                        "formatted_content": raw_output
-                    }
+                    yield {"role": "assistant", "content": raw_output}
+
+            # If we used tools, get interpretation
+            if tool_messages and assistant_message:
+                # Add messages to conversation
+                updated_messages = messages.copy()
+                updated_messages.append(assistant_message)
+
+                # Add all tool messages
+                for tm in tool_messages:
+                    updated_messages.append(tm)
+
+                # Get interpretation
+                for interpretation in self._chat_with_tools(
+                    updated_messages, None, stream
+                ):
+                    if interpretation.get("content") is not None:
+                        yield interpretation
 
         except Exception as e:
             _logger.error("Error getting AI response: %s", str(e))
-            yield {"type": "error", "error": str(e)}
+            yield {"error": str(e)}
 
     def _chat_with_tools(self, messages, tool_ids=None, stream=True):
         """Helper method to chat with tools"""

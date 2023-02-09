@@ -68,8 +68,7 @@ class LLMTool(models.Model):
     )
     def _compute_schema(self):
         for record in self:
-            if record.id and record.implementation:
-                fallback_schema = json.dumps(
+            fallback_schema = json.dumps(
                     {
                         "type": "function",
                         "function": {
@@ -79,6 +78,7 @@ class LLMTool(models.Model):
                         },
                     }
                 )
+            if record.id and record.implementation:
                 try:
                     pydantic_model = record.get_pydantic_model()
                     if pydantic_model:
