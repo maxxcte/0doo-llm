@@ -14,6 +14,33 @@ class LLMThread(models.Model):
         help="Tools that can be used by the LLM in this thread",
     )
 
+    def post_ai_response(self, **kwargs):
+        """Post a message to the thread with support for tool messages"""
+        _logger.debug("Posting message - kwargs: %s", kwargs)
+        body = kwargs.get("body")
+        
+        # Handle tool messages
+        tool_call_id = kwargs.get("tool_call_id")
+        subtype_xmlid = kwargs.get("subtype_xmlid")
+        
+        if tool_call_id and subtype_xmlid == "llm_agent.mt_tool_message":
+            message = self.message_post(
+                body=body,
+                message_type="comment",
+                author_id=False,  # No author for AI messages
+                email_from=f"{self.model_id.name} <ai@{self.provider_id.name.lower()}.ai>",
+                partner_ids=[],  # No partner notifications
+                subtype_xmlid=subtype_xmlid,
+            )
+            
+            # Set the tool_call_id on the message
+            message.write({"tool_call_id": tool_call_id})
+            
+            return message.message_format()[0]
+        
+        # Default behavior for regular messages
+        return super(LLMThread, self).post_ai_response(**kwargs)
+
     def get_assistant_response(self, stream=True):
         """Get assistant response with tool handling"""
         try:

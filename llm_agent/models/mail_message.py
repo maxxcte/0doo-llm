@@ -1,5 +1,6 @@
 from odoo import fields, models, api
 from odoo.exceptions import ValidationError
+
 class MailMessage(models.Model):
     _inherit = "mail.message"
 
@@ -11,5 +12,22 @@ class MailMessage(models.Model):
     @api.constrains("tool_call_id", "subtype_id")
     def _check_tool_message_integrity(self):
         for record in self:
-            if record.tool_call_id and record.subtype_id.xml_id != "llm_agent.mt_tool_message":
-                raise ValidationError("Tool Call ID can only be set for Tool Messages.")
+            if record.tool_call_id and record.subtype_id:
+                tool_message_subtype = self.env.ref("llm_agent.mt_tool_message")
+                if record.subtype_id.id != tool_message_subtype.id:
+                    raise ValidationError("Tool Call ID can only be set for Tool Messages.")
+
+    def to_provider_message(self):
+        """Override to_provider_message to support tool messages"""
+        # Check if this is a tool message
+        if self.subtype_id and self.tool_call_id:
+            tool_message_subtype = self.env.ref("llm_agent.mt_tool_message")
+            if self.subtype_id.id == tool_message_subtype.id:
+                return {
+                    "role": "tool",
+                    "tool_call_id": self.tool_call_id,
+                    "content": self.body,
+                }
+        
+        # Default behavior from parent
+        return super(MailMessage, self).to_provider_message()
