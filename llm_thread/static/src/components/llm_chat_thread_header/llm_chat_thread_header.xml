@@ -46,10 +46,7 @@
                 </t>
             </div>
 
-            <div
-        t-if="!isSmall"
-        class="o_ThreadDropdowns d-flex align-items-center"
-      >
+            <div t-if="!isSmall" class="d-flex align-items-center">
                 <!-- LLM Provider Dropdown -->
                 <div class="dropdown">
                     <button

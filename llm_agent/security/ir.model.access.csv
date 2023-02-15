@@ -1,3 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_llm_tool_user,llm.tool.user,model_llm_tool,base.group_user,1,0,0,0
-access_llm_tool_system,llm.tool.system,model_llm_tool,base.group_system,1,1,1,1
