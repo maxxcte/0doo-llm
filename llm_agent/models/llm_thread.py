@@ -5,6 +5,107 @@ from odoo import fields, models
 _logger = logging.getLogger(__name__)
 
 
+class MessageValidator:
+    """
+    A dedicated class for validating and cleaning message structures
+    for OpenAI API compatibility.
+    """
+    def __init__(self, messages, logger=None):
+        self.messages = messages
+        self.logger = logger or logging.getLogger(__name__)
+        self.tool_call_map = {}  # Maps tool_call_ids to their assistant messages
+        self.tool_response_map = {}  # Maps tool_call_ids to their tool response messages
+    
+    def validate_and_clean(self):
+        """Main validation method that orchestrates the validation process"""
+        if not self.messages:
+            return self.messages
+        
+        self.log_message_details()
+        self.build_message_maps()
+        self.remove_orphaned_tool_messages()
+        self.handle_missing_tool_responses()
+        
+        # Remove any messages marked for removal
+        cleaned_messages = [msg for msg in self.messages if msg is not None]
+        self.logger.info(f"Validation complete. Original messages: {len(self.messages)}, Cleaned messages: {len(cleaned_messages)}")
+        return cleaned_messages
+    
+    def log_message_details(self):
+        """Log details about each message for debugging"""
+        self.logger.info(f"Validating {len(self.messages)} messages")
+        for i, msg in enumerate(self.messages):
+            role = msg.get('role', 'unknown')
+            tool_call_id = msg.get('tool_call_id', 'none')
+            tool_calls = msg.get('tool_calls', [])
+            self.logger.info(f"Message {i} - Role: {role}, Tool Call ID: {tool_call_id}, Tool Calls: {len(tool_calls)}")
+    
+    def build_message_maps(self):
+        """Build maps connecting tool calls to their responses"""
+        # Map assistant messages with their tool_call_ids
+        for i, msg in enumerate(self.messages):
+            if msg and msg.get('role') == 'assistant' and msg.get('tool_calls'):
+                for tool_call in msg.get('tool_calls', []):
+                    tool_call_id = tool_call.get('id')
+                    if tool_call_id:
+                        self.tool_call_map[tool_call_id] = {
+                            'index': i,
+                            'tool_call': tool_call,
+                            'message': msg
+                        }
+                        self.logger.info(f"Found tool_call_id in assistant message: {tool_call_id}")
+            
+            # Map tool responses with their tool_call_ids
+            if msg and msg.get('role') == 'tool' and msg.get('tool_call_id'):
+                tool_call_id = msg.get('tool_call_id')
+                self.tool_response_map[tool_call_id] = {
+                    'index': i,
+                    'message': msg
+                }
+                self.logger.info(f"Found tool response for tool_call_id: {tool_call_id}")
+    
+    def remove_orphaned_tool_messages(self):
+        """Remove tool messages that don't have a matching assistant message with tool_calls"""
+        for i, msg in enumerate(self.messages):
+            if msg and msg.get('role') == 'tool':
+                tool_call_id = msg.get('tool_call_id')
+                if tool_call_id not in self.tool_call_map:
+                    self.logger.warning(f"Removing tool message with ID {tool_call_id} because it has no matching assistant message with tool_calls")
+                    self.messages[i] = None
+    
+    def handle_missing_tool_responses(self):
+        """Handle cases where assistant messages have tool_calls without corresponding tool responses"""
+        # Find tool_calls without responses
+        missing_responses = set(self.tool_call_map.keys()) - set(self.tool_response_map.keys())
+        
+        if missing_responses:
+            self.logger.warning(f"Found {len(missing_responses)} tool_calls without responses: {missing_responses}")
+            
+            # Process each assistant message with tool_calls
+            for tool_call_id, info in self.tool_call_map.items():
+                if tool_call_id in missing_responses:
+                    msg_index = info['index']
+                    msg = self.messages[msg_index]
+                    
+                    # Filter out tool_calls without responses
+                    updated_tool_calls = [
+                        tc for tc in msg.get('tool_calls', [])
+                        if tc.get('id') not in missing_responses
+                    ]
+                    
+                    if updated_tool_calls:
+                        # Keep the message but with only the tool_calls that have responses
+                        self.messages[msg_index]['tool_calls'] = updated_tool_calls
+                        self.logger.info(f"Updated assistant message {msg_index} to only include tool_calls with responses")
+                    else:
+                        # If no tool_calls remain, remove them entirely
+                        self.messages[msg_index] = {
+                            'role': 'assistant',
+                            'content': msg.get('content') or ""  # Ensure content is never null
+                        }
+                        self.logger.info(f"Removed all tool_calls from assistant message {msg_index}")
+
+
 class LLMThread(models.Model):
     _inherit = "llm.thread"
 
@@ -69,100 +170,18 @@ class LLMThread(models.Model):
         """
         Validate and clean messages to ensure proper tool message structure.
         
-        This method checks that all tool messages have a preceding assistant message
-        with matching tool_calls, and removes any tool messages that don't meet this
-        requirement to avoid API errors.
+        This method uses the MessageValidator class to check that all tool messages 
+        have a preceding assistant message with matching tool_calls, and removes any 
+        tool messages that don't meet this requirement to avoid API errors.
         
         Args:
             messages (list): List of messages to validate and clean
-            
+        
         Returns:
             list: Cleaned list of messages
         """
-        if not messages:
-            return messages
-            
-        # Log message roles and tool_call_id for debugging
-        _logger.info(f"Validating {len(messages)} messages")
-        for i, msg in enumerate(messages):
-            role = msg.get('role', 'unknown')
-            tool_call_id = msg.get('tool_call_id', 'none')
-            tool_calls = msg.get('tool_calls', [])
-            _logger.info(f"Message {i} - Role: {role}, Tool Call ID: {tool_call_id}, Tool Calls: {len(tool_calls)}")
-            
-        # First pass: Check if there are any tool messages without a preceding assistant message with tool_calls
-        for i, msg in enumerate(messages):
-            if msg.get('role') == 'tool':
-                tool_call_id = msg.get('tool_call_id')
-                
-                # Look for a preceding assistant message with matching tool_calls
-                found_matching_call = False
-                for j in range(i-1, -1, -1):
-                    prev_msg = messages[j]
-                    if prev_msg.get('role') == 'assistant' and prev_msg.get('tool_calls'):
-                        for tool_call in prev_msg.get('tool_calls', []):
-                            if tool_call.get('id') == tool_call_id:
-                                found_matching_call = True
-                                break
-                        if found_matching_call:
-                            break
-                
-                if not found_matching_call:
-                    # This tool message doesn't have a matching assistant message with tool_calls
-                    # Remove it from the messages to avoid the API error
-                    _logger.warning(f"Removing tool message with ID {tool_call_id} because it has no matching assistant message with tool_calls")
-                    messages[i] = None  # Mark for removal
-        
-        # Second pass: Check all assistant messages with tool_calls and ensure they have corresponding tool messages
-        all_tool_call_ids = set()
-        all_tool_response_ids = set()
-        
-        # Collect all tool_call_ids from assistant messages
-        for i, msg in enumerate(messages):
-            if msg and msg.get('role') == 'assistant' and msg.get('tool_calls'):
-                for tool_call in msg.get('tool_calls', []):
-                    tool_call_id = tool_call.get('id')
-                    if tool_call_id:
-                        all_tool_call_ids.add(tool_call_id)
-                        _logger.info(f"Found tool_call_id in assistant message: {tool_call_id}")
-        
-        # Collect all tool_call_ids that have tool responses
-        for i, msg in enumerate(messages):
-            if msg and msg.get('role') == 'tool' and msg.get('tool_call_id'):
-                all_tool_response_ids.add(msg.get('tool_call_id'))
-                _logger.info(f"Found tool response for tool_call_id: {msg.get('tool_call_id')}")
-        
-        # Find missing tool responses
-        missing_tool_responses = all_tool_call_ids - all_tool_response_ids
-        if missing_tool_responses:
-            _logger.warning(f"Found {len(missing_tool_responses)} tool_calls without responses: {missing_tool_responses}")
-            
-            # Remove tool_calls from assistant messages if they don't have corresponding tool responses
-            for i, msg in enumerate(messages):
-                if msg and msg.get('role') == 'assistant' and msg.get('tool_calls'):
-                    updated_tool_calls = []
-                    for tool_call in msg.get('tool_calls', []):
-                        tool_call_id = tool_call.get('id')
-                        if tool_call_id and tool_call_id not in missing_tool_responses:
-                            updated_tool_calls.append(tool_call)
-                    
-                    if len(updated_tool_calls) < len(msg.get('tool_calls', [])):
-                        if updated_tool_calls:
-                            # Keep the message but with only the tool_calls that have responses
-                            messages[i]['tool_calls'] = updated_tool_calls
-                            _logger.info(f"Updated assistant message {i} to only include tool_calls with responses")
-                        else:
-                            # If no tool_calls remain, remove them entirely
-                            messages[i] = {
-                                'role': 'assistant',
-                                'content': messages[i].get('content') or ""  # Ensure content is never null
-                            }
-                            _logger.info(f"Removed all tool_calls from assistant message {i}")
-        
-        # Remove marked messages
-        cleaned_messages = [msg for msg in messages if msg is not None]
-        _logger.info(f"Validation complete. Original messages: {len(messages)}, Cleaned messages: {len(cleaned_messages)}")
-        return cleaned_messages
+        validator = MessageValidator(messages, logger=_logger)
+        return validator.validate_and_clean()
 
     def get_assistant_response(self, stream=True):
         """Get assistant response with tool handling"""
