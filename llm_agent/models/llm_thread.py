@@ -22,6 +22,7 @@ class LLMThread(models.Model):
         # Handle tool messages
         tool_call_id = kwargs.get("tool_call_id")
         subtype_xmlid = kwargs.get("subtype_xmlid")
+        tool_calls = kwargs.get("tool_calls")
         
         if tool_call_id and subtype_xmlid == "llm_agent.mt_tool_message":
             message = self.message_post(
@@ -35,6 +36,22 @@ class LLMThread(models.Model):
             
             # Set the tool_call_id on the message
             message.write({"tool_call_id": tool_call_id})
+            
+            return message.message_format()[0]
+        
+        # Handle assistant messages with tool calls
+        if tool_calls:
+            import json
+            message = self.message_post(
+                body=body,
+                message_type="comment",
+                author_id=False,  # No author for AI messages
+                email_from=f"{self.model_id.name} <ai@{self.provider_id.name.lower()}.ai>",
+                partner_ids=[],  # No partner notifications
+            )
+            
+            # Set the tool_calls on the message
+            message.write({"tool_calls": json.dumps(tool_calls)})
             
             return message.message_format()[0]
         
@@ -52,6 +69,32 @@ class LLMThread(models.Model):
                 role = msg.get('role', 'unknown')
                 tool_call_id = msg.get('tool_call_id', 'none')
                 _logger.info(f"Message - Role: {role}, Tool Call ID: {tool_call_id}")
+                
+            # Check if there are any tool messages without a preceding assistant message with tool_calls
+            for i, msg in enumerate(messages):
+                if msg.get('role') == 'tool':
+                    tool_call_id = msg.get('tool_call_id')
+                    
+                    # Look for a preceding assistant message with matching tool_calls
+                    found_matching_call = False
+                    for j in range(i-1, -1, -1):
+                        prev_msg = messages[j]
+                        if prev_msg.get('role') == 'assistant' and prev_msg.get('tool_calls'):
+                            for tool_call in prev_msg.get('tool_calls', []):
+                                if tool_call.get('id') == tool_call_id:
+                                    found_matching_call = True
+                                    break
+                            if found_matching_call:
+                                break
+                    
+                    if not found_matching_call:
+                        # This tool message doesn't have a matching assistant message with tool_calls
+                        # Remove it from the messages to avoid the API error
+                        _logger.warning(f"Removing tool message with ID {tool_call_id} because it has no matching assistant message with tool_calls")
+                        messages[i] = None  # Mark for removal
+            
+            # Remove marked messages
+            messages = [msg for msg in messages if msg is not None]
 
             # Process response with possible tool calls
             response_generator = self._chat_with_tools(messages, tool_ids, stream)
@@ -60,6 +103,7 @@ class LLMThread(models.Model):
             content = ""
             tool_messages = []
             assistant_message = None
+            assistant_tool_calls = []
 
             for response in response_generator:
                 # Handle content
@@ -80,16 +124,17 @@ class LLMThread(models.Model):
                         }
 
                     # Add tool call to assistant message
-                    assistant_message["tool_calls"].append(
-                        {
-                            "id": tool_call["id"],
-                            "type": "function",
-                            "function": {
-                                "name": tool_call["function"]["name"],
-                                "arguments": tool_call["function"]["arguments"],
-                            },
-                        }
-                    )
+                    tool_call_data = {
+                        "id": tool_call["id"],
+                        "type": "function",
+                        "function": {
+                            "name": tool_call["function"]["name"],
+                            "arguments": tool_call["function"]["arguments"],
+                        },
+                    }
+                    
+                    assistant_message["tool_calls"].append(tool_call_data)
+                    assistant_tool_calls.append(tool_call_data)
 
                     # Create tool message
                     tool_messages.append(
@@ -121,6 +166,13 @@ class LLMThread(models.Model):
                         "content": tool_call["result"],
                         "formatted_content": raw_output
                     }
+            
+            # If we have tool calls, post the assistant message with tool_calls
+            if assistant_tool_calls:
+                self.post_ai_response(
+                    body=content or "",
+                    tool_calls=assistant_tool_calls
+                )
 
         except Exception as e:
             _logger.error("Error getting AI response: %s", str(e))
