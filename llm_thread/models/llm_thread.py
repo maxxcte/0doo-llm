@@ -108,5 +108,5 @@ class MailMessage(models.Model):
         """Convert to provider-compatible message format"""
         return {
             "role": "user" if self.author_id else "assistant",
-            "content": self.body or "",  # Ensure content is never null
+            "content": self.body,
         }
