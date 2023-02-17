@@ -47,6 +47,12 @@ class LLMThread(models.Model):
             messages = self.get_chat_messages()
             tool_ids = self.tool_ids.ids if self.tool_ids else None
 
+            # Log message roles and tool_call_id for debugging
+            for msg in messages:
+                role = msg.get('role', 'unknown')
+                tool_call_id = msg.get('tool_call_id', 'none')
+                _logger.info(f"Message - Role: {role}, Tool Call ID: {tool_call_id}")
+
             # Process response with possible tool calls
             response_generator = self._chat_with_tools(messages, tool_ids, stream)
 
