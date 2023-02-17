@@ -37,51 +37,75 @@ registerPatch({
   },
   recordMethods: {
     /**
-     * Post AI message to the thread
+     * Post a message to the thread
+     * @param {string} content - HTML content to post
+     * @param {string} toolCallId - Optional tool call ID for tool messages
      * @private
      */
-    async _postAIMessage(body, toolCallId = false) {
-      const composer = this.composer;
-      const params = {
-        thread_id: composer.thread.id,
-        body,
+    async _postAIMessage(content, toolCallId = false) {
+      const threadId = this.composer.thread.id;
+      const data = {
+        body: content,
+        thread_id: threadId,
       };
       
       // If this is a tool message, add the tool_call_id and subtype
       if (toolCallId) {
-        params.tool_call_id = toolCallId;
-        params.subtype_xmlid = "llm_agent.mt_tool_message";
+        data.tool_call_id = toolCallId;
+        data.subtype_xmlid = "llm_agent.mt_tool_message";
+        
+        // Find the tool message to get the function name
+        const toolMessage = this.pendingToolMessages.find(msg => msg.toolCallId === toolCallId);
+        if (toolMessage) {
+          data.tool_name = toolMessage.functionName;
+        }
       }
       
       const messaging = this.messaging;
-      let messageData = await messaging.rpc(
-        { route: `/llm/thread/post_ai_response`, params },
-        { shadow: true }
-      );
-      if (!messaging.exists()) {
-        return;
-      }
-      const message = messaging.models["Message"].insert(
-        messaging.models["Message"].convertData(messageData)
-      );
-      if (messaging.hasLinkPreviewFeature && !message.isBodyEmpty) {
-        messaging.rpc(
-          {
-            route: `/mail/link_preview`,
-            params: {
-              message_id: message.id,
-            },
-          },
+      try {
+        let messageData = await messaging.rpc(
+          { route: `/llm/thread/post_ai_response`, params: data },
           { shadow: true }
         );
+        
+        if (!messaging.exists()) {
+          return;
+        }
+        
+        const message = messaging.models["Message"].insert(
+          messaging.models["Message"].convertData(messageData)
+        );
+        
+        if (messaging.hasLinkPreviewFeature && !message.isBodyEmpty) {
+          messaging.rpc(
+            {
+              route: `/mail/link_preview`,
+              params: {
+                message_id: message.id,
+              },
+            },
+            { shadow: true }
+          );
+        }
+        
+        for (const threadView of message.originThread.threadViews) {
+          // Reset auto scroll to be able to see the newly posted message.
+          threadView.update({ hasAutoScrollOnMessageReceived: true });
+          threadView.addComponentHint("message-posted", { message });
+        }
+        
+        // Clear the pending tool message after it's posted
+        if (toolCallId) {
+          const messageToRemove = this.pendingToolMessages.find(msg => msg.toolCallId === toolCallId);
+          if (messageToRemove) {
+            messageToRemove.delete();
+          }
+        }
+        
+        return message;
+      } catch (error) {
+        console.error("Error posting message:", error);
       }
-      for (const threadView of message.originThread.threadViews) {
-        // Reset auto scroll to be able to see the newly posted message.
-        threadView.update({ hasAutoScrollOnMessageReceived: true });
-        threadView.addComponentHint("message-posted", { message });
-      }
-      
-      return message;
     },
     
     /**

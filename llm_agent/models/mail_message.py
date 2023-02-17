@@ -32,7 +32,7 @@ class MailMessage(models.Model):
                 return {
                     "role": "tool",
                     "tool_call_id": self.tool_call_id,
-                    "content": self.body,
+                    "content": self.body or "",  # Ensure content is never null
                 }
         
         # Check if this is an assistant message with tool calls
@@ -41,7 +41,7 @@ class MailMessage(models.Model):
                 tool_calls_data = json.loads(self.tool_calls)
                 return {
                     "role": "assistant",
-                    "content": self.body or None,
+                    "content": self.body or "",  # Ensure content is never null
                     "tool_calls": tool_calls_data,
                 }
             except (json.JSONDecodeError, ValueError):
