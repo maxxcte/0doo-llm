@@ -43,6 +43,7 @@
             "llm_agent/static/src/models/llm_tool.js",
             "llm_agent/static/src/models/composer_view.js",
             "llm_agent/static/src/models/llm_tool_message.js",
+            "llm_agent/static/src/models/thread_view.js",
             "llm_agent/static/src/components/llm_chat_thread_header/llm_chat_thread_header_patch.js",
             "llm_agent/static/src/components/llm_chat_thread_header/llm_chat_thread_header.xml",
         ],
