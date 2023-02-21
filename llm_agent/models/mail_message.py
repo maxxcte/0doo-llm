@@ -63,5 +63,8 @@ class MailMessage(models.Model):
             message_sudo = self.browse(vals['id']).sudo().with_prefetch(self.ids)
             if message_sudo.subtype_id.id == tool_message_id:
                 vals['is_note'] = True
+                vals['is_tool_message'] = True
+            else:
+                vals['is_tool_message'] = False
                 
         return vals_list

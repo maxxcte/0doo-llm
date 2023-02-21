@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="llm_agent.Message" t-inherit="mail.Message" t-inherit-mode="extension" owl="1">
+        <!-- Replace the avatar with a cog icon for tool messages -->
+        <xpath expr="//div[hasclass('o_Message_authorAvatarContainer')]" position="replace">
+            <t t-if="messageView.message.is_tool_message">
+                <div class="o_Message_authorAvatarContainer o_Message_sidebarItem position-relative d-flex align-items-center justify-content-center bg-light rounded-circle">
+                    <i class="fa fa-cog fa-lg text-primary" title="Tool Message" aria-label="Tool Message"></i>
+                </div>
+            </t>
+            <t t-else="">
+                <div class="o_Message_authorAvatarContainer o_Message_sidebarItem position-relative">
+                    <img class="o_Message_authorAvatar w-100 h-100 rounded-circle o_object_fit_cover" t-att-class="{ 'cursor-pointer': messageView.hasAuthorClickable, o_redirect: messageView.hasAuthorClickable }" t-att-src="messageView.message.avatarUrl" t-att-role="messageView.hasAuthorClickable ? 'button' : ''" t-att-tabindex="messageView.hasAuthorClickable ? '0' : ''" t-on-click="messageView.onClickAuthorAvatar" t-att-title="messageView.authorTitleText" t-att-alt="messageView.authorTitleText"/>
+                    <t t-if="messageView.personaImStatusIconView">
+                        <PersonaImStatusIcon
+                            className="'o_Message_personaImStatusIcon position-absolute bottom-0 end-0 d-flex align-items-center justify-content-center text-white'"
+                            classNameObj="{
+                                'o-message-selected': messageView.isSelected,
+                                'o_Message_personaImStatusIcon-mobile': messaging.device.isSmall,
+                                'small': !messaging.device.isSmall,
+                                'text-100': messageView.message.is_note and !messageView.isSelected,
+                            }"
+                            hasOpenChat="messageView.hasAuthorClickable"
+                            record="messageView.personaImStatusIconView"
+                        />
+                    </t>
+                </div>
+            </t>
+        </xpath>
+    </t>
+</templates>
