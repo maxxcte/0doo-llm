@@ -50,3 +50,18 @@ class MailMessage(models.Model):
         
         # Default behavior from parent
         return super(MailMessage, self).to_provider_message()
+    
+    def message_format(self, format_reply=True):
+        """Override message_format to mark tool messages as notes for proper UI rendering"""
+        vals_list = super(MailMessage, self).message_format(format_reply=format_reply)
+        
+        # Get the tool message subtype ID
+        tool_message_id = self.env.ref('llm_agent.mt_tool_message').id
+        
+        # Update is_note for tool messages
+        for vals in vals_list:
+            message_sudo = self.browse(vals['id']).sudo().with_prefetch(self.ids)
+            if message_sudo.subtype_id.id == tool_message_id:
+                vals['is_note'] = True
+                
+        return vals_list

@@ -2,6 +2,7 @@
 
 import { registerPatch } from "@mail/model/model_core";
 import { attr, many } from "@mail/model/model_field";
+import { markdownToHtml } from "@llm_thread/utils/markdown_utils";
 
 registerPatch({
   name: "ComposerView",
@@ -190,7 +191,7 @@ registerPatch({
             // Create a new LLMToolMessage record with tool_call_id as the identifier
             this.messaging.models['LLMToolMessage'].insert({
               id: data.tool_call_id,
-              content: data.formatted_content,
+              content: markdownToHtml(data.formatted_content),
               toolCallId: data.tool_call_id,
               functionName: this.currentToolName,
               arguments: this.toolArguments,
