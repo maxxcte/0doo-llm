@@ -40,7 +40,6 @@
                 name="name"
                 placeholder="e.g. retrieve_records"
               /></h1>
-                        <field name="description" />
                     </div>
                     <group>
                         <group>
