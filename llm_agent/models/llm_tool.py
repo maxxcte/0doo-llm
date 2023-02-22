@@ -56,6 +56,7 @@ class LLMTool(models.Model):
     )
 
     def get_pydantic_model(self):
+        """Get the Pydantic model for this tool's parameters"""
         result = self._dispatch("get_pydantic_model")
         return result
 
@@ -67,56 +68,73 @@ class LLMTool(models.Model):
         "server_action_id",
     )
     def _compute_schema(self):
+        """Compute the JSON schema for this tool"""
         for record in self:
-            fallback_schema = json.dumps(
-                    {
-                        "type": "function",
-                        "function": {
-                            "name": record.name or "unnamed_tool",
-                            "description": record.description or "",
-                            "parameters": {},
-                        },
-                    }
-                )
-            if record.id and record.implementation:
-                try:
-                    pydantic_model = record.get_pydantic_model()
-                    if pydantic_model:
-                        tool_schema = convert_to_openai_tool(pydantic_model)
-                        if record.override_tool_description:
-                            tool_schema["function"]["description"] = record.description
-                        record.schema = json.dumps(tool_schema)
-                    else:
-                        record.schema = fallback_schema
-                except Exception as e:
-                    _logger.exception(
-                        f"Error computing schema for {record.name}: {str(e)}"
-                    )
-                    record.schema = fallback_schema
-            else:
-                record.schema = fallback_schema
-            _logger.info(f"No id or impl for {record.name}, stored default schema")
+            record.schema = self._generate_schema(record)
+
+    def _generate_schema(self, record):
+        """Generate the schema for a tool record with error handling"""
+        fallback_schema = self._get_fallback_schema(record)
+        
+        if not record.id or not record.implementation:
+            _logger.info(f"No id or implementation for {record.name}, using default schema")
+            return fallback_schema
+            
+        try:
+            pydantic_model = record.get_pydantic_model()
+            if not pydantic_model:
+                return fallback_schema
+                
+            tool_schema = convert_to_openai_tool(pydantic_model)
+            if record.override_tool_description:
+                tool_schema["function"]["description"] = record.description
+            return json.dumps(tool_schema)
+        except Exception as e:
+            _logger.exception(f"Error computing schema for {record.name}: {str(e)}")
+            return fallback_schema
+
+    def _get_fallback_schema(self, record):
+        """Get a fallback schema when the normal schema generation fails"""
+        schema = {
+            "type": "function",
+            "function": {
+                "name": record.name or "unnamed_tool",
+                "description": record.description or "",
+                "parameters": {},
+            },
+        }
+        return json.dumps(schema)
 
     def execute(self, parameters):
+        """Execute this tool with the given parameters"""
+        # Validate parameters if a Pydantic model is available
+        validated_parameters = self._validate_parameters(parameters)
+        return self._dispatch("execute", validated_parameters)
+
+    def _validate_parameters(self, parameters):
+        """Validate parameters against the Pydantic model"""
         pydantic_model = self.get_pydantic_model()
-        if pydantic_model:
-            try:
-                validated_params = pydantic_model(**parameters)
-                return self._dispatch("execute", validated_params.model_dump())
-            except ValidationError as e:
-                raise UserError(_("Invalid parameters: %s") % str(e)) from e
-        return self._dispatch("execute", parameters)
+        if not pydantic_model:
+            return parameters
+            
+        try:
+            validated_params = pydantic_model(**parameters)
+            return validated_params.model_dump()
+        except ValidationError as e:
+            raise UserError(_("Invalid parameters: %s") % str(e)) from e
 
     def _dispatch(self, method, *args, **kwargs):
         """Dispatch method call to appropriate implementation"""
         if not self.implementation:
             raise UserError(_("Tool implementation not configured"))
+            
         implementation_method = f"{self.implementation}_{method}"
         if not hasattr(self, implementation_method):
             raise NotImplementedError(
                 _("Method %s not implemented for implementation %s")
                 % (method, self.implementation)
             )
+            
         return getattr(self, implementation_method)(*args, **kwargs)
 
     @api.model
@@ -132,33 +150,38 @@ class LLMTool(models.Model):
         """Hook method for registering tool services"""
         return []
 
-    def to_tool_definition(self):
+    def _parse_json_safely(self, json_string, default_value=None):
+        """Parse JSON with error handling"""
         try:
-            # If schema override is enabled and we have an overriden schema
-            if self.override_tool_schema and self.overriden_schema:
-                result = json.loads(self.overriden_schema)
-            else:
-                # Use the computed schema
-                result = json.loads(self.schema)
-
-            if self.override_tool_description and "function" in result:
-                result["function"]["description"] = self.description
-
-            return result
+            return json.loads(json_string)
         except json.JSONDecodeError as e:
-            _logger.error(f"Invalid schema for tool {self.name}: {str(e)}")
-            # Fallback to basic schema
-            result = {
-                "type": "function",
-                "function": {
-                    "name": self.name,
-                    "description": self.description
-                    if self.override_tool_description
-                    else "Default tool description",
-                    "parameters": {},
-                },
-            }
-            _logger.info(
-                f"Falling back to default schema for {self.name}: {json.dumps(result)}"
-            )
-            return result
+            _logger.error(f"Invalid JSON for tool {self.name}: {str(e)}")
+            return default_value
+
+    def to_tool_definition(self):
+        """Convert this tool to an OpenAI-compatible tool definition"""
+        # Determine which schema to use
+        if self.override_tool_schema and self.overriden_schema:
+            schema_json = self.overriden_schema
+        else:
+            schema_json = self.schema
+            
+        # Parse the schema with error handling
+        result = self._parse_json_safely(schema_json, self._get_fallback_schema_dict())
+        
+        # Override description if needed
+        if self.override_tool_description and "function" in result:
+            result["function"]["description"] = self.description
+            
+        return result
+        
+    def _get_fallback_schema_dict(self):
+        """Get a fallback schema as a dictionary"""
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description if self.override_tool_description else "Default tool description",
+                "parameters": {},
+            },
+        }
