@@ -111,151 +111,55 @@ class LLMThread(models.Model):
             response_generator = self._chat_with_tools(messages, tool_ids, stream)
             
             # Process the response stream
-            yield from self._process_response_stream(response_generator)
+            content = ""
+            assistant_tool_calls = []
+            
+            for response in response_generator:
+                # Handle content
+                if response.get("content") is not None:
+                    content += response.get("content", "")
+                    yield {"type": "content", "role": "assistant", "content": response.get("content", "")}
+                
+                # Handle tool calls - these come directly from the provider now
+                if response.get("tool_call"):
+                    tool_call = response.get("tool_call")
+                    assistant_tool_calls.append({
+                        "id": tool_call["id"],
+                        "type": tool_call["type"],
+                        "function": tool_call["function"],
+                    })
+                    
+                    # Signal tool call start
+                    yield {
+                        "type": "tool_start",
+                        "tool_call_id": tool_call["id"],
+                        "function_name": tool_call["function"]["name"],
+                        "arguments": tool_call["function"]["arguments"]
+                    }
+
+                    # Display raw tool output
+                    raw_output = f"**Arguments:**\n```json\n{tool_call['function']['arguments']}\n```\n\n"
+                    raw_output += f"**Result:**\n```json\n{tool_call['result']}\n```\n\n"
+
+                    # Signal tool call end with result
+                    yield {
+                        "type": "tool_end",
+                        "role": "tool",
+                        "tool_call_id": tool_call["id"],
+                        "content": tool_call["result"],
+                        "formatted_content": raw_output
+                    }
+            
+            # If we have tool calls, post the assistant message with tool_calls
+            if assistant_tool_calls:
+                self.post_ai_response(
+                    body=content or "",
+                    tool_calls=assistant_tool_calls
+                )
                 
         except Exception as e:
             _logger.error("Error getting AI response: %s", str(e))
             yield {"type": "error", "error": str(e)}
-            
-    def _process_response_stream(self, response_generator):
-        """
-        Process the response stream from the LLM, handling content and tool calls.
-        
-        Args:
-            response_generator: Generator yielding response chunks
-            
-        Yields:
-            dict: Processed response chunks
-        """
-        # Track for follow-up
-        content = ""
-        tool_messages = []
-        assistant_message = None
-        assistant_tool_calls = []
-
-        for response in response_generator:
-            # Handle content
-            if response.get("content") is not None:
-                content += response.get("content", "")
-                yield {"type": "content", "role": "assistant", "content": response.get("content", "")}
-
-            # Handle tool calls
-            if response.get("tool_call"):
-                tool_call = response.get("tool_call")
-                
-                # Process tool call and get related data
-                tool_call_data = self._prepare_tool_call_data(tool_call)
-                assistant_tool_calls.append(tool_call_data)
-                
-                # Create or update assistant message
-                assistant_message = self._create_or_update_assistant_message(
-                    assistant_message, content, tool_call_data
-                )
-                
-                # Create tool message
-                tool_message = self._create_tool_message(tool_call)
-                tool_messages.append(tool_message)
-                
-                # Generate and yield tool events
-                yield from self._generate_tool_events(tool_call)
-                
-        # If we have tool calls, post the assistant message with tool_calls
-        if assistant_tool_calls:
-            self.post_ai_response(
-                body=content or "",
-                tool_calls=assistant_tool_calls
-            )
-            
-    def _prepare_tool_call_data(self, tool_call):
-        """
-        Prepare tool call data structure for the assistant message.
-        
-        Args:
-            tool_call (dict): Tool call information
-            
-        Returns:
-            dict: Formatted tool call data
-        """
-        return {
-            "id": tool_call["id"],
-            "type": "function",
-            "function": {
-                "name": tool_call["function"]["name"],
-                "arguments": tool_call["function"]["arguments"],
-            },
-        }
-        
-    def _create_or_update_assistant_message(self, assistant_message, content, tool_call_data):
-        """
-        Create a new assistant message or update an existing one with a tool call.
-        
-        Args:
-            assistant_message (dict): Existing assistant message or None
-            content (str): Content of the message
-            tool_call_data (dict): Tool call data to add
-            
-        Returns:
-            dict: Updated assistant message
-        """
-        # Create assistant message if not already created
-        if not assistant_message:
-            assistant_message = {
-                "role": "assistant",
-                "content": content if content else "",  # Ensure content is never null
-                "tool_calls": [],
-            }
-            
-        # Add tool call to assistant message
-        assistant_message["tool_calls"].append(tool_call_data)
-        
-        return assistant_message
-        
-    def _create_tool_message(self, tool_call):
-        """
-        Create a tool message from a tool call.
-        
-        Args:
-            tool_call (dict): Tool call information
-            
-        Returns:
-            dict: Tool message
-        """
-        return {
-            "role": "tool",
-            "tool_call_id": tool_call["id"],
-            "content": tool_call["result"],
-        }
-        
-    def _generate_tool_events(self, tool_call):
-        """
-        Generate tool start and end events for streaming.
-        
-        Args:
-            tool_call (dict): Tool call information
-            
-        Yields:
-            dict: Tool events
-        """
-        # Signal tool call start
-        yield {
-            "type": "tool_start",
-            "tool_call_id": tool_call["id"],
-            "function_name": tool_call["function"]["name"],
-            "arguments": tool_call["function"]["arguments"]
-        }
-
-        # Display raw tool output
-        raw_output = f"**Arguments:**\n```json\n{tool_call['function']['arguments']}\n```\n\n"
-        raw_output += f"**Result:**\n```json\n{tool_call['result']}\n```\n\n"
-
-        # Signal tool call end with result
-        yield {
-            "type": "tool_end",
-            "role": "tool",
-            "tool_call_id": tool_call["id"],
-            "content": tool_call["result"],
-            "formatted_content": raw_output
-        }
 
     def _chat_with_tools(self, messages, tool_ids=None, stream=True):
         """Helper method to chat with tools"""
