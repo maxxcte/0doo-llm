@@ -1,6 +1,8 @@
-from odoo import fields, models, api
-from odoo.exceptions import ValidationError
 import json
+
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
+
 
 class MailMessage(models.Model):
     _inherit = "mail.message"
@@ -9,7 +11,7 @@ class MailMessage(models.Model):
         string="Tool Call ID",
         help="Identifier of the tool call that generated this message",
     )
-    
+
     tool_calls = fields.Text(
         string="Tool Calls",
         help="JSON representation of tool calls made by the assistant",
@@ -21,7 +23,9 @@ class MailMessage(models.Model):
             if record.tool_call_id and record.subtype_id:
                 tool_message_subtype = self.env.ref("llm_agent.mt_tool_message")
                 if record.subtype_id.id != tool_message_subtype.id:
-                    raise ValidationError("Tool Call ID can only be set for Tool Messages.")
+                    raise ValidationError(
+                        "Tool Call ID can only be set for Tool Messages."
+                    )
 
     def to_provider_message(self):
         """Override to_provider_message to support tool messages and assistant messages with tool calls"""
@@ -34,7 +38,7 @@ class MailMessage(models.Model):
                     "tool_call_id": self.tool_call_id,
                     "content": self.body or "",  # Ensure content is never null
                 }
-        
+
         # Check if this is an assistant message with tool calls
         if not self.author_id and self.tool_calls:
             try:
@@ -47,24 +51,24 @@ class MailMessage(models.Model):
             except (json.JSONDecodeError, ValueError):
                 # If JSON parsing fails, fall back to default behavior
                 pass
-        
+
         # Default behavior from parent
         return super(MailMessage, self).to_provider_message()
-    
+
     def message_format(self, format_reply=True):
         """Override message_format to mark tool messages as notes for proper UI rendering"""
         vals_list = super(MailMessage, self).message_format(format_reply=format_reply)
-        
+
         # Get the tool message subtype ID
-        tool_message_id = self.env.ref('llm_agent.mt_tool_message').id
-        
+        tool_message_id = self.env.ref("llm_agent.mt_tool_message").id
+
         # Update is_note for tool messages
         for vals in vals_list:
-            message_sudo = self.browse(vals['id']).sudo().with_prefetch(self.ids)
+            message_sudo = self.browse(vals["id"]).sudo().with_prefetch(self.ids)
             if message_sudo.subtype_id.id == tool_message_id:
-                vals['is_note'] = True
-                vals['is_tool_message'] = True
+                vals["is_note"] = True
+                vals["is_tool_message"] = True
             else:
-                vals['is_tool_message'] = False
-                
+                vals["is_tool_message"] = False
+
         return vals_list

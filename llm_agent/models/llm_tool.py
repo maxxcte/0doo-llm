@@ -75,16 +75,18 @@ class LLMTool(models.Model):
     def _generate_schema(self, record):
         """Generate the schema for a tool record with error handling"""
         fallback_schema = self._get_fallback_schema(record)
-        
+
         if not record.id or not record.implementation:
-            _logger.info(f"No id or implementation for {record.name}, using default schema")
+            _logger.info(
+                f"No id or implementation for {record.name}, using default schema"
+            )
             return fallback_schema
-            
+
         try:
             pydantic_model = record.get_pydantic_model()
             if not pydantic_model:
                 return fallback_schema
-                
+
             tool_schema = convert_to_openai_tool(pydantic_model)
             if record.override_tool_description:
                 tool_schema["function"]["description"] = record.description
@@ -116,7 +118,7 @@ class LLMTool(models.Model):
         pydantic_model = self.get_pydantic_model()
         if not pydantic_model:
             return parameters
-            
+
         try:
             validated_params = pydantic_model(**parameters)
             return validated_params.model_dump()
@@ -127,14 +129,14 @@ class LLMTool(models.Model):
         """Dispatch method call to appropriate implementation"""
         if not self.implementation:
             raise UserError(_("Tool implementation not configured"))
-            
+
         implementation_method = f"{self.implementation}_{method}"
         if not hasattr(self, implementation_method):
             raise NotImplementedError(
                 _("Method %s not implemented for implementation %s")
                 % (method, self.implementation)
             )
-            
+
         return getattr(self, implementation_method)(*args, **kwargs)
 
     @api.model
@@ -165,23 +167,25 @@ class LLMTool(models.Model):
             schema_json = self.overriden_schema
         else:
             schema_json = self.schema
-            
+
         # Parse the schema with error handling
         result = self._parse_json_safely(schema_json, self._get_fallback_schema_dict())
-        
+
         # Override description if needed
         if self.override_tool_description and "function" in result:
             result["function"]["description"] = self.description
-            
+
         return result
-        
+
     def _get_fallback_schema_dict(self):
         """Get a fallback schema as a dictionary"""
         return {
             "type": "function",
             "function": {
                 "name": self.name,
-                "description": self.description if self.override_tool_description else "Default tool description",
+                "description": self.description
+                if self.override_tool_description
+                else "Default tool description",
                 "parameters": {},
             },
         }

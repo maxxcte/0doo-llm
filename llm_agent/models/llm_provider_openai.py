@@ -45,7 +45,9 @@ class LLMProvider(models.Model):
         model = self.get_model(model, "chat")
 
         # Prepare request parameters
-        params = self._prepare_openai_params(model, messages, stream, tools, tool_choice)
+        params = self._prepare_openai_params(
+            model, messages, stream, tools, tool_choice
+        )
 
         # Make the API call
         response = self.client.chat.completions.create(**params)
@@ -138,7 +140,7 @@ class LLMProvider(models.Model):
                             tool_result = self._execute_tool(
                                 tool_name, current_args, tool_id
                             )
-                            
+
                             # Add result to tool call data
                             tool_call_chunks[index]["result"] = tool_result["result"]
 
@@ -153,7 +155,9 @@ class LLMProvider(models.Model):
                                 "JSON arguments incomplete, continuing to accumulate"
                             )
                         except Exception as e:
-                            self._handle_tool_execution_error(e, tool_call_chunks, index)
+                            self._handle_tool_execution_error(
+                                e, tool_call_chunks, index
+                            )
                             yield {
                                 "role": "assistant",
                                 "tool_call": tool_call_chunks[index],
@@ -182,9 +186,7 @@ class LLMProvider(models.Model):
             and hasattr(tool_call_chunk.function, "name")
             and tool_call_chunk.function.name
         ):
-            tool_call_chunks[index]["function"]["name"] = (
-                tool_call_chunk.function.name
-            )
+            tool_call_chunks[index]["function"]["name"] = tool_call_chunk.function.name
 
         # Update arguments if present - this continues across multiple chunks
         if (
@@ -200,7 +202,7 @@ class LLMProvider(models.Model):
     def _execute_tool(self, tool_name, arguments_str, tool_id):
         """Execute a tool and return the result"""
         tool = self.env["llm.tool"].search([("name", "=", tool_name)], limit=1)
-        
+
         if not tool:
             _logger.error(f"Tool '{tool_name}' not found")
             return {
@@ -212,11 +214,11 @@ class LLMProvider(models.Model):
                 },
                 "result": json.dumps({"error": f"Tool '{tool_name}' not found"}),
             }
-            
+
         try:
             arguments = json.loads(arguments_str)
             result = tool.execute(arguments)
-            
+
             return {
                 "id": tool_id,
                 "type": "function",
