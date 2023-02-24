@@ -53,11 +53,11 @@ class MailMessage(models.Model):
                 pass
 
         # Default behavior from parent
-        return super(MailMessage, self).to_provider_message()
+        return super().to_provider_message()
 
     def message_format(self, format_reply=True):
         """Override message_format to mark tool messages as notes for proper UI rendering"""
-        vals_list = super(MailMessage, self).message_format(format_reply=format_reply)
+        vals_list = super().message_format(format_reply=format_reply)
 
         # Get the tool message subtype ID
         tool_message_id = self.env.ref("llm_agent.mt_tool_message").id

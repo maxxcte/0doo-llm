@@ -66,7 +66,7 @@ class LLMThread(models.Model):
             return message.message_format()[0]
 
         # Default behavior for regular messages
-        return super(LLMThread, self).post_ai_response(**kwargs)
+        return super().post_ai_response(**kwargs)
 
     def _validate_and_clean_messages(self, messages):
         """
