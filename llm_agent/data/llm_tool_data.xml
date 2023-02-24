@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo noupdate="1">
+    <record id="llm_tool_odoo_record_retriever" model="llm.tool">
+        <field name="name">odoo_record_retriever</field>
+        <field name="implementation">odoo_record_retriever</field>
+        <field name="description">Retrieve records from any Odoo model with filtering capabilities. This tool allows you to fetch data from the database by specifying the model name, domain filters, fields to retrieve, and a limit on the number of records returned.</field>
+        <field name="default" eval="True" />
+        <field name="active" eval="True" />
+        <field name="requires_user_consent" eval="False" />
+    </record>
+</odoo>
