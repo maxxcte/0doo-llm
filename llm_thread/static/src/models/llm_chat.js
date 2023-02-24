@@ -165,7 +165,8 @@ registerModel({
      * @param {string} params.name - Thread name
      * @param {string} [params.relatedThreadModel] - Related thread model
      * @param {number} [params.relatedThreadId] - Related thread ID
-     * @returns {Object} The created thread or null if failed
+     * @returns {Promise<Object|null>} The created thread or null if failed
+     * @throws {Error} If no LLM model is available
      */
     async createThread({ name, relatedThreadModel, relatedThreadId }) {
       const defaultModel = this.defaultLLMModel;
@@ -175,7 +176,8 @@ registerModel({
           message: "Please add a new LLMModel to use this feature",
           type: "warning",
         });
-        return null;
+        // Throw an error instead of returning null to make the failure more explicit
+        throw new Error("No LLM model available");
       }
 
       const threadData = {
@@ -201,6 +203,11 @@ registerModel({
       });
 
       if (!threadDetails || !threadDetails[0]) {
+        this.messaging.notify({
+          title: "Error",
+          message: "Failed to create thread",
+          type: "danger",
+        });
         return null;
       }
 
@@ -225,7 +232,7 @@ registerModel({
      * @param {Object} [options] - Optional parameters
      * @param {string} [options.relatedThreadModel] - Related thread model
      * @param {number} [options.relatedThreadId] - Related thread ID
-     * @returns {Object} The active or created thread
+     * @returns {Promise<Object|null>} The active or created thread
      */
     async ensureThread({ relatedThreadModel, relatedThreadId } = {}) {
       if (this.llmModels.length === 0) {
@@ -245,26 +252,43 @@ registerModel({
           return existingThread;
         }
 
-        const name = `AI Chat for ${relatedThreadModel} ${relatedThreadId}`;
-        return await this.createThread({
-          name,
-          relatedThreadModel,
-          relatedThreadId,
-        });
+        try {
+          const name = `AI Chat for ${relatedThreadModel} ${relatedThreadId}`;
+          return await this.createThread({
+            name,
+            relatedThreadModel,
+            relatedThreadId,
+          });
+        } catch (error) {
+          console.error("Failed to create thread for related model:", error);
+          // Fall through to use existing threads or create a generic thread
+        }
       }
 
       if (this.threads.length > 0) {
         return this.threads[0];
       }
 
-      const name = `New Chat ${new Date().toLocaleString()}`;
-      return await this.createThread({ name });
+      try {
+        const name = `New Chat ${new Date().toLocaleString()}`;
+        return await this.createThread({ name });
+      } catch (error) {
+        console.error("Failed to create default thread:", error);
+        return null;
+      }
     },
 
     async createNewThread() {
-      const name = `New Chat ${new Date().toLocaleString()}`;
-      const thread = await this.createThread({ name });
-      this.selectThread(thread.id);
+      try {
+        const name = `New Chat ${new Date().toLocaleString()}`;
+        const thread = await this.createThread({ name });
+        if (thread) {
+          this.selectThread(thread.id);
+        }
+      } catch (error) {
+        console.error("Failed to create new thread:", error);
+        // Error notification is already shown in createThread
+      }
     },
 
     async initializeLLMChat(action, initActiveId) {
