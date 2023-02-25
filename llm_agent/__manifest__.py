@@ -1,7 +1,7 @@
 {
     "name": "LLM Agent",
     "version": "16.0.1.0.0",
-    "category": "AI",
+    "category": "Technical",
     "summary": "Advanced tools for LLM models to interact with Odoo, including customizable schemas and descriptions",
     "description": """
         Automate Your Odoo Database with AI Agents & Chat AI | ChatGPT, Grok, Anthropic, DeepSeek
