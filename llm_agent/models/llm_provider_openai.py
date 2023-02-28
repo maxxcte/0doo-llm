@@ -70,25 +70,29 @@ class LLMProvider(models.Model):
         if tools:
             tool_objects = self.get_available_tools(tools)
             formatted_tools = self.format_tools_for_provider(tool_objects)
-            
+
             if formatted_tools:
                 params["tools"] = formatted_tools
                 params["tool_choice"] = tool_choice
-                
+
                 # Check if any tools require consent
-                consent_required_tools = tool_objects.filtered(lambda t: t.requires_user_consent)
-                
+                consent_required_tools = tool_objects.filtered(
+                    lambda t: t.requires_user_consent
+                )
+
                 # Only add consent instructions if there are tools requiring consent
                 if consent_required_tools:
                     # Get names of tools requiring consent for more specific instructions
-                    consent_tool_names = ", ".join([f"'{t.name}'" for t in consent_required_tools])
+                    consent_tool_names = ", ".join(
+                        [f"'{t.name}'" for t in consent_required_tools]
+                    )
 
                     # Get consent message template from config
-                    config = self.env['llm.tool.consent.config'].get_active_config()
+                    config = self.env["llm.tool.consent.config"].get_active_config()
                     consent_instruction = config.system_message_template.format(
                         tool_names=consent_tool_names
                     )
-                    
+
                     # Check if a system message already exists
                     has_system_message = False
                     for msg in params["messages"]:
@@ -97,14 +101,13 @@ class LLMProvider(models.Model):
                             msg["content"] += f"\n\n{consent_instruction}"
                             has_system_message = True
                             break
-                    
+
                     # If no system message exists, add one
                     if not has_system_message:
                         # Insert system message at the beginning
-                        params["messages"].insert(0, {
-                            "role": "system",
-                            "content": consent_instruction
-                        })
+                        params["messages"].insert(
+                            0, {"role": "system", "content": consent_instruction}
+                        )
 
         return params
 

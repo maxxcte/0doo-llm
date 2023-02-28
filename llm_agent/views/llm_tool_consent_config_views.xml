@@ -7,7 +7,11 @@
         <field name="arch" type="xml">
             <tree>
                 <field name="name" />
-                <field name="active" widget="boolean_toggle" string="Active Configuration"/>
+                <field
+          name="active"
+          widget="boolean_toggle"
+          string="Active Configuration"
+        />
             </tree>
         </field>
     </record>
@@ -21,18 +25,34 @@
                 <sheet>
                     <div class="oe_title">
                         <label for="name" class="oe_edit_only" />
-                        <h1><field name="name" placeholder="e.g. Default Configuration" /></h1>
+                        <h1><field
+                name="name"
+                placeholder="e.g. Default Configuration"
+              /></h1>
                     </div>
                     <group>
                         <group string="Status">
-                            <field name="active" widget="boolean_toggle" string="Active Configuration"/>
-                            <div class="text-muted" colspan="2">Only one configuration can be active at a time.</div>
+                            <field
+                name="active"
+                widget="boolean_toggle"
+                string="Active Configuration"
+              />
+                            <div
+                class="text-muted"
+                colspan="2"
+              >Only one configuration can be active at a time.</div>
                         </group>
                         <group string="Tool Description">
-                            <field name="tool_description_message" placeholder="Message to add to tool description when consent is required" />
+                            <field
+                name="tool_description_message"
+                placeholder="Message to add to tool description when consent is required"
+              />
                         </group>
                         <group string="System Message">
-                            <field name="system_message_template" placeholder="Template for system message with {tool_names} placeholder" />
+                            <field
+                name="system_message_template"
+                placeholder="Template for system message with {tool_names} placeholder"
+              />
                         </group>
                     </group>
                 </sheet>
@@ -48,15 +68,15 @@
             <search string="Search LLM Tool Consent Configurations">
                 <field name="name" />
                 <filter
-                    string="Active Configuration"
-                    name="active"
-                    domain="[('active', '=', True)]"
-                />
+          string="Active Configuration"
+          name="active"
+          domain="[('active', '=', True)]"
+        />
                 <filter
-                    string="Inactive Configurations"
-                    name="inactive"
-                    domain="[('active', '=', False)]"
-                />
+          string="Inactive Configurations"
+          name="inactive"
+          domain="[('active', '=', False)]"
+        />
             </search>
         </field>
     </record>
