@@ -82,15 +82,11 @@ class LLMProvider(models.Model):
                 if consent_required_tools:
                     # Get names of tools requiring consent for more specific instructions
                     consent_tool_names = ", ".join([f"'{t.name}'" for t in consent_required_tools])
-                    
-                    # Create consent instruction
-                    consent_instruction = (
-                        f"The following tools require explicit user consent before execution: {consent_tool_names}. "
-                        "For these tools, you MUST:"
-                        "\n1. Clearly explain to the user what the tool will do"
-                        "\n2. Ask for their explicit permission before using the tool"
-                        "\n3. Only proceed with using the tool if the user gives clear consent"
-                        "\n4. If the user denies consent or doesn't respond clearly, do not use the tool"
+
+                    # Get consent message template from config
+                    config = self.env['llm.tool.consent.config'].get_active_config()
+                    consent_instruction = config.system_message_template.format(
+                        tool_names=consent_tool_names
                     )
                     
                     # Check if a system message already exists

@@ -93,7 +93,10 @@ class LLMTool(models.Model):
             # Add consent information to the description if required
             description = record.description
             if record.requires_user_consent:
-                consent_warning = "\n\nIMPORTANT: This tool requires explicit user consent before execution. Please ask the user for permission before using this tool."
+                fallback_consent_warning = "\n\nIMPORTANT: This tool requires explicit user consent before execution. Please ask the user for permission before using this tool."
+                # Get consent message from config
+                config = self.env['llm.tool.consent.config'].get_active_config()
+                consent_warning = config.tool_description_message or fallback_consent_warning
                 description += consent_warning
                 
             # Override description if needed or add consent warning
