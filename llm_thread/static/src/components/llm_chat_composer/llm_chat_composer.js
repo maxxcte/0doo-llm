@@ -20,15 +20,15 @@ export class LLMChatComposer extends Component {
   }
 
   /**
-   * @returns {boolean}
+   * @returns {Boolean}
    */
   get isDisabled() {
     return !this.composerView.composer.canPostMessage;
   }
 
-  //--------------------------------------------------------------------------
+  // --------------------------------------------------------------------------
   // Private
-  //--------------------------------------------------------------------------
+  // --------------------------------------------------------------------------
 
   /**
    * Intercept send button click

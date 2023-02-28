@@ -1,8 +1,8 @@
 /** @odoo-module **/
 
-import { registerPatch } from "@mail/model/model_core";
 import { attr, many } from "@mail/model/model_field";
 import { markdownToHtml } from "@llm_thread/utils/markdown_utils";
+import { registerPatch } from "@mail/model/model_core";
 
 registerPatch({
   name: "ComposerView",
@@ -38,8 +38,8 @@ registerPatch({
   recordMethods: {
     /**
      * Post a message to the thread
-     * @param {string} content - HTML content to post
-     * @param {string} toolCallId - Optional tool call ID for tool messages
+     * @param {String} content - HTML content to post
+     * @param {String} toolCallId - Optional tool call ID for tool messages
      * @private
      */
     async _postAIMessage(content, toolCallId = false) {
@@ -65,7 +65,7 @@ registerPatch({
 
       const messaging = this.messaging;
       try {
-        let messageData = await messaging.rpc(
+        const messageData = await messaging.rpc(
           { route: `/llm/thread/post_ai_response`, params: data },
           { shadow: true }
         );
@@ -74,8 +74,8 @@ registerPatch({
           return;
         }
 
-        const message = messaging.models["Message"].insert(
-          messaging.models["Message"].convertData(messageData)
+        const message = messaging.models.Message.insert(
+          messaging.models.Message.convertData(messageData)
         );
 
         if (messaging.hasLinkPreviewFeature && !message.isBodyEmpty) {
@@ -179,8 +179,10 @@ registerPatch({
               currentToolCallId: data.tool_call_id,
               currentToolName: data.function_name,
               toolArguments: data.arguments,
-              streamingContent: "", // Clear streaming content for tool
-              isToolContent: true, // Mark that we're now dealing with tool content
+              // Clear streaming content for tool
+              streamingContent: "",
+              // Mark that we're now dealing with tool content
+              isToolContent: true,
             });
             break;
           case "tool_end":
@@ -193,7 +195,7 @@ registerPatch({
             console.log("Tool ended");
 
             // Create a new LLMToolMessage record with tool_call_id as the identifier
-            this.messaging.models["LLMToolMessage"].insert({
+            this.messaging.models.LLMToolMessage.insert({
               id: data.tool_call_id,
               content: markdownToHtml(data.formatted_content),
               toolCallId: data.tool_call_id,

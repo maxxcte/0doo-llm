@@ -1,7 +1,6 @@
 /** @odoo-module **/
-
-import { registerModel } from "@mail/model/model_core";
 import { attr, one } from "@mail/model/model_field";
+import { registerModel } from "@mail/model/model_core";
 
 registerModel({
   name: "LLMToolMessage",

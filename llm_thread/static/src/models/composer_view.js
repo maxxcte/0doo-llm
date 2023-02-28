@@ -1,8 +1,8 @@
 /** @odoo-module **/
 
-import { registerPatch } from "@mail/model/model_core";
 import { attr } from "@mail/model/model_field";
 import { markdownToHtml } from "../utils/markdown_utils";
+import { registerPatch } from "@mail/model/model_core";
 
 registerPatch({
   name: "ComposerView",
@@ -14,7 +14,7 @@ registerPatch({
     streamingContent: attr({
       default: "",
     }),
-    // computed field from streaming content
+    // Computed field from streaming content
     htmlStreamingContent: attr({
       compute() {
         return markdownToHtml(this.streamingContent);
@@ -25,6 +25,7 @@ registerPatch({
     /**
      * Post AI message to the thread
      * @private
+     * @param {String} body - The message body
      */
     async _postAIMessage(body) {
       const composer = this.composer;
@@ -33,15 +34,15 @@ registerPatch({
         body,
       };
       const messaging = this.messaging;
-      let messageData = await messaging.rpc(
+      const messageData = await messaging.rpc(
         { route: `/llm/thread/post_ai_response`, params },
         { shadow: true }
       );
       if (!messaging.exists()) {
         return;
       }
-      const message = messaging.models["Message"].insert(
-        messaging.models["Message"].convertData(messageData)
+      const message = messaging.models.Message.insert(
+        messaging.models.Message.convertData(messageData)
       );
       if (messaging.hasLinkPreviewFeature && !message.isBodyEmpty) {
         messaging.rpc(

@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
-import { useModels } from "@mail/component_hooks/use_models";
 import { getMessagingComponent } from "@mail/utils/messaging_component";
+import { useModels } from "@mail/component_hooks/use_models";
 
 const { Component, onWillDestroy } = owl;
 

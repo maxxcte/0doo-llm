@@ -11,7 +11,7 @@ registerPatch({
      * @override
      * @param {Message} prevMessage
      * @param {Message} message
-     * @returns {boolean}
+     * @returns {Boolean}
      */
     _shouldMessageBeSquashed(prevMessage, message) {
       if (prevMessage !== undefined && message !== undefined) {

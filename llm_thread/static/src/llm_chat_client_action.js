@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
-import { registry } from "@web/core/registry";
 import { LLMChatContainer } from "@llm_thread/components/llm_chat_container/llm_chat_container";
+import { registry } from "@web/core/registry";
 
 // Register the client action
 registry

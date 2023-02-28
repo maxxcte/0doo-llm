@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
 import { registerModel } from "@mail/model/model_core";
-import { attr, one, many } from "@mail/model/model_field";
+import { attr, many, one } from "@mail/model/model_field";
 
 registerModel({
   name: "LLMModel",
