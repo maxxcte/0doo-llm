@@ -66,6 +66,7 @@ class LLMTool(models.Model):
         "description",
         "override_tool_description",
         "server_action_id",
+        "requires_user_consent",
     )
     def _compute_schema(self):
         """Compute the JSON schema for this tool"""
@@ -88,8 +89,17 @@ class LLMTool(models.Model):
                 return fallback_schema
 
             tool_schema = convert_to_openai_tool(pydantic_model)
-            if record.override_tool_description:
-                tool_schema["function"]["description"] = record.description
+            
+            # Add consent information to the description if required
+            description = record.description
+            if record.requires_user_consent:
+                consent_warning = "\n\nIMPORTANT: This tool requires explicit user consent before execution. Please ask the user for permission before using this tool."
+                description += consent_warning
+                
+            # Override description if needed or add consent warning
+            if record.override_tool_description or record.requires_user_consent:
+                tool_schema["function"]["description"] = description
+                
             return json.dumps(tool_schema)
         except Exception as e:
             _logger.exception(f"Error computing schema for {record.name}: {str(e)}")
