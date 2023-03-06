@@ -1,8 +1,8 @@
 /** @odoo-module **/
 
-import { registerPatch } from "@mail/model/model_core";
 import { attr, one } from "@mail/model/model_field";
 import { clear } from "@mail/model/model_field_command";
+import { registerPatch } from "@mail/model/model_core";
 
 registerPatch({
   name: "Chatter",
@@ -41,7 +41,10 @@ registerPatch({
       if (!this.thread) return;
 
       const messaging = this.messaging;
-      if (!this.is_chatting_with_ai) {
+      if (this.is_chatting_with_ai === true) {
+        // Already chatting with AI
+        this.update({ is_chatting_with_ai: false });
+      } else {
         let llmChat = messaging.llmChat;
         if (!llmChat) {
           messaging.update({ llmChat: { isInitThreadHandled: false } });
@@ -69,8 +72,6 @@ registerPatch({
             type: "danger",
           });
         }
-      } else {
-        this.update({ is_chatting_with_ai: false });
       }
     },
   },

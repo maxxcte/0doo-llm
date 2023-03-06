@@ -272,7 +272,8 @@ registerPatch({
 
           // Small delay to ensure messages are fully processed
           setTimeout(() => this.startInterpretationStreaming(), 500);
-          return; // Exit early, we'll handle the interpretation streaming separately
+          // Exit early, we'll handle the interpretation streaming separately
+          return;
         }
       }
 
