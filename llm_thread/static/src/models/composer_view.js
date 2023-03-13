@@ -109,10 +109,12 @@ registerPatch({
             });
             break;
           case "end":
-            const htmlStreamingContent = this.htmlStreamingContent;
-            eventSource.close();
-            await this._postAIMessage(htmlStreamingContent);
-            this._stopStreaming();
+            {
+              const htmlStreamingContent = this.htmlStreamingContent;
+              eventSource.close();
+              await this._postAIMessage(htmlStreamingContent);
+              this._stopStreaming();
+            }
             break;
         }
       };
@@ -135,9 +137,9 @@ registerPatch({
       if (!this.exists()) {
         return;
       }
+      // UP, DOWN, TAB: prevent moving cursor if navigation in mention suggestions
       switch (ev.key) {
         case "Escape":
-        // UP, DOWN, TAB: prevent moving cursor if navigation in mention suggestions
         case "ArrowUp":
         case "PageUp":
         case "ArrowDown":
@@ -157,6 +159,41 @@ registerPatch({
       }
     },
     /**
+     * Check if the keyboard event matches a specific shortcut
+     * @param {KeyboardEvent} ev - The keyboard event
+     * @param {String} shortcutType - The type of shortcut to check
+     * @returns {Boolean} - Whether the event matches the shortcut
+     * @private
+     */
+    _matchesShortcut(ev, shortcutType) {
+      if (shortcutType === "ctrl-enter") {
+        return !ev.altKey && ev.ctrlKey && !ev.metaKey && !ev.shiftKey;
+      } else if (shortcutType === "enter") {
+        return !ev.altKey && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey;
+      } else if (shortcutType === "meta-enter") {
+        return !ev.altKey && !ev.ctrlKey && ev.metaKey && !ev.shiftKey;
+      }
+      return false;
+    },
+
+    /**
+     * Handle keyboard shortcuts for sending messages
+     * @param {KeyboardEvent} ev - The keyboard event
+     * @returns {Boolean} - Whether a shortcut was handled
+     * @private
+     */
+    _handleSendShortcuts(ev) {
+      for (const shortcut of this.sendShortcuts) {
+        if (this._matchesShortcut(ev, shortcut)) {
+          this.postUserMessageForAi();
+          ev.preventDefault();
+          return true;
+        }
+      }
+      return false;
+    },
+
+    /**
      * @param {KeyboardEvent} ev
      */
     onKeydownTextareaEnterForAi(ev) {
@@ -167,39 +204,8 @@ registerPatch({
         ev.preventDefault();
         return;
       }
-      if (
-        this.sendShortcuts.includes("ctrl-enter") &&
-        !ev.altKey &&
-        ev.ctrlKey &&
-        !ev.metaKey &&
-        !ev.shiftKey
-      ) {
-        this.postUserMessageForAi();
-        ev.preventDefault();
-        return;
-      }
-      if (
-        this.sendShortcuts.includes("enter") &&
-        !ev.altKey &&
-        !ev.ctrlKey &&
-        !ev.metaKey &&
-        !ev.shiftKey
-      ) {
-        this.postUserMessageForAi();
-        ev.preventDefault();
-        return;
-      }
-      if (
-        this.sendShortcuts.includes("meta-enter") &&
-        !ev.altKey &&
-        !ev.ctrlKey &&
-        ev.metaKey &&
-        !ev.shiftKey
-      ) {
-        this.postUserMessageForAi();
-        ev.preventDefault();
-        return;
-      }
+
+      this._handleSendShortcuts(ev);
     },
   },
 });

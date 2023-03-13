@@ -32,23 +32,21 @@ registerModel({
       compute() {
         if (!this.selectedProviderId) {
           return clear();
-        } 
-          return this.threadView.thread.llmChat.llmProviders.find(
-            (p) => p.id === this.selectedProviderId
-          );
-        
+        }
+        return this.threadView.thread.llmChat.llmProviders.find(
+          (p) => p.id === this.selectedProviderId
+        );
       },
     }),
     selectedModel: one("LLMModel", {
       compute() {
         if (!this.selectedModelId) {
           return clear();
-        } 
-          const matchedModel = this.threadView.thread.llmChat.llmModels.find(
-            (m) => m.id === this.selectedModelId
-          );
-          return matchedModel || clear();
-        
+        }
+        const matchedModel = this.threadView.thread.llmChat.llmModels.find(
+          (m) => m.id === this.selectedModelId
+        );
+        return matchedModel || clear();
       },
     }),
     modelsAvailableToSelect: many("LLMModel", {
