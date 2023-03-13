@@ -1,8 +1,8 @@
 /** @odoo-module **/
 
-import { registerModel } from "@mail/model/model_core";
 import { attr, many, one } from "@mail/model/model_field";
 import { clear } from "@mail/model/model_field_command";
+import { registerModel } from "@mail/model/model_core";
 
 registerModel({
   name: "LLMChatThreadHeaderView",
@@ -32,23 +32,23 @@ registerModel({
       compute() {
         if (!this.selectedProviderId) {
           return clear();
-        } else {
+        } 
           return this.threadView.thread.llmChat.llmProviders.find(
             (p) => p.id === this.selectedProviderId
           );
-        }
+        
       },
     }),
     selectedModel: one("LLMModel", {
       compute() {
         if (!this.selectedModelId) {
           return clear();
-        } else {
+        } 
           const matchedModel = this.threadView.thread.llmChat.llmModels.find(
             (m) => m.id === this.selectedModelId
           );
           return matchedModel || clear();
-        }
+        
       },
     }),
     modelsAvailableToSelect: many("LLMModel", {
@@ -86,6 +86,7 @@ registerModel({
 
     /**
      * Handle model changes
+     * @param {String} selectedModelId - ID of the selected model
      * @private
      */
     async saveSelectedModel(selectedModelId) {

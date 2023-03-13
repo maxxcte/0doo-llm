@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { one, attr } from "@mail/model/model_field";
+import { attr, one } from "@mail/model/model_field";
 import { registerPatch } from "@mail/model/model_core";
 
 registerPatch({
@@ -16,8 +16,10 @@ registerPatch({
       inverse: "threads",
     }),
     updatedAt: attr(),
-    relatedThreadModel: attr(), // Added
-    relatedThreadId: attr(), // Added
+    // Added for related thread functionality
+    relatedThreadModel: attr(),
+    // Added for related thread functionality
+    relatedThreadId: attr(),
     relatedThread: one("Thread", {
       compute() {
         if (!this.relatedThreadModel || !this.relatedThreadId) {
@@ -34,9 +36,9 @@ registerPatch({
     /**
      * Update thread settings
      * @param {Object} params
-     * @param {string} [params.name] - New thread name
-     * @param {number} [params.llmModelId] - New model ID
-     * @param {number} [params.llmProviderId] - New provider ID
+     * @param {String} [params.name] - New thread name
+     * @param {Number} [params.llmModelId] - New model ID
+     * @param {Number} [params.llmProviderId] - New provider ID
      */
     async updateLLMChatThreadSettings({
       name,

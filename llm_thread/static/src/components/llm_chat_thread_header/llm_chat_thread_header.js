@@ -50,7 +50,7 @@ export class LLMChatThreadHeader extends Component {
   onSelectProvider(provider) {
     if (provider.id !== this.llmChatThreadHeaderView.selectedProviderId) {
       const defaultModel = this.getDefaultModelForProvider(provider.id);
-      // it should trigger onChange event
+      // It should trigger onChange event
       this.llmChatThreadHeaderView.saveSelectedModel(defaultModel?.id);
       this.messaging.notify({
         title: "Model have been reset",

@@ -1,8 +1,8 @@
 /** @odoo-module **/
 
-import { registerModel } from "@mail/model/model_core";
-import { attr, one, many } from "@mail/model/model_field";
+import { attr, many, one } from "@mail/model/model_field";
 import { clear } from "@mail/model/model_field_command";
+import { registerModel } from "@mail/model/model_core";
 
 registerModel({
   name: "LLMChat",
@@ -29,7 +29,7 @@ registerModel({
         typeof this.initActiveId === "number"
           ? ["llm.thread", this.initActiveId]
           : this.initActiveId.split("_");
-      const thread = this.messaging.models["Thread"].findFromIdentifyingData({
+      const thread = this.messaging.models.Thread.findFromIdentifyingData({
         id: Number(id),
         model,
       });
@@ -58,7 +58,7 @@ registerModel({
     /**
      * Formats a thread into an active ID string.
      * @param {Thread} thread
-     * @returns {string}
+     * @returns {String}
      */
     threadToActiveId(thread) {
       return `${thread.model}_${thread.id}`;
@@ -115,10 +115,10 @@ registerModel({
 
     /**
      * Selects a thread by ID as the active thread.
-     * @param {number} threadId
+     * @param {Number} threadId
      */
     async selectThread(threadId) {
-      const thread = this.messaging.models["Thread"].findFromIdentifyingData({
+      const thread = this.messaging.models.Thread.findFromIdentifyingData({
         id: threadId,
         model: "llm.thread",
       });
@@ -162,9 +162,9 @@ registerModel({
     /**
      * Creates a new thread with optional related thread info.
      * @param {Object} params - Thread creation parameters
-     * @param {string} params.name - Thread name
-     * @param {string} [params.relatedThreadModel] - Related thread model
-     * @param {number} [params.relatedThreadId] - Related thread ID
+     * @param {String} params.name - Thread name
+     * @param {String} [params.relatedThreadModel] - Related thread model
+     * @param {Number} [params.relatedThreadId] - Related thread ID
      * @returns {Promise<Object|null>} The created thread or null if failed
      * @throws {Error} If no LLM model is available
      */
@@ -211,7 +211,7 @@ registerModel({
         return null;
       }
 
-      const thread = this.messaging.models["Thread"].insert({
+      const thread = this.messaging.models.Thread.insert({
         id: threadId,
         model: "llm.thread",
         name: threadDetails[0].name,
@@ -230,8 +230,8 @@ registerModel({
     /**
      * Ensures LLM models and threads are loaded, creating a thread if needed.
      * @param {Object} [options] - Optional parameters
-     * @param {string} [options.relatedThreadModel] - Related thread model
-     * @param {number} [options.relatedThreadId] - Related thread ID
+     * @param {String} [options.relatedThreadModel] - Related thread model
+     * @param {Number} [options.relatedThreadId] - Related thread ID
      * @returns {Promise<Object|null>} The active or created thread
      */
     async ensureThread({ relatedThreadModel, relatedThreadId } = {}) {
