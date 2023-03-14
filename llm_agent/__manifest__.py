@@ -37,7 +37,7 @@
         "data/mail_message_subtype.xml",
         "data/llm_tool_data.xml",
         "data/llm_tool_consent_config_data.xml",
-        "views/menu_views.xml",
+        "views/llm_menu_views.xml",
     ],
     "assets": {
         "web.assets_backend": [
