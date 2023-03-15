@@ -6,3 +6,5 @@ from . import llm_tool_server_action
 from . import llm_model
 from . import mail_message
 from . import llm_tool_consent_config
+from . import llm_tool_record_updater
+from . import llm_tool_record_creator
