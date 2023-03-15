@@ -37,12 +37,8 @@
                             <field name="default" />
                             <field name="active" />
                             <field name="requires_user_consent" />
-                            <field
-                name="override_tool_description"
-              />
-                            <field
-                name="override_tool_schema"
-              />
+                            <field name="override_tool_description" />
+                            <field name="override_tool_schema" />
                         </group>
                     </group>
                     <notebook>
