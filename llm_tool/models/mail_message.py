@@ -21,7 +21,7 @@ class MailMessage(models.Model):
     def _check_tool_message_integrity(self):
         for record in self:
             if record.tool_call_id and record.subtype_id:
-                tool_message_subtype = self.env.ref("llm_agent.mt_tool_message")
+                tool_message_subtype = self.env.ref("llm_tool.mt_tool_message")
                 if record.subtype_id.id != tool_message_subtype.id:
                     raise ValidationError(
                         "Tool Call ID can only be set for Tool Messages."
@@ -31,7 +31,7 @@ class MailMessage(models.Model):
         """Override to_provider_message to support tool messages and assistant messages with tool calls"""
         # Check if this is a tool message
         if self.subtype_id and self.tool_call_id:
-            tool_message_subtype = self.env.ref("llm_agent.mt_tool_message")
+            tool_message_subtype = self.env.ref("llm_tool.mt_tool_message")
             if self.subtype_id.id == tool_message_subtype.id:
                 return {
                     "role": "tool",
@@ -60,7 +60,7 @@ class MailMessage(models.Model):
         vals_list = super().message_format(format_reply=format_reply)
 
         # Get the tool message subtype ID
-        tool_message_id = self.env.ref("llm_agent.mt_tool_message").id
+        tool_message_id = self.env.ref("llm_tool.mt_tool_message").id
 
         # Update is_note for tool messages
         for vals in vals_list:

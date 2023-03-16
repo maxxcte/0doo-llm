@@ -27,7 +27,7 @@ class LLMThread(models.Model):
         tool_calls = kwargs.get("tool_calls")
         tool_name = kwargs.get("tool_name")
 
-        if tool_call_id and subtype_xmlid == "llm_agent.mt_tool_message":
+        if tool_call_id and subtype_xmlid == "llm_tool.mt_tool_message":
             # Use tool name in email_from if available
             if tool_name:
                 email_from = f"{tool_name} <tool@{self.provider_id.name.lower()}.ai>"

@@ -52,7 +52,7 @@ registerPatch({
       // If this is a tool message, add the tool_call_id and subtype
       if (toolCallId) {
         data.tool_call_id = toolCallId;
-        data.subtype_xmlid = "llm_agent.mt_tool_message";
+        data.subtype_xmlid = "llm_tool.mt_tool_message";
 
         // Find the tool message to get the function name
         const toolMessage = this.pendingToolMessages.find(

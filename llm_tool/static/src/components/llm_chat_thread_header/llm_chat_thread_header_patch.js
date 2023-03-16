@@ -5,7 +5,7 @@ import { patch } from "@web/core/utils/patch";
 
 patch(
   LLMChatThreadHeader.prototype,
-  "llm_agent/static/src/components/llm_chat_thread_header/llm_chat_thread_header_patch.js",
+  "llm_tool/static/src/components/llm_chat_thread_header/llm_chat_thread_header_patch.js",
   {
     /**
      * @override
