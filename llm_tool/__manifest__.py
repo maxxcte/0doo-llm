@@ -43,9 +43,7 @@
         "web.assets_backend": [
             "llm_tool/static/src/models/llm_chat.js",
             "llm_tool/static/src/models/llm_thread.js",
-            "llm_tool/static/src/models/llm_tool.js",
             "llm_tool/static/src/models/composer_view.js",
-            "llm_tool/static/src/models/llm_tool_message.js",
             "llm_tool/static/src/models/thread_view.js",
             "llm_tool/static/src/models/message.js",
             "llm_tool/static/src/components/llm_chat_thread_header/llm_chat_thread_header_patch.js",
