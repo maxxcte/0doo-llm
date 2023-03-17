@@ -1,4 +1,4 @@
-# LLM Agent Module for Odoo 16
+# LLM Tool Module for Odoo 16
 
 This module extends the LLM integration in Odoo by adding support for tools that can be used by LLM models to interact with the Odoo system.
 

@@ -1,5 +1,5 @@
 {
-    "name": "LLM Agent",
+    "name": "LLM Tool",
     "version": "16.0.1.0.0",
     "category": "Technical",
     "summary": "Advanced tools for LLM models to interact with Odoo, including customizable schemas and descriptions",
