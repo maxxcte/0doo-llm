@@ -24,7 +24,7 @@
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
     "license": "LGPL-3",
-    "depends": ["base", "mail", "llm", "llm_thread", "llm_openai"],
+    "depends": ["base", "mail", "llm", "llm_thread"],
     "external_dependencies": {
         "python": ["pydantic", "langchain_core"],
     },
