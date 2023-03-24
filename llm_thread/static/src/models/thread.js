@@ -1,6 +1,7 @@
 /** @odoo-module **/
 
-import { attr, one } from "@mail/model/model_field";
+import { attr, one, many } from "@mail/model/model_field";
+import { clear } from "@mail/model/model_field_command";
 import { registerPatch } from "@mail/model/model_core";
 
 registerPatch({
@@ -31,6 +32,23 @@ registerPatch({
         };
       },
     }),
+    // Track selected tool IDs for this thread
+    selectedToolIds: attr({
+      default: [],
+    }),
+
+    // Computed field to get selected tools information
+    selectedTools: many("LLMTool", {
+      compute() {
+        if (!this.selectedToolIds || !this.llmChat?.tools) {
+          return clear();
+        }
+
+        return this.llmChat.tools.filter((tool) =>
+          this.selectedToolIds.includes(tool.id)
+        );
+      },
+    }),
   },
   recordMethods: {
     /**
@@ -44,6 +62,7 @@ registerPatch({
       name,
       llmModelId,
       llmProviderId,
+      toolIds,
     } = {}) {
       const values = {};
 
@@ -64,6 +83,11 @@ registerPatch({
         values.provider_id = llmProviderId;
       } else if (this.llmModel?.llmProvider?.id) {
         values.provider_id = this.llmModel.llmProvider.id;
+      }
+
+      // Handle tools if provided
+      if (Array.isArray(toolIds)) {
+        values.tool_ids = [[6, 0, toolIds]];
       }
 
       // Only make the RPC call if there are values to update
