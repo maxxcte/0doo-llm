@@ -41,7 +41,6 @@
     ],
     "assets": {
         "web.assets_backend": [
-            "llm_tool/static/src/models/llm_chat.js",
             "llm_tool/static/src/models/llm_thread.js",
             "llm_tool/static/src/models/thread_view.js",
             "llm_tool/static/src/models/message.js",

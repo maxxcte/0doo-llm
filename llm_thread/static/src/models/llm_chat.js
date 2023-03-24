@@ -65,7 +65,7 @@ registerModel({
     },
 
     /**
-     * Loads threads from the server for the current user.
+     * Load threads from the server for the current user.
      */
     async loadThreads() {
       const result = await this.messaging.rpc({
@@ -83,6 +83,7 @@ registerModel({
             "provider_id",
             "related_thread_model",
             "related_thread_id",
+            "tool_ids",
           ],
           order: "write_date desc",
         },
@@ -98,6 +99,7 @@ registerModel({
         updatedAt: thread.write_date,
         relatedThreadModel: thread.related_thread_model,
         relatedThreadId: thread.related_thread_id,
+        selectedToolIds: thread.tool_ids || [],
         llmModel: thread.model_id
           ? {
               id: thread.model_id[0],
@@ -241,6 +243,10 @@ registerModel({
       if (this.threads.length === 0) {
         await this.loadThreads();
       }
+      // Load tools if not already loaded
+      if (!this.tools || this.tools.length === 0) {
+        await this.loadTools();
+      }
 
       if (relatedThreadModel && relatedThreadId) {
         const existingThread = this.threads.find(
@@ -304,6 +310,7 @@ registerModel({
       await this.loadLLMModels();
       // Load threads first
       await this.loadThreads();
+      await this.loadTools();
 
       // Then handle initial thread
       if (!this.isInitThreadHandled) {
@@ -311,6 +318,32 @@ registerModel({
         if (!this.activeThread) {
           this.openInitThread();
         }
+      }
+    },
+
+    /**
+     * Load tools from the server
+     */
+    async loadTools() {
+      try {
+        const result = await this.messaging.rpc({
+          model: "llm.tool",
+          method: "search_read",
+          kwargs: {
+            domain: [["active", "=", true]],
+            fields: ["name", "id"],
+          },
+        });
+
+        const toolData = result.map((tool) => ({
+          id: tool.id,
+          name: tool.name,
+        }));
+
+        this.update({ tools: toolData });
+      } catch (error) {
+        console.error("Error loading tools:", error);
+        return [];
       }
     },
   },
@@ -374,5 +407,6 @@ registerModel({
         );
       },
     }),
+    tools: many("LLMTool"),
   },
 });
