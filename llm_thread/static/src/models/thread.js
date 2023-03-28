@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { attr, one, many } from "@mail/model/model_field";
+import { attr, many, one } from "@mail/model/model_field";
 import { clear } from "@mail/model/model_field_command";
 import { registerPatch } from "@mail/model/model_core";
 

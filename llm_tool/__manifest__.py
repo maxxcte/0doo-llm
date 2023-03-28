@@ -24,7 +24,7 @@
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
     "license": "LGPL-3",
-    "depends": ["base", "mail", "llm", "llm_thread"],
+    "depends": ["base", "mail", "llm"],
     "external_dependencies": {
         "python": ["pydantic", "langchain_core"],
     },
@@ -39,13 +39,9 @@
         "data/llm_tool_consent_config_data.xml",
         "views/llm_menu_views.xml",
     ],
-    "assets": {
-        "web.assets_backend": [
-            "llm_tool/static/src/components/llm_chat_thread_header/llm_chat_thread_header_patch.js",
-            "llm_tool/static/src/components/llm_chat_thread_header/llm_chat_thread_header.xml",
-            "llm_tool/static/src/components/message/message.xml",
-        ],
-    },
+    "images": [
+        "static/description/banner.jpeg",
+    ],
     "auto_install": False,
     "application": False,
     "installable": True,

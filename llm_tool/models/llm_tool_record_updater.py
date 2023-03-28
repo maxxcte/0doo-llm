@@ -1,4 +1,3 @@
-import json
 import logging
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -23,9 +22,7 @@ class LLMToolRecordUpdater(models.Model):
             model_config = ConfigDict(
                 title=self.name or "odoo_record_updater",
             )
-            model: str = Field(
-                ..., description="The Odoo model to update records in"
-            )
+            model: str = Field(..., description="The Odoo model to update records in")
             domain: list = Field(
                 ..., description="Domain to identify records to update"
             )
@@ -33,7 +30,8 @@ class LLMToolRecordUpdater(models.Model):
                 ..., description="Dictionary of field values to update"
             )
             limit: int = Field(
-                1, description="Maximum number of records to update (default: 1 for safety)"
+                1,
+                description="Maximum number of records to update (default: 1 for safety)",
             )
 
         return RecordUpdaterParams
@@ -49,36 +47,36 @@ class LLMToolRecordUpdater(models.Model):
 
         if not model_name:
             return {"error": "Model name is required"}
-        
+
         if not domain:
             return {"error": "Domain is required to identify records to update"}
-            
+
         if not values:
             return {"error": "Values dictionary is required"}
 
         try:
             model = self.env[model_name]
-            
+
             # Validate domain structure
             if not isinstance(domain, list):
                 return {"error": "Domain must be a list of criteria"}
-                
+
             # Find records to update
             records = model.search(domain, limit=limit)
-            
+
             if not records:
                 return {"error": "No records found matching the domain"}
-                
+
             # Update the records
             records.write(values)
-            
+
             # Return information about updated records
             result = {
                 "count": len(records),
                 "ids": records.ids,
-                "message": f"Successfully updated {len(records)} record(s) in {model_name}"
+                "message": f"Successfully updated {len(records)} record(s) in {model_name}",
             }
-            
+
             return result
 
         except KeyError:

@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { attr } from "@mail/model/model_field";
+import { attr, many } from "@mail/model/model_field";
 import { markdownToHtml } from "../utils/markdown_utils";
 import { registerPatch } from "@mail/model/model_core";
 

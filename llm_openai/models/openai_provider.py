@@ -1,6 +1,7 @@
-from openai import OpenAI
 import json
 import logging
+
+from openai import OpenAI
 
 from odoo import api, models
 
@@ -38,14 +39,20 @@ class LLMProvider(models.Model):
 
         tools = self.env["llm.tool"].search(domain)
         return tools
-        
+
     # OpenAI specific implementation
     def openai_format_tools(self, tools):
         """Format tools for OpenAI"""
         return [tool.to_tool_definition() for tool in tools]
 
     def openai_chat(
-        self, messages, model=None, stream=False, tools=None, tool_choice="auto", thread=None
+        self,
+        messages,
+        model=None,
+        stream=False,
+        tools=None,
+        tool_choice="auto",
+        thread=None,
     ):
         """Send chat messages using OpenAI with tools support"""
         model = self.get_model(model, "chat")
@@ -134,11 +141,15 @@ class LLMProvider(models.Model):
             for tool_call in response.choices[0].message.tool_calls:
                 if thread:
                     tool_result = thread.process_tool_call(
-                        tool_call.function.name, tool_call.function.arguments, tool_call.id
+                        tool_call.function.name,
+                        tool_call.function.arguments,
+                        tool_call.id,
                     )
                 else:
                     tool_result = self._execute_tool(
-                        tool_call.function.name, tool_call.function.arguments, tool_call.id
+                        tool_call.function.name,
+                        tool_call.function.arguments,
+                        tool_call.id,
                     )
                 message["tool_calls"].append(tool_result)
 
@@ -183,7 +194,7 @@ class LLMProvider(models.Model):
 
                             # Execute the tool and yield result
                             tool_id = tool_call_chunks[index]["id"]
-                            
+
                             if thread:
                                 tool_result = thread.process_tool_call(
                                     tool_name, current_args, tool_id
@@ -325,7 +336,15 @@ class LLMProvider(models.Model):
                 },
             }
 
-    def chat(self, messages, model=None, stream=False, tools=None, tool_choice="auto", thread=None):
+    def chat(
+        self,
+        messages,
+        model=None,
+        stream=False,
+        tools=None,
+        tool_choice="auto",
+        thread=None,
+    ):
         """Send chat messages using this provider"""
         return self._dispatch(
             "chat",

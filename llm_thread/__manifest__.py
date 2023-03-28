@@ -24,7 +24,7 @@ Contact: support@apexive.com
     """,
     "category": "Productivity, Discuss",
     "version": "16.0.1.0.0",
-    "depends": ["base", "mail", "web", "llm"],
+    "depends": ["base", "mail", "web", "llm", "llm_tool"],
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
     "external_dependencies": {"python": ["emoji"]},
@@ -81,6 +81,7 @@ Contact: support@apexive.com
             "llm_thread/static/src/components/llm_chatter_topbar/llm_chatter_topbar.xml",
             "llm_thread/static/src/components/llm_chatter_topbar/llm_chat_topbar.scss",
             "llm_thread/static/src/components/llm_chatter/llm_chatter.xml",
+            "llm_thread/static/src/components/message/message.xml",
             # Client Actions
             "llm_thread/static/src/llm_chat_client_action.js",
             # Styles
@@ -96,6 +97,9 @@ Contact: support@apexive.com
             ),
         ],
     },
+    "images": [
+        "static/description/banner.jpeg",
+    ],
     "license": "LGPL-3",
     "installable": True,
     "application": True,

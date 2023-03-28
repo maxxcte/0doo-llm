@@ -1,4 +1,3 @@
-import json
 import logging
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -23,9 +22,7 @@ class LLMToolRecordCreator(models.Model):
             model_config = ConfigDict(
                 title=self.name or "odoo_record_creator",
             )
-            model: str = Field(
-                ..., description="The Odoo model to create a record in"
-            )
+            model: str = Field(..., description="The Odoo model to create a record in")
             values: dict = Field(
                 ..., description="Dictionary of field values for the new record"
             )
@@ -41,23 +38,23 @@ class LLMToolRecordCreator(models.Model):
 
         if not model_name:
             return {"error": "Model name is required"}
-        
+
         if not values:
             return {"error": "Values dictionary is required"}
 
         try:
             model = self.env[model_name]
-            
+
             # Create the record
             new_record = model.create(values)
-            
+
             # Return the ID and display name of the created record
             result = {
                 "id": new_record.id,
                 "display_name": new_record.display_name,
-                "message": f"Record created successfully in {model_name}"
+                "message": f"Record created successfully in {model_name}",
             }
-            
+
             return result
 
         except KeyError:
