@@ -98,6 +98,34 @@ class LLMProvider(models.Model):
 
         return default_models[0]
 
+    def format_messages(self, messages):
+        """Format messages for this provider
+        
+        Args:
+            messages: mail.message recordset to format
+            
+        Returns:
+            List of formatted messages in provider-specific format
+        """
+        return self._dispatch("format_messages", messages)
+
+    def _default_format_message(self, message):
+        """Default implementation for formatting message
+        
+        This provides a basic implementation that can be overridden by provider-specific modules.
+        
+        Args:
+            message: mail.message record to format
+            
+        Returns:
+            Formatted message in a standard format
+        """
+        
+        return {
+            "role": "user" if message.author_id else "assistant",
+            "content": message.body or "",  # Ensure content is never null
+        }
+
     @staticmethod
     def serialize_datetime(obj):
         """Helper function to serialize datetime objects to ISO format strings."""

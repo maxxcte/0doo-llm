@@ -14,7 +14,7 @@ export class LLMChatThreadHeader extends Component {
       fieldName: "llmChatThreadNameInputRef",
       refName: "threadNameInput",
     });
-    // This.onToolSelectChange = this.onToolSelectChange.bind(this);
+    this.onToolSelectChange = this.onToolSelectChange.bind(this);
   }
 
   get llmChatThreadHeaderView() {
@@ -86,8 +86,8 @@ export class LLMChatThreadHeader extends Component {
    * Toggle thread list visibility on mobile
    */
   _onToggleThreadList() {
-    this.thread.llmChat.llmChatView.update({
-      isThreadListVisible: !this.thread.llmChat.llmChatView.isThreadListVisible,
+    this.llmChat.llmChatView.update({
+      isThreadListVisible: !this.llmChat.llmChatView.isThreadListVisible,
     });
   }
 

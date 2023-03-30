@@ -27,34 +27,6 @@ class MailMessage(models.Model):
                         "Tool Call ID can only be set for Tool Messages."
                     )
 
-    def to_provider_message(self):
-        """Override to_provider_message to support tool messages and assistant messages with tool calls"""
-        # Check if this is a tool message
-        if self.subtype_id and self.tool_call_id:
-            tool_message_subtype = self.env.ref("llm_tool.mt_tool_message")
-            if self.subtype_id.id == tool_message_subtype.id:
-                return {
-                    "role": "tool",
-                    "tool_call_id": self.tool_call_id,
-                    "content": self.body or "",  # Ensure content is never null
-                }
-
-        # Check if this is an assistant message with tool calls
-        if not self.author_id and self.tool_calls:
-            try:
-                tool_calls_data = json.loads(self.tool_calls)
-                return {
-                    "role": "assistant",
-                    "content": self.body or "",  # Ensure content is never null
-                    "tool_calls": tool_calls_data,
-                }
-            except (json.JSONDecodeError, ValueError):
-                # If JSON parsing fails, fall back to default behavior
-                pass
-
-        # Default behavior from parent
-        return super().to_provider_message()
-
     def message_format(self, format_reply=True):
         """Override message_format to mark tool messages as notes for proper UI rendering"""
         vals_list = super().message_format(format_reply=format_reply)

@@ -4,7 +4,7 @@ import logging
 from openai import OpenAI
 
 from odoo import api, models
-
+from ..utils.openai_message_validator import OpenAIMessageValidator
 _logger = logging.getLogger(__name__)
 
 
@@ -82,7 +82,7 @@ class LLMProvider(models.Model):
         # Add tools if specified
         if tools:
             tool_objects = self.get_available_tools(tools)
-            formatted_tools = self.format_tools_for_provider(tool_objects)
+            formatted_tools = self.format_tools(tool_objects)
 
             if formatted_tools:
                 params["tools"] = formatted_tools
@@ -355,3 +355,70 @@ class LLMProvider(models.Model):
             tool_choice=tool_choice,
             thread=thread,
         )
+    
+    def _validate_and_clean_messages(self, messages):
+        """
+        Validate and clean messages to ensure proper tool message structure for OpenAI.
+
+        This method uses the OpenAIMessageValidator class to check that all tool messages
+        have a preceding assistant message with matching tool_calls, and removes any
+        tool messages that don't meet this requirement to avoid API errors.
+
+        Args:
+            messages (list): List of messages to validate and clean
+
+        Returns:
+            list: Cleaned list of messages
+        """
+        # Hardcoded value for verbose logging
+        verbose_logging = False
+
+        validator = OpenAIMessageValidator(
+            messages, logger=_logger, verbose_logging=verbose_logging
+        )
+        return validator.validate_and_clean()
+
+    def openai_format_messages(self, messages):
+        """Format messages for OpenAI API
+        
+        Args:
+            messages: mail.message recordset to format
+            
+        Returns:
+            List of formatted messages in OpenAI-compatible format
+        """
+        # First use the default implementation from the llm_tool module
+        formatted_messages = [];
+        for message in messages:
+            formatted_messages.append(self._format_message_for_openai(message))
+        
+        # Then validate and clean the messages for OpenAI
+        return self._validate_and_clean_messages(formatted_messages)
+
+    def _format_message_for_openai(self, message):
+        # Check if this is a tool message
+        if message.subtype_id and message.tool_call_id:
+            tool_message_subtype = self.env.ref("llm_tool.mt_tool_message")
+            if message.subtype_id.id == tool_message_subtype.id:
+                return {
+                    "role": "tool",
+                    "tool_call_id": message.tool_call_id,
+                    "content": message.body or "",  # Ensure content is never null
+                }
+
+        # Check if this is an assistant message with tool calls
+        if not message.author_id and message.tool_calls:
+            try:
+                tool_calls_data = json.loads(message.tool_calls)
+                return {
+                    "role": "assistant",
+                    "content": message.body or "",  # Ensure content is never null
+                    "tool_calls": tool_calls_data,
+                }
+            except (json.JSONDecodeError, ValueError):
+                # If JSON parsing fails, fall back to default behavior
+                pass
+        
+        # Default behavior from parent
+        return self._default_format_message(message)
+        
