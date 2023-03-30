@@ -2,8 +2,7 @@ import json
 import logging
 
 from openai import OpenAI
-
-from odoo import api, models
+from odoo import _, api, fields, models
 from ..utils.openai_message_validator import OpenAIMessageValidator
 _logger = logging.getLogger(__name__)
 
@@ -19,26 +18,6 @@ class LLMProvider(models.Model):
     def openai_get_client(self):
         """Get OpenAI client instance"""
         return OpenAI(api_key=self.api_key, base_url=self.api_base or None)
-
-    def get_available_tools(self, tool_ids=None):
-        """Get available tools for this provider
-
-        Args:
-            tool_ids: Optional specific tool ids to include
-
-        Returns:
-            List of tool definitions in the format expected by the provider
-        """
-        domain = [("active", "=", True)]
-
-        if tool_ids:
-            domain.append(("id", "in", tool_ids))
-        else:
-            # Include default tools if no specific tools requested
-            domain.append(("default", "=", True))
-
-        tools = self.env["llm.tool"].search(domain)
-        return tools
 
     # OpenAI specific implementation
     def openai_format_tools(self, tools):
@@ -95,8 +74,8 @@ class LLMProvider(models.Model):
         model = self.get_model(model, "chat")
 
         # Prepare request parameters
-        params = self._prepare_openai_params(
-            model, messages, stream, tools, tool_choice
+        params = self._prepare_openai_chat_params(
+            model, messages, stream, tools=tools, tool_choice=tool_choice
         )
 
         # Make the API call
@@ -108,7 +87,7 @@ class LLMProvider(models.Model):
         else:
             return self._process_streaming_response(response)
 
-    def _prepare_openai_params(self, model, messages, stream, tools, tool_choice):
+    def _prepare_openai_chat_params(self, model, messages, stream, tools, tool_choice):
         """Prepare parameters for OpenAI API call"""
         params = {
             "model": model.name,
@@ -118,15 +97,14 @@ class LLMProvider(models.Model):
 
         # Add tools if specified
         if tools:
-            tool_objects = self.get_available_tools(tools)
-            formatted_tools = self.openai_format_tools(tool_objects)
+            formatted_tools = self.openai_format_tools(tools)
 
             if formatted_tools:
                 params["tools"] = formatted_tools
                 params["tool_choice"] = tool_choice
 
                 # Check if any tools require consent
-                consent_required_tools = tool_objects.filtered(
+                consent_required_tools = tools.filtered(
                     lambda t: t.requires_user_consent
                 )
 
