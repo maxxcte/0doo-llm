@@ -87,8 +87,7 @@ class LLMTool(models.Model):
             pydantic_model = record.get_pydantic_model()
             if not pydantic_model:
                 return fallback_schema
-
-            tool_schema = convert_to_openai_tool(pydantic_model)
+            tool_schema = pydantic_model.model_json_schema()
 
             # Add consent information to the description if required
             description = record.description
@@ -103,7 +102,7 @@ class LLMTool(models.Model):
 
             # Override description if needed or add consent warning
             if record.override_tool_description or record.requires_user_consent:
-                tool_schema["function"]["description"] = description
+                tool_schema["description"] = description
 
             return json.dumps(tool_schema)
         except Exception as e:
@@ -113,12 +112,9 @@ class LLMTool(models.Model):
     def _get_fallback_schema(self, record):
         """Get a fallback schema when the normal schema generation fails"""
         schema = {
-            "type": "function",
-            "function": {
-                "name": record.name or "unnamed_tool",
-                "description": record.description or "",
-                "parameters": {},
-            },
+            "name": record.name or "unnamed_tool",
+            "description": record.description or "",
+            "parameters": {},
         }
         return json.dumps(schema)
 
@@ -175,32 +171,12 @@ class LLMTool(models.Model):
             _logger.error(f"Invalid JSON for tool {self.name}: {str(e)}")
             return default_value
 
-    def to_tool_definition(self):
-        """Convert this tool to an OpenAI-compatible tool definition"""
-        # Determine which schema to use
-        if self.override_tool_schema and self.overriden_schema:
-            schema_json = self.overriden_schema
-        else:
-            schema_json = self.schema
-
-        # Parse the schema with error handling
-        result = self._parse_json_safely(schema_json, self._get_fallback_schema_dict())
-
-        # Override description if needed
-        if self.override_tool_description and "function" in result:
-            result["function"]["description"] = self.description
-
-        return result
-
     def _get_fallback_schema_dict(self):
         """Get a fallback schema as a dictionary"""
         return {
-            "type": "function",
-            "function": {
-                "name": self.name,
+                "title": self.name,
                 "description": self.description
                 if self.override_tool_description
                 else "Default tool description",
                 "parameters": {},
-            },
         }

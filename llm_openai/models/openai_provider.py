@@ -43,7 +43,45 @@ class LLMProvider(models.Model):
     # OpenAI specific implementation
     def openai_format_tools(self, tools):
         """Format tools for OpenAI"""
-        return [tool.to_tool_definition() for tool in tools]
+        return [self._openai_format_tool(tool) for tool in tools]
+        
+    def _openai_format_tool(self, tool):
+        """Convert a tool to OpenAI format
+        
+        Args:
+            tool: llm.tool record to convert
+            
+        Returns:
+            Dictionary in OpenAI tool format
+        """
+        # Determine which schema to use
+        if tool.override_tool_schema and tool.overriden_schema:
+            schema_json = tool.overriden_schema
+        else:
+            schema_json = tool.schema
+
+        # Parse the schema with error handling
+        try:
+            schema = json.loads(schema_json)
+        except json.JSONDecodeError:
+            _logger.error(f"Invalid JSON schema for tool {tool.name}")
+            schema = {
+                "title": tool.name,
+                "description": tool.description,
+                "parameters": {}
+            }
+
+        # Create OpenAI format
+        openai_tool = {
+            "type": "function",
+            "function": {
+                "name": schema.get("title", tool.name),
+                "description": tool.description if tool.override_tool_description else schema.get("description", ""),
+                "parameters": schema.get("parameters", {})
+            }
+        }
+        
+        return openai_tool
 
     def openai_chat(
         self,
@@ -52,7 +90,6 @@ class LLMProvider(models.Model):
         stream=False,
         tools=None,
         tool_choice="auto",
-        thread=None,
     ):
         """Send chat messages using OpenAI with tools support"""
         model = self.get_model(model, "chat")
@@ -67,9 +104,9 @@ class LLMProvider(models.Model):
 
         # Process the response based on streaming mode
         if not stream:
-            return self._process_non_streaming_response(response, thread)
+            return self._process_non_streaming_response(response)
         else:
-            return self._process_streaming_response(response, thread)
+            return self._process_streaming_response(response)
 
     def _prepare_openai_params(self, model, messages, stream, tools, tool_choice):
         """Prepare parameters for OpenAI API call"""
@@ -82,7 +119,7 @@ class LLMProvider(models.Model):
         # Add tools if specified
         if tools:
             tool_objects = self.get_available_tools(tools)
-            formatted_tools = self.format_tools(tool_objects)
+            formatted_tools = self.openai_format_tools(tool_objects)
 
             if formatted_tools:
                 params["tools"] = formatted_tools
@@ -124,7 +161,7 @@ class LLMProvider(models.Model):
 
         return params
 
-    def _process_non_streaming_response(self, response, thread=None):
+    def _process_non_streaming_response(self, response):
         """Process a non-streaming response from OpenAI"""
         message = {
             "role": response.choices[0].message.role,
@@ -139,23 +176,20 @@ class LLMProvider(models.Model):
             message["tool_calls"] = []
 
             for tool_call in response.choices[0].message.tool_calls:
-                if thread:
-                    tool_result = thread.process_tool_call(
-                        tool_call.function.name,
-                        tool_call.function.arguments,
-                        tool_call.id,
-                    )
-                else:
-                    tool_result = self._execute_tool(
-                        tool_call.function.name,
-                        tool_call.function.arguments,
-                        tool_call.id,
-                    )
-                message["tool_calls"].append(tool_result)
+                # Return the tool call without executing it
+                tool_call_data = {
+                    "id": tool_call.id,
+                    "type": "function",
+                    "function": {
+                        "name": tool_call.function.name,
+                        "arguments": tool_call.function.arguments,
+                    }
+                }
+                message["tool_calls"].append(tool_call_data)
 
         yield message
 
-    def _process_streaming_response(self, response, thread=None):
+    def _process_streaming_response(self, response):
         """Process a streaming response from OpenAI"""
         tool_call_chunks = {}
 
@@ -192,22 +226,10 @@ class LLMProvider(models.Model):
                                 _logger.warning(f"Empty tool name for index: {index}")
                                 continue
 
-                            # Execute the tool and yield result
+                            # Return the tool call without executing it
                             tool_id = tool_call_chunks[index]["id"]
-
-                            if thread:
-                                tool_result = thread.process_tool_call(
-                                    tool_name, current_args, tool_id
-                                )
-                            else:
-                                tool_result = self._execute_tool(
-                                    tool_name, current_args, tool_id
-                                )
-
-                            # Add result to tool call data
-                            tool_call_chunks[index]["result"] = tool_result["result"]
-
-                            # Yield the tool call with result
+                            
+                            # Yield the tool call without result
                             yield {
                                 "role": "assistant",
                                 "tool_call": tool_call_chunks[index],
@@ -218,9 +240,11 @@ class LLMProvider(models.Model):
                                 "JSON arguments incomplete, continuing to accumulate"
                             )
                         except Exception as e:
-                            self._handle_tool_execution_error(
-                                e, tool_call_chunks, index
-                            )
+                            _logger.exception(f"Error processing tool call: {str(e)}")
+                            # Add error to tool call data
+                            tool_call_chunks[index]["error"] = str(e)
+                            
+                            # Yield the tool call with error
                             yield {
                                 "role": "assistant",
                                 "tool_call": tool_call_chunks[index],
@@ -262,52 +286,6 @@ class LLMProvider(models.Model):
 
         return tool_call_chunks
 
-    def _execute_tool(self, tool_name, arguments_str, tool_id):
-        """Execute a tool and return the result"""
-        tool = self.env["llm.tool"].search([("name", "=", tool_name)], limit=1)
-
-        if not tool:
-            _logger.error(f"Tool '{tool_name}' not found")
-            return {
-                "id": tool_id,
-                "type": "function",
-                "function": {
-                    "name": tool_name,
-                    "arguments": arguments_str,
-                },
-                "result": json.dumps({"error": f"Tool '{tool_name}' not found"}),
-            }
-
-        try:
-            arguments = json.loads(arguments_str)
-            result = tool.execute(arguments)
-
-            return {
-                "id": tool_id,
-                "type": "function",
-                "function": {
-                    "name": tool_name,
-                    "arguments": arguments_str,
-                },
-                "result": json.dumps(result),
-            }
-        except Exception as e:
-            _logger.exception(f"Error executing tool {tool_name}: {str(e)}")
-            return {
-                "id": tool_id,
-                "type": "function",
-                "function": {
-                    "name": tool_name,
-                    "arguments": arguments_str,
-                },
-                "result": json.dumps({"error": str(e)}),
-            }
-
-    def _handle_tool_execution_error(self, error, tool_call_chunks, index):
-        """Handle errors during tool execution"""
-        _logger.exception(f"Error executing tool: {str(error)}")
-        tool_call_chunks[index]["result"] = json.dumps({"error": str(error)})
-
     def openai_embedding(self, texts, model=None):
         """Generate embeddings using OpenAI"""
         model = self.get_model(model, "embedding")
@@ -343,7 +321,6 @@ class LLMProvider(models.Model):
         stream=False,
         tools=None,
         tool_choice="auto",
-        thread=None,
     ):
         """Send chat messages using this provider"""
         return self._dispatch(
@@ -353,7 +330,6 @@ class LLMProvider(models.Model):
             stream=stream,
             tools=tools,
             tool_choice=tool_choice,
-            thread=thread,
         )
     
     def _validate_and_clean_messages(self, messages):
@@ -421,4 +397,3 @@ class LLMProvider(models.Model):
         
         # Default behavior from parent
         return self._default_format_message(message)
-        

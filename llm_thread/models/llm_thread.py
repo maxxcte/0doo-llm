@@ -1,4 +1,5 @@
 import logging
+import json
 
 import emoji
 
@@ -96,8 +97,6 @@ class LLMThread(models.Model):
 
         # Handle assistant messages with tool calls
         if tool_calls:
-            import json
-
             message = self.message_post(
                 body=body,
                 message_type="comment",
@@ -224,16 +223,113 @@ class LLMThread(models.Model):
 
     def _chat_with_tools(self, messages, tool_ids=None, stream=True):
         """Helper method to chat with tools"""
-        return self.model_id.chat(messages=messages, stream=stream, tools=tool_ids)
-
-
-
-class MailMessage(models.Model):
-    _inherit = "mail.message"
-
-    def to_provider_message(self):
-        """Convert to provider-compatible message format"""
+        # Get available tools if tool_ids provided
+        tools = None
+        if tool_ids:
+            tools = self.env["llm.tool"].browse(tool_ids)
+            
+        # Use the provider to handle the chat with tools
+        response_generator = self.model_id.chat(
+            messages=messages, 
+            stream=stream, 
+            tools=tools
+        )
+        
+        # Process the response generator
+        for response in response_generator:
+            # If there's a tool call, execute it
+            if response.get("tool_calls"):
+                # For non-streaming responses, we get an array of tool calls
+                for tool_call in response.get("tool_calls", []):
+                    # Execute the tool
+                    tool_name = tool_call["function"]["name"]
+                    arguments_str = tool_call["function"]["arguments"]
+                    tool_id = tool_call["id"]
+                    
+                    # Execute the tool
+                    tool_result = self.execute_tool(
+                        tool_name, 
+                        arguments_str, 
+                        tool_id
+                    )
+                    
+                    # Update the tool call with the result
+                    tool_call.update(tool_result)
+                
+            # If there's a single tool call (streaming case)
+            elif response.get("tool_call") and not response.get("tool_call").get("result"):
+                tool_call = response.get("tool_call")
+                tool_name = tool_call["function"]["name"]
+                arguments_str = tool_call["function"]["arguments"]
+                tool_id = tool_call["id"]
+                
+                # Execute the tool
+                tool_result = self.execute_tool(
+                    tool_name, 
+                    arguments_str, 
+                    tool_id
+                )
+                
+                # Update the response with the tool result
+                response["tool_call"] = tool_result
+                
+            yield response
+            
+    def _create_tool_response(self, tool_name, arguments_str, tool_id, result_data):
+        """Create a standardized tool response structure
+        
+        Args:
+            tool_name: Name of the tool
+            arguments_str: JSON string of arguments
+            tool_id: ID of the tool call
+            result_data: Result data to include (will be JSON serialized)
+            
+        Returns:
+            Dictionary with standardized tool response format
+        """
         return {
-            "role": "user" if self.author_id else "assistant",
-            "content": self.body or "",  # Ensure content is never null
+            "id": tool_id,
+            "type": "function",
+            "function": {
+                "name": tool_name,
+                "arguments": arguments_str,
+            },
+            "result": json.dumps(result_data),
         }
+    
+    def execute_tool(self, tool_name, arguments_str, tool_id):
+        """Execute a tool and return the result
+        
+        Args:
+            tool_name: Name of the tool to execute
+            arguments_str: JSON string of arguments for the tool
+            tool_id: ID of the tool call
+            
+        Returns:
+            Dictionary with tool execution result
+        """
+        _logger = logging.getLogger(__name__)
+        
+        tool = self.env["llm.tool"].search([("name", "=", tool_name)], limit=1)
+
+        if not tool:
+            _logger.error(f"Tool '{tool_name}' not found")
+            return self._create_tool_response(
+                tool_name, 
+                arguments_str, 
+                tool_id, 
+                {"error": f"Tool '{tool_name}' not found"}
+            )
+
+        try:
+            arguments = json.loads(arguments_str)
+            result = tool.execute(arguments)
+            return self._create_tool_response(tool_name, arguments_str, tool_id, result)
+        except Exception as e:
+            _logger.exception(f"Error executing tool {tool_name}: {str(e)}")
+            return self._create_tool_response(
+                tool_name, 
+                arguments_str, 
+                tool_id, 
+                {"error": str(e)}
+            )
