@@ -158,7 +158,10 @@ class LLMThread(models.Model):
             tool_ids = self.tool_ids.ids if self.tool_ids else None
 
             # Format messages using the provider (which will handle validation)
-            formatted_messages = self.provider_id.format_messages(messages)
+            try:
+                formatted_messages = self.provider_id.format_messages(messages)
+            except Exception as e:
+                formatted_messages = self._default_format_messages(messages)
 
             # Process response with possible tool calls
             response_generator = self._chat_with_tools(formatted_messages, tool_ids, stream)
@@ -220,6 +223,23 @@ class LLMThread(models.Model):
         except Exception as e:
             _logger.error("Error getting AI response: %s", str(e))
             yield {"type": "error", "error": str(e)}
+
+    def _default_format_messages(self, messages):
+        """Format messages for OpenAI API
+        
+        Args:
+            messages: mail.message recordset to format
+            
+        Returns:
+            List of formatted messages in OpenAI-compatible format
+        """
+        # First use the default implementation from the llm_tool module
+        formatted_messages = [];
+        for message in messages:
+            formatted_messages.append(self.provider_id._default_format_message(message))
+        
+        # Then validate and clean the messages for OpenAI
+        return formatted_messages
 
     def _chat_with_tools(self, messages, tool_ids=None, stream=True):
         """Helper method to chat with tools"""

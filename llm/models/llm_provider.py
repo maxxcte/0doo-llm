@@ -108,7 +108,8 @@ class LLMProvider(models.Model):
             List of formatted messages in provider-specific format
         """
         return self._dispatch("format_messages", messages)
-
+        
+    @api.model
     def _default_format_message(self, message):
         """Default implementation for formatting message
         
