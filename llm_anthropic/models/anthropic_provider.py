@@ -17,7 +17,7 @@ class LLMProvider(models.Model):
             api_key=self.api_key,
         )
 
-    def anthropic_chat(self, messages, model=None, stream=False):
+    def anthropic_chat(self, messages, model=None, stream=False, **kwargs):
         """Send chat messages using Anthropic"""
         model = self.get_model(model, "chat")
 
@@ -38,6 +38,8 @@ class LLMProvider(models.Model):
             "model": model.name,
             "messages": formatted_messages,
             "stream": stream,
+            # Defaults to 1024 tokens if not explicitly provided
+            "max_tokens": kwargs.get("max_tokens", 1024),
         }
         if system_content:
             params["system"] = system_content
