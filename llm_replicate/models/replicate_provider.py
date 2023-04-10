@@ -15,7 +15,7 @@ class LLMProvider(models.Model):
         """Get Replicate client instance"""
         return replicate.Client(api_token=self.api_key)
 
-    def replicate_chat(self, messages, model=None, stream=False):
+    def replicate_chat(self, messages, model=None, stream=False, **kwargs):
         """Send chat messages using Replicate"""
         model = self.get_model(model, "chat")
 

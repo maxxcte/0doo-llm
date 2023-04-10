@@ -15,7 +15,7 @@ class LLMProvider(models.Model):
         """Get Ollama client instance"""
         return ollama.Client(host=self.api_base or "http://localhost:11434")
 
-    def ollama_chat(self, messages, model=None, stream=False):
+    def ollama_chat(self, messages, model=None, stream=False, **kwargs):
         """Send chat messages using Ollama"""
         model = self.get_model(model, "chat")
 

@@ -35,7 +35,7 @@ class LLMProvider(models.Model):
             api_base=self.api_base,
         )
 
-    def litellm_chat(self, messages, model=None, stream=False):
+    def litellm_chat(self, messages, model=None, stream=False, **kwargs):
         """Send chat messages using LiteLLM proxy"""
         model = self.get_model(model, "chat")
 
