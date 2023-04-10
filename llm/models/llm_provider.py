@@ -56,9 +56,9 @@ class LLMProvider(models.Model):
         """Hook method for registering provider services"""
         return []
 
-    def chat(self, messages, model=None, stream=False):
+    def chat(self, messages, model=None, stream=False, **kwargs):
         """Send chat messages using this provider"""
-        return self._dispatch("chat", messages, model=model, stream=stream)
+        return self._dispatch("chat", messages, model=model, stream=stream, **kwargs)
 
     def embedding(self, texts, model=None):
         """Generate embeddings using this provider"""
