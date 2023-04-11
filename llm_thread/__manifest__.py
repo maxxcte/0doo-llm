@@ -11,6 +11,8 @@ Key Features:
 - Real-Time Chat: Instant AI conversations integrated with Odoo's mail system
 - Multimodal Support: Go beyond text with advanced AI models
 - Full Odoo Integration: Link chats to any Odoo record for context
+- Tool Integration: Enable AI to execute custom tools and functions
+- Function Calling: Select specific tools for each thread to enhance AI capabilities
 
 Getting Started:
 1. Install this module and the "LLM Integration Base" dependency
@@ -18,7 +20,7 @@ Getting Started:
 3. Fetch available models with one click
 4. Start chatting from anywhere in Odoo
 
-Use cases include customer support automation, data analysis, training assistance, and custom AI workflows for your business.
+Use cases include customer support automation, data analysis, training assistance, custom AI workflows, and automated tool execution for your business.
 
 Contact: support@apexive.com
     """,

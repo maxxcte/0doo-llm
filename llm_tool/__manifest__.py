@@ -2,7 +2,7 @@
     "name": "LLM Tool",
     "version": "16.0.1.0.0",
     "category": "Technical",
-    "summary": "Advanced tools for LLM models to interact with Odoo, including customizable schemas and descriptions",
+    "summary": "Function calling and tool execution for LLM models to interact with Odoo",
     "description": """
         Automate Your Odoo Database with AI Agents & Chat AI | ChatGPT, Grok, Anthropic, DeepSeek
 
@@ -11,6 +11,7 @@
         instance. This module provides a robust framework for integrating Large Language Models (LLMs) with Odoo, enabling
         intelligent interactions through configurable tools. Key features include:
 
+        - Function Calling: Enable AI models to call specific functions based on user requests
         - Definition and management of LLM tools with custom implementations
         - Support for dynamic schema generation from Pydantic models
         - Flexible override options for tool descriptions and schemas
