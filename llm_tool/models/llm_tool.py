@@ -161,21 +161,3 @@ class LLMTool(models.Model):
     def _get_available_implementations(self):
         """Hook method for registering tool services"""
         return []
-
-    def _parse_json_safely(self, json_string, default_value=None):
-        """Parse JSON with error handling"""
-        try:
-            return json.loads(json_string)
-        except json.JSONDecodeError as e:
-            _logger.error(f"Invalid JSON for tool {self.name}: {str(e)}")
-            return default_value
-
-    def _get_fallback_schema_dict(self):
-        """Get a fallback schema as a dictionary"""
-        return {
-                "title": self.name,
-                "description": self.description
-                if self.override_tool_description
-                else "Default tool description",
-                "parameters": {},
-        }

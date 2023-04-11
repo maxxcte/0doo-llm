@@ -65,7 +65,6 @@ class LLMThread(models.Model):
 
     def post_ai_response(self, **kwargs):
         """Post a message to the thread with support for tool messages"""
-        _logger.debug("Posting message - kwargs: %s", kwargs)
         body = emoji.demojize(kwargs.get("body"))
 
         # Handle tool messages
@@ -328,7 +327,6 @@ class LLMThread(models.Model):
         Returns:
             Dictionary with tool execution result
         """
-        _logger = logging.getLogger(__name__)
         
         tool = self.env["llm.tool"].search([("name", "=", tool_name)], limit=1)
 
