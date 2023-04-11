@@ -1,7 +1,6 @@
 import json
 import logging
 
-from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import ValidationError
 
 from odoo import _, api, fields, models

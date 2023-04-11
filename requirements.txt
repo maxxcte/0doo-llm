@@ -1,7 +1,6 @@
 # generated from manifests external_dependencies
 anthropic
 emoji
-langchain_core
 ollama
 openai
 pydantic
