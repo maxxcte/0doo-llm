@@ -24,10 +24,10 @@
                             <field name="provider_id" />
                             <field name="model_id" />
                             <field
-                            name="tool_ids"
-                            widget="many2many_tags"
-                            options="{'no_create': True}"
-                            />
+                name="tool_ids"
+                widget="many2many_tags"
+                options="{'no_create': True}"
+              />
                         </group>
                     </group>
                 </sheet>

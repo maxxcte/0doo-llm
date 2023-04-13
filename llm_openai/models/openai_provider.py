@@ -2,8 +2,11 @@ import json
 import logging
 
 from openai import OpenAI
-from odoo import _, api, fields, models
+
+from odoo import api, models
+
 from ..utils.openai_message_validator import OpenAIMessageValidator
+
 _logger = logging.getLogger(__name__)
 
 
@@ -23,13 +26,13 @@ class LLMProvider(models.Model):
     def openai_format_tools(self, tools):
         """Format tools for OpenAI"""
         return [self._openai_format_tool(tool) for tool in tools]
-        
+
     def _openai_format_tool(self, tool):
         """Convert a tool to OpenAI format
-        
+
         Args:
             tool: llm.tool record to convert
-            
+
         Returns:
             Dictionary in OpenAI tool format
         """
@@ -47,7 +50,7 @@ class LLMProvider(models.Model):
             schema = {
                 "title": tool.name,
                 "description": tool.description,
-                "parameters": {}
+                "parameters": {},
             }
 
         # Create OpenAI format
@@ -55,11 +58,13 @@ class LLMProvider(models.Model):
             "type": "function",
             "function": {
                 "name": schema.get("title", tool.name),
-                "description": tool.description if tool.override_tool_description else schema.get("description", ""),
-                "parameters": schema.get("parameters", {})
-            }
+                "description": tool.description
+                if tool.override_tool_description
+                else schema.get("description", ""),
+                "parameters": schema.get("parameters", {}),
+            },
         }
-        
+
         return openai_tool
 
     def openai_chat(
@@ -161,7 +166,7 @@ class LLMProvider(models.Model):
                     "function": {
                         "name": tool_call.function.name,
                         "arguments": tool_call.function.arguments,
-                    }
+                    },
                 }
                 message["tool_calls"].append(tool_call_data)
 
@@ -204,9 +209,6 @@ class LLMProvider(models.Model):
                                 _logger.warning(f"Empty tool name for index: {index}")
                                 continue
 
-                            # Return the tool call without executing it
-                            tool_id = tool_call_chunks[index]["id"]
-                            
                             # Yield the tool call without result
                             yield {
                                 "role": "assistant",
@@ -221,7 +223,7 @@ class LLMProvider(models.Model):
                             _logger.exception(f"Error processing tool call: {str(e)}")
                             # Add error to tool call data
                             tool_call_chunks[index]["error"] = str(e)
-                            
+
                             # Yield the tool call with error
                             yield {
                                 "role": "assistant",
@@ -309,7 +311,7 @@ class LLMProvider(models.Model):
             tools=tools,
             tool_choice=tool_choice,
         )
-    
+
     def _validate_and_clean_messages(self, messages):
         """
         Validate and clean messages to ensure proper tool message structure for OpenAI.
@@ -334,18 +336,18 @@ class LLMProvider(models.Model):
 
     def openai_format_messages(self, messages):
         """Format messages for OpenAI API
-        
+
         Args:
             messages: mail.message recordset to format
-            
+
         Returns:
             List of formatted messages in OpenAI-compatible format
         """
         # First use the default implementation from the llm_tool module
-        formatted_messages = [];
+        formatted_messages = []
         for message in messages:
             formatted_messages.append(self._format_message_for_openai(message))
-        
+
         # Then validate and clean the messages for OpenAI
         return self._validate_and_clean_messages(formatted_messages)
 
@@ -372,6 +374,6 @@ class LLMProvider(models.Model):
             except (json.JSONDecodeError, ValueError):
                 # If JSON parsing fails, fall back to default behavior
                 pass
-        
+
         # Default behavior from parent
         return self._default_format_message(message)

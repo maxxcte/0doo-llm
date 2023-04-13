@@ -1,5 +1,5 @@
-import logging
 import json
+import logging
 
 import emoji
 
@@ -109,7 +109,6 @@ class LLMThread(models.Model):
 
             return message.message_format()[0]
 
-        
         message = self.message_post(
             body=body,
             message_type="comment",
@@ -122,10 +121,10 @@ class LLMThread(models.Model):
 
     def get_chat_messages(self, limit=None):
         """Get messages from the thread
-        
+
         Args:
             limit: Optional limit on number of messages to retrieve
-            
+
         Returns:
             mail.message recordset containing the messages
         """
@@ -159,11 +158,13 @@ class LLMThread(models.Model):
             # Format messages using the provider (which will handle validation)
             try:
                 formatted_messages = self.provider_id.format_messages(messages)
-            except Exception as e:
+            except Exception:
                 formatted_messages = self._default_format_messages(messages)
 
             # Process response with possible tool calls
-            response_generator = self._chat_with_tools(formatted_messages, tool_ids, stream)
+            response_generator = self._chat_with_tools(
+                formatted_messages, tool_ids, stream
+            )
 
             # Process the response stream
             content = ""
@@ -225,18 +226,18 @@ class LLMThread(models.Model):
 
     def _default_format_messages(self, messages):
         """Format messages for OpenAI API
-        
+
         Args:
             messages: mail.message recordset to format
-            
+
         Returns:
             List of formatted messages in OpenAI-compatible format
         """
         # First use the default implementation from the llm_tool module
-        formatted_messages = [];
+        formatted_messages = []
         for message in messages:
             formatted_messages.append(self.provider_id._default_format_message(message))
-        
+
         # Then validate and clean the messages for OpenAI
         return formatted_messages
 
@@ -246,14 +247,12 @@ class LLMThread(models.Model):
         tools = None
         if tool_ids:
             tools = self.env["llm.tool"].browse(tool_ids)
-            
+
         # Use the provider to handle the chat with tools
         response_generator = self.model_id.chat(
-            messages=messages, 
-            stream=stream, 
-            tools=tools
+            messages=messages, stream=stream, tools=tools
         )
-        
+
         # Process the response generator
         for response in response_generator:
             # If there's a tool call, execute it
@@ -264,45 +263,39 @@ class LLMThread(models.Model):
                     tool_name = tool_call["function"]["name"]
                     arguments_str = tool_call["function"]["arguments"]
                     tool_id = tool_call["id"]
-                    
+
                     # Execute the tool
-                    tool_result = self.execute_tool(
-                        tool_name, 
-                        arguments_str, 
-                        tool_id
-                    )
-                    
+                    tool_result = self.execute_tool(tool_name, arguments_str, tool_id)
+
                     # Update the tool call with the result
                     tool_call.update(tool_result)
-                
+
             # If there's a single tool call (streaming case)
-            elif response.get("tool_call") and not response.get("tool_call").get("result"):
+            elif response.get("tool_call") and not response.get("tool_call").get(
+                "result"
+            ):
                 tool_call = response.get("tool_call")
                 tool_name = tool_call["function"]["name"]
                 arguments_str = tool_call["function"]["arguments"]
                 tool_id = tool_call["id"]
-                
+
                 # Execute the tool
-                tool_result = self.execute_tool(
-                    tool_name, 
-                    arguments_str, 
-                    tool_id
-                )
-                
+                tool_result = self.execute_tool(tool_name, arguments_str, tool_id)
+
                 # Update the response with the tool result
                 response["tool_call"] = tool_result
-                
+
             yield response
-            
+
     def _create_tool_response(self, tool_name, arguments_str, tool_id, result_data):
         """Create a standardized tool response structure
-        
+
         Args:
             tool_name: Name of the tool
             arguments_str: JSON string of arguments
             tool_id: ID of the tool call
             result_data: Result data to include (will be JSON serialized)
-            
+
         Returns:
             Dictionary with standardized tool response format
         """
@@ -315,28 +308,28 @@ class LLMThread(models.Model):
             },
             "result": json.dumps(result_data),
         }
-    
+
     def execute_tool(self, tool_name, arguments_str, tool_id):
         """Execute a tool and return the result
-        
+
         Args:
             tool_name: Name of the tool to execute
             arguments_str: JSON string of arguments for the tool
             tool_id: ID of the tool call
-            
+
         Returns:
             Dictionary with tool execution result
         """
-        
+
         tool = self.env["llm.tool"].search([("name", "=", tool_name)], limit=1)
 
         if not tool:
             _logger.error(f"Tool '{tool_name}' not found")
             return self._create_tool_response(
-                tool_name, 
-                arguments_str, 
-                tool_id, 
-                {"error": f"Tool '{tool_name}' not found"}
+                tool_name,
+                arguments_str,
+                tool_id,
+                {"error": f"Tool '{tool_name}' not found"},
             )
 
         try:
@@ -346,8 +339,5 @@ class LLMThread(models.Model):
         except Exception as e:
             _logger.exception(f"Error executing tool {tool_name}: {str(e)}")
             return self._create_tool_response(
-                tool_name, 
-                arguments_str, 
-                tool_id, 
-                {"error": str(e)}
+                tool_name, arguments_str, tool_id, {"error": str(e)}
             )

@@ -14,10 +14,10 @@ class LLMProvider(models.Model):
 
     def format_messages(self, messages):
         """Format messages for the specific provider
-        
+
         Args:
             messages: mail.message recordset to format
-            
+
         Returns:
             List of formatted messages in provider-specific format
         """
