@@ -225,7 +225,7 @@ class LLMThread(models.Model):
             yield {"type": "error", "error": str(e)}
 
     def _default_format_messages(self, messages):
-        """Format messages for OpenAI API
+        """Format messages generic to the provider
 
         Args:
             messages: mail.message recordset to format
