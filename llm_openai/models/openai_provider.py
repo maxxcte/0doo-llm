@@ -36,36 +36,66 @@ class LLMProvider(models.Model):
         Returns:
             Dictionary in OpenAI tool format
         """
-        # Determine which schema to use
+        # First try to use overridden schema if available
         if tool.override_tool_schema and tool.overriden_schema:
-            schema_json = tool.overriden_schema
-        else:
-            schema_json = tool.schema
-
-        # Parse the schema with error handling
+            try:
+                schema = json.loads(tool.overriden_schema)
+                return self._create_openai_tool_from_schema(schema, tool)
+            except json.JSONDecodeError:
+                _logger.error(f"Invalid JSON schema for tool {tool.name}")
+                # Continue to next approach
+        
+        # Next try to use Pydantic model
         try:
-            schema = json.loads(schema_json)
+            pydantic_model = tool.get_pydantic_model()
+            if pydantic_model:
+                # Get schema directly from Pydantic model
+                model_schema = pydantic_model.model_json_schema()
+                return self._create_openai_tool_from_schema(model_schema, tool)
+        except Exception as e:
+            _logger.error(f"Error using Pydantic model for {tool.name}: {str(e)}")
+            # Continue to fallback approach
+        
+        # Fallback to using the stored schema
+        try:
+            schema = json.loads(tool.schema)
+            return self._create_openai_tool_from_schema(schema, tool)
         except json.JSONDecodeError:
             _logger.error(f"Invalid JSON schema for tool {tool.name}")
+            # Use minimal fallback schema
             schema = {
                 "title": tool.name,
                 "description": tool.description,
-                "parameters": {},
+                "properties": {},
             }
+            return self._create_openai_tool_from_schema(schema, tool)
+    
+    def _create_openai_tool_from_schema(self, schema, tool):
+        """Helper method to create an OpenAI tool from a schema
 
-        # Create OpenAI format
-        openai_tool = {
+        Args:
+            schema: JSON schema dictionary
+            tool: llm.tool record
+
+        Returns:
+            Dictionary in OpenAI tool format
+        """
+        formatted_tool = {
             "type": "function",
             "function": {
                 "name": schema.get("title", tool.name),
                 "description": tool.description
                 if tool.override_tool_description
                 else schema.get("description", ""),
-                "parameters": schema.get("parameters", {}),
+                "parameters": {
+                    "type": "object",
+                    "properties": schema.get("properties", {}),
+                    "required": schema.get("required", []),
+                },
             },
         }
-
-        return openai_tool
+        
+        return formatted_tool
 
     def openai_chat(
         self,
