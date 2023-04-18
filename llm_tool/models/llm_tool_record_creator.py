@@ -23,7 +23,7 @@ class LLMToolRecordCreator(models.Model):
                 title=self.name or "odoo_record_creator",
             )
             model: str = Field(..., description="The Odoo model to create a record in")
-            values: dict = Field(
+            fields: dict = Field(
                 ..., description="Dictionary of field values for the new record"
             )
 
@@ -34,19 +34,19 @@ class LLMToolRecordCreator(models.Model):
         _logger.info(f"Executing Odoo Record Creator with parameters: {parameters}")
 
         model_name = parameters.get("model")
-        values = parameters.get("values", {})
+        fields = parameters.get("fields", {})
 
         if not model_name:
             return {"error": "Model name is required"}
 
-        if not values:
-            return {"error": "Values dictionary is required"}
+        if not fields:
+            return {"error": "Fields dictionary is required"}
 
         try:
             model = self.env[model_name]
 
             # Create the record
-            new_record = model.create(values)
+            new_record = model.create(fields)
 
             # Return the ID and display name of the created record
             result = {
