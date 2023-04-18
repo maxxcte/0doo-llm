@@ -139,7 +139,7 @@ class LLMProvider(models.Model):
     def format_tools(self, tools):
         """Format tools for the specific provider"""
         return self._dispatch("format_tools", tools)
-    
+
     def format_messages(self, messages):
         """Format messages for this provider
 

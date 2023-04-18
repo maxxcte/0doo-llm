@@ -44,7 +44,7 @@ class LLMProvider(models.Model):
             except json.JSONDecodeError:
                 _logger.error(f"Invalid JSON schema for tool {tool.name}")
                 # Continue to next approach
-        
+
         # Next try to use Pydantic model
         try:
             pydantic_model = tool.get_pydantic_model()
@@ -55,7 +55,7 @@ class LLMProvider(models.Model):
         except Exception as e:
             _logger.error(f"Error using Pydantic model for {tool.name}: {str(e)}")
             # Continue to fallback approach
-        
+
         # Fallback to using the stored schema
         try:
             schema = json.loads(tool.schema)
@@ -69,7 +69,7 @@ class LLMProvider(models.Model):
                 "properties": {},
             }
             return self._create_openai_tool_from_schema(schema, tool)
-    
+
     def _create_openai_tool_from_schema(self, schema, tool):
         """Helper method to create an OpenAI tool from a schema
 
@@ -94,7 +94,7 @@ class LLMProvider(models.Model):
                 },
             },
         }
-        
+
         return formatted_tool
 
     def openai_chat(

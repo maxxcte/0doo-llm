@@ -23,8 +23,13 @@ class LLMToolRecordUnlinker(models.Model):
                 title=self.name or "odoo_record_unlinker",
             )
             model: str = Field(..., description="The Odoo model to delete records from")
-            domain: list = Field(..., description="Domain to identify records to delete")
-            limit: int = Field(1, description="Maximum number of records to delete (default: 1 for safety)")
+            domain: list = Field(
+                ..., description="Domain to identify records to delete"
+            )
+            limit: int = Field(
+                1,
+                description="Maximum number of records to delete (default: 1 for safety)",
+            )
 
         return RecordUnlinkerParams
 
@@ -47,19 +52,21 @@ class LLMToolRecordUnlinker(models.Model):
 
             # Find records to delete
             records = model.search(domain, limit=limit)
-            
+
             if not records:
-                return {"message": f"No records found matching the domain in {model_name}"}
-            
+                return {
+                    "message": f"No records found matching the domain in {model_name}"
+                }
+
             # Store record info before deletion for reporting
-            record_info = [{
-                "id": record.id,
-                "display_name": record.display_name
-            } for record in records]
-            
+            record_info = [
+                {"id": record.id, "display_name": record.display_name}
+                for record in records
+            ]
+
             # Count records to be deleted
             count = len(records)
-            
+
             # Delete the records
             records.unlink()
 
