@@ -32,4 +32,15 @@
         <field name="active" eval="True" />
         <field name="requires_user_consent" eval="True" />
     </record>
+
+    <record id="llm_tool_odoo_record_unlinker" model="llm.tool">
+        <field name="name">odoo_record_unlinker</field>
+        <field name="implementation">odoo_record_unlinker</field>
+        <field
+      name="description"
+    >Delete existing records from any Odoo model. This tool allows you to remove data from the database by specifying the model name and domain filters to identify records to delete. For safety, it defaults to deleting only one record at a time. Due to its data modification capabilities, this tool requires user consent before execution.</field>
+        <field name="default" eval="True" />
+        <field name="active" eval="True" />
+        <field name="requires_user_consent" eval="True" />
+    </record>
 </odoo>
