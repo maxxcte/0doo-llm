@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Extend Thread Form View -->
+    <record id="view_llm_thread_form_inherit_agent" model="ir.ui.view">
+        <field name="name">llm.thread.form.inherit.agent</field>
+        <field name="model">llm.thread</field>
+        <field name="inherit_id" ref="llm_thread.view_llm_thread_form"/>
+        <field name="arch" type="xml">
+            <field name="provider_id" position="before">
+                <field name="agent_id" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+    
+    <!-- Extend Thread Search View -->
+    <record id="view_llm_thread_search_inherit_agent" model="ir.ui.view">
+        <field name="name">llm.thread.search.inherit.agent</field>
+        <field name="model">llm.thread</field>
+        <field name="inherit_id" ref="llm_thread.view_llm_thread_search"/>
+        <field name="arch" type="xml">
+            <field name="provider_id" position="after">
+                <field name="agent_id"/>
+            </field>
+            <filter name="provider" position="after">
+                <filter string="Agent" name="agent" domain="[]" context="{'group_by': 'agent_id'}"/>
+            </filter>
+        </field>
+    </record>
+</odoo>

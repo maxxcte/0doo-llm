@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Add Agent menu under LLM Configuration -->
+    <menuitem id="menu_llm_agent"
+              name="Agents"
+              parent="llm.menu_llm_configuration"
+              action="action_llm_agent"
+              sequence="30"/>
+</odoo>
