@@ -95,19 +95,4 @@
         <field name="params" eval="&quot;{}&quot;" />
     </record>
 
-    <!-- Chat Menu Item -->
-    <menuitem
-    id="menu_llm_chat"
-    name="Chat"
-    action="action_llm_chat"
-    parent="llm.menu_llm_root"
-    sequence="20"
-  />
-     <menuitem
-    id="menu_llm_thread"
-    name="Chat Threads"
-    action="llm_thread_action"
-    parent="llm.menu_llm_config"
-    sequence="40"
-  />
 </odoo>

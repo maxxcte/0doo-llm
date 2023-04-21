@@ -34,6 +34,7 @@ Contact: support@apexive.com
         "security/llm_thread_security.xml",
         "security/ir.model.access.csv",
         "views/llm_thread_views.xml",
+        "views/menu.xml",
     ],
     "assets": {
         "web.assets_backend": [
