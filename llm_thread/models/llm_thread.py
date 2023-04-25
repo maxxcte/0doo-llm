@@ -138,7 +138,7 @@ class LLMThread(models.Model):
         )
         return messages
 
-    def get_assistant_response(self, stream=True):
+    def get_assistant_response(self, stream=True, system_prompt=None):
         """
         Get assistant response with tool handling.
 
@@ -147,6 +147,7 @@ class LLMThread(models.Model):
 
         Args:
             stream (bool): Whether to stream the response
+            system_prompt (str, optional): System prompt to include at the beginning of the messages
 
         Yields:
             dict: Response chunks with various types (content, tool_start, tool_end, error)
@@ -157,19 +158,37 @@ class LLMThread(models.Model):
 
             # Format messages using the provider (which will handle validation)
             try:
-                formatted_messages = self.provider_id.format_messages(messages)
+                formatted_messages = self.provider_id.format_messages(messages, system_prompt=system_prompt)
             except Exception:
-                formatted_messages = self._default_format_messages(messages)
+                formatted_messages = self._default_format_messages(messages, system_prompt=system_prompt)
 
             # Process response with possible tool calls
             response_generator = self._chat_with_tools(
                 formatted_messages, tool_ids, stream
             )
 
-            # Process the response stream
-            content = ""
-            assistant_tool_calls = []
+            # Process the response stream using the helper method
+            for response in self._process_llm_response(response_generator):
+                yield response
 
+        except Exception as e:
+            _logger.error("Error getting AI response: %s", str(e))
+            yield {"type": "error", "error": str(e)}
+
+    def _process_llm_response(self, response_generator):
+        """
+        Process the LLM response stream, handling content and tool calls.
+        
+        Args:
+            response_generator: Generator yielding response chunks from the LLM
+            
+        Yields:
+            dict: Processed response chunks with proper formatting
+        """
+        content = ""
+        assistant_tool_calls = []
+
+        try:
             for response in response_generator:
                 # Handle content
                 if response.get("content") is not None:
@@ -219,22 +238,32 @@ class LLMThread(models.Model):
                 self.post_ai_response(
                     body=content or "", tool_calls=assistant_tool_calls
                 )
-
+                
         except Exception as e:
-            _logger.error("Error getting AI response: %s", str(e))
+            _logger.error("Error processing LLM response: %s", str(e))
             yield {"type": "error", "error": str(e)}
 
-    def _default_format_messages(self, messages):
+    def _default_format_messages(self, messages, system_prompt=None):
         """Format messages generic to the provider
 
         Args:
             messages: mail.message recordset to format
+            system_prompt: Optional system prompt to include at the beginning of the messages
 
         Returns:
             List of formatted messages in OpenAI-compatible format
         """
         # First use the default implementation from the llm_tool module
         formatted_messages = []
+        
+        # Add system prompt if provided
+        if system_prompt:
+            formatted_messages.append({
+                "role": "system",
+                "content": system_prompt
+            })
+        
+        # Format the rest of the messages
         for message in messages:
             formatted_messages.append(self.provider_id._default_format_message(message))
 

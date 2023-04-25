@@ -364,17 +364,27 @@ class LLMProvider(models.Model):
         )
         return validator.validate_and_clean()
 
-    def openai_format_messages(self, messages):
+    def openai_format_messages(self, messages, system_prompt=None):
         """Format messages for OpenAI API
 
         Args:
             messages: mail.message recordset to format
+            system_prompt: Optional system prompt to include at the beginning of the messages
 
         Returns:
             List of formatted messages in OpenAI-compatible format
         """
         # First use the default implementation from the llm_tool module
         formatted_messages = []
+        
+        # Add system prompt if provided
+        if system_prompt:
+            formatted_messages.append({
+                "role": "system",
+                "content": system_prompt
+            })
+            
+        # Format the rest of the messages
         for message in messages:
             formatted_messages.append(self._format_message_for_openai(message))
 

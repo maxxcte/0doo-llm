@@ -8,7 +8,7 @@ _logger = logging.getLogger(__name__)
 
 
 class LLMThreadController(http.Controller):
-    def generate(self, dbname, env, thread_id):
+    def generate(self, dbname, env, thread_id, system_prompt=None):
         """Override generate method to handle tool messages"""
         # Use a cursor block to ensure the cursor remains open for the duration of the generator
         with registry(dbname).cursor() as cr:
@@ -19,7 +19,7 @@ class LLMThreadController(http.Controller):
 
             # Stream responses
             thread = env["llm.thread"].browse(int(thread_id))
-            for response in thread.get_assistant_response(stream=True):
+            for response in thread.get_assistant_response(stream=True, system_prompt=system_prompt):
                 if response.get("type") == "error":
                     error_data = f"data: {json.dumps({'type': 'error', 'error': response['error']})}\n\n"
                     yield error_data.encode("utf-8")
@@ -59,8 +59,13 @@ class LLMThreadController(http.Controller):
             yield f"data: {json.dumps({'type': 'end'})}\n\n".encode()
 
     @http.route("/llm/thread/stream_response", type="http", auth="user", csrf=True)
-    def stream_response(self, thread_id):
-        """Stream assistant responses using server-sent events"""
+    def stream_response(self, thread_id, system_prompt=None):
+        """Stream assistant responses using server-sent events
+        
+        Args:
+            thread_id: ID of the thread to stream responses from
+            system_prompt: Optional system prompt to include with the agent's system prompt
+        """
         headers = {
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache",
@@ -68,7 +73,7 @@ class LLMThreadController(http.Controller):
         }
 
         return Response(
-            self.generate(request.cr.dbname, request.env, thread_id),
+            self.generate(request.cr.dbname, request.env, thread_id, system_prompt),
             direct_passthrough=True,
             headers=headers,
         )
