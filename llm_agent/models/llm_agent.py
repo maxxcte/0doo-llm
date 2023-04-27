@@ -40,21 +40,25 @@ class LLMAgent(models.Model):
         string="Role",
         help="The role of the agent (e.g., 'Assistant', 'Customer Support', 'Data Analyst')",
         tracking=True,
+        required=True,
     )
     goal = fields.Text(
         string="Goal",
         help="The primary goal or objective of this agent",
         tracking=True,
+        required=True,
     )
     background = fields.Text(
         string="Background",
         help="Background information for the agent to understand its context",
         tracking=True,
+        required=True,
     )
     instructions = fields.Text(
         string="Instructions",
         help="Specific instructions for the agent to follow",
         tracking=True,
+        required=True,
     )
     
     # Tools configuration
@@ -65,24 +69,17 @@ class LLMAgent(models.Model):
         tracking=True,
     )
     
-    # System prompt generation
+    # System prompt template
     system_prompt = fields.Text(
-        string="System Prompt",
-        compute="_compute_system_prompt",
-        store=True,
-        readonly=False,
-        help="The system prompt that will be sent to the LLM",
-        tracking=True,
-    )
-    use_custom_system_prompt = fields.Boolean(
-        string="Use Custom System Prompt",
-        default=False,
-        help="If enabled, the custom system prompt will be used instead of the generated one",
-        tracking=True,
-    )
-    custom_system_prompt = fields.Text(
-        string="Custom System Prompt",
-        help="Custom system prompt to use when 'Use Custom System Prompt' is enabled",
+        string="System Prompt Template",
+        default="""You are a {{ role }}.
+
+Your goal is to {{ goal }}
+
+Background: {{ background }}
+
+Instructions: {{ instructions }}""",
+        help="Template for the system prompt. Use {{ field_name }} placeholders for variable substitution.",
         tracking=True,
     )
     
@@ -100,29 +97,6 @@ class LLMAgent(models.Model):
         help="Threads using this agent",
     )
     
-    @api.depends("role", "goal", "background", "instructions")
-    def _compute_system_prompt(self):
-        """Generate a system prompt based on the agent's configuration"""
-        for record in self:
-            if record.use_custom_system_prompt and record.custom_system_prompt:
-                record.system_prompt = record.custom_system_prompt
-            else:
-                prompt_parts = []
-                
-                if record.role:
-                    prompt_parts.append(f"You are a {record.role}.")
-                
-                if record.goal:
-                    prompt_parts.append(f"Your goal is to {record.goal}")
-                
-                if record.background:
-                    prompt_parts.append(f"Background: {record.background}")
-                
-                if record.instructions:
-                    prompt_parts.append(f"Instructions: {record.instructions}")
-                
-                record.system_prompt = "\n\n".join(prompt_parts)
-    
     def _compute_thread_count(self):
         """Compute the number of threads using this agent"""
         for record in self:
@@ -135,3 +109,25 @@ class LLMAgent(models.Model):
         action["domain"] = [("agent_id", "=", self.id)]
         action["context"] = {"default_agent_id": self.id}
         return action
+    
+    def get_formatted_system_prompt(self):
+        """Generate a formatted system prompt based on the template and agent's configuration"""
+        self.ensure_one()
+        if not self.system_prompt:
+            return ""
+            
+        # Create a dictionary with the field values for template substitution
+        values = {
+            "role": self.role,
+            "goal": self.goal,
+            "background": self.background,
+            "instructions": self.instructions,
+        }
+        
+        # Replace template variables with actual values
+        prompt = self.system_prompt
+        for key, value in values.items():
+            placeholder = "{{ " + key + " }}"
+            prompt = prompt.replace(placeholder, value)
+        
+        return prompt

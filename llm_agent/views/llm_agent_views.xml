@@ -55,9 +55,7 @@
                         </page>
                         <page string="System Prompt" name="system_prompt">
                             <group>
-                                <field name="use_custom_system_prompt"/>
-                                <field name="custom_system_prompt" attrs="{'invisible': [('use_custom_system_prompt', '=', False)], 'required': [('use_custom_system_prompt', '=', True)]}" widget="text_markdown"/>
-                                <field name="system_prompt" widget="text_markdown" readonly="1" attrs="{'invisible': [('use_custom_system_prompt', '=', True)]}"/>
+                                <field name="system_prompt" widget="text_markdown"/>
                             </group>
                         </page>
                     </notebook>

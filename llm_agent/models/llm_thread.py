@@ -19,71 +19,31 @@ class LLMThread(models.Model):
             self.model_id = self.agent_id.model_id
             self.tool_ids = self.agent_id.tool_ids
     
-    def get_assistant_response(self, stream=True):
-        """Override to include agent's system prompt if agent is set"""
-        if self.agent_id and self.agent_id.system_prompt:
-            # Get messages and format them with the provider
-            messages = self.get_chat_messages()
-            tool_ids = self.tool_ids.ids if self.tool_ids else None
-            
-            # Format messages using the provider (which will handle validation)
-            try:
-                formatted_messages = self.provider_id.format_messages(
-                    messages, system_prompt=self.agent_id.system_prompt
-                )
-            except Exception:
-                # Fall back to default formatting with system prompt
-                formatted_messages = self._default_format_messages(
-                    messages, system_prompt=self.agent_id.system_prompt
-                )
-            
-            # Process response with possible tool calls
-            response_generator = self._chat_with_tools(
-                formatted_messages, tool_ids, stream
-            )
-            
-            # Process the response stream
-            content = ""
-            assistant_tool_calls = []
-            
-            for response in response_generator:
-                yield response
-            
-            return
+    def get_assistant_response(self, stream=True, system_prompt=None):
+        """Override to include agent's system prompt if agent is set
         
-        # If no agent or no system prompt, use the original method
-        return super().get_assistant_response(stream=stream)
-    
-    def _default_format_messages(self, messages, system_prompt=None):
-        """Override default message formatting to include system prompt if provided"""
-        formatted_messages = []
+        Args:
+            stream (bool): Whether to stream the response
+            system_prompt (str, optional): Additional system prompt to include with the agent's system prompt
         
-        # Add system prompt if provided
-        if system_prompt:
-            formatted_messages.append(
-                {
-                    "role": "system",
-                    "content": system_prompt,
-                }
-            )
+        Yields:
+            dict: Response chunks with various types (content, tool_start, tool_end, error)
+        """
+        # If no agent, use the original method with the provided system prompt
+        if not self.agent_id:
+            return super().get_assistant_response(stream=stream, system_prompt=system_prompt)
+            
+        # Get the formatted system prompt from the agent
+        agent_system_prompt = self.agent_id.get_formatted_system_prompt()
         
-        # Add the rest of the messages
-        for message in messages:
-            if message.author_id:
-                # User message
-                formatted_messages.append(
-                    {
-                        "role": "user",
-                        "content": message.body,
-                    }
-                )
-            else:
-                # Assistant message
-                formatted_messages.append(
-                    {
-                        "role": "assistant",
-                        "content": message.body,
-                    }
-                )
-        
-        return formatted_messages
+        # Combine system prompts if both are provided
+        combined_prompt = None
+        if agent_system_prompt and system_prompt:
+            combined_prompt = f"{agent_system_prompt}\n\n{system_prompt}"
+        elif agent_system_prompt:
+            combined_prompt = agent_system_prompt
+        else:
+            combined_prompt = system_prompt
+            
+        # Use the parent implementation with the combined system prompt
+        return super().get_assistant_response(stream=stream, system_prompt=combined_prompt)
