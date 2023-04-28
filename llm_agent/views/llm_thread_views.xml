@@ -4,7 +4,7 @@
     <record id="view_llm_thread_form_inherit_agent" model="ir.ui.view">
         <field name="name">llm.thread.form.inherit.agent</field>
         <field name="model">llm.thread</field>
-        <field name="inherit_id" ref="llm_thread.view_llm_thread_form"/>
+        <field name="inherit_id" ref="llm_thread.llm_thread_view_form"/>
         <field name="arch" type="xml">
             <field name="provider_id" position="before">
                 <field name="agent_id" options="{'no_create': True}"/>
@@ -16,7 +16,7 @@
     <record id="view_llm_thread_search_inherit_agent" model="ir.ui.view">
         <field name="name">llm.thread.search.inherit.agent</field>
         <field name="model">llm.thread</field>
-        <field name="inherit_id" ref="llm_thread.view_llm_thread_search"/>
+        <field name="inherit_id" ref="llm_thread.llm_thread_view_search"/>
         <field name="arch" type="xml">
             <field name="provider_id" position="after">
                 <field name="agent_id"/>
