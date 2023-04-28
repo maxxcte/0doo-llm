@@ -51,7 +51,12 @@
                             </group>
                         </page>
                         <page string="Tools" name="tools">
-                            <field name="tool_ids" widget="many2many_tags"/>
+                            <group>
+                                <field name="tool_ids" widget="many2many_tags" options="{'no_create': True}" placeholder="Select tools for this agent..." />
+                            </group>
+                            <div class="text-muted px-3 py-2">
+                                Select the tools this agent may need. These tools will be auto selected when you assign this agent on LLM Chat Thread
+                            </div>
                         </page>
                         <page string="System Prompt" name="system_prompt">
                             <group>
