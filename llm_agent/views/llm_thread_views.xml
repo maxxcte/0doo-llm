@@ -21,9 +21,9 @@
             <field name="provider_id" position="after">
                 <field name="agent_id"/>
             </field>
-            <filter name="provider" position="after">
+            <search position="inside">
                 <filter string="Agent" name="agent" domain="[]" context="{'group_by': 'agent_id'}"/>
-            </filter>
+            </search>
         </field>
     </record>
 </odoo>
