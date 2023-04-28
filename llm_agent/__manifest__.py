@@ -3,7 +3,7 @@
     "summary": "Agent configuration for LLM chat",
     "description": """
 LLM Agent for Odoo
-=================
+==================
 Configure AI agents with specific roles, goals, and tools to enhance your AI interactions.
 
 Key Features:
@@ -24,7 +24,7 @@ Use cases include creating specialized agents for customer support, data analysi
         "security/ir.model.access.csv",
         "views/llm_agent_views.xml",
         "views/llm_thread_views.xml",
-        "views/menu.xml",
+        "views/llm_menu_views.xml",
     ],
     "images": [
         "static/description/banner.jpeg",

@@ -3,7 +3,7 @@
     <!-- Add Agent menu under LLM Configuration -->
     <menuitem id="menu_llm_agent"
               name="Agents"
-              parent="llm.menu_llm_configuration"
+              parent="llm.menu_llm_config"
               action="action_llm_agent"
               sequence="30"/>
 </odoo>
