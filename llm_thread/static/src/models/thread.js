@@ -97,6 +97,11 @@ registerPatch({
           method: "write",
           args: [[this.id], values],
         });
+        
+        // If this thread is part of an LLMChat, use the refreshThread method to update it
+        if (this.llmChat) {
+          await this.llmChat.refreshThread(this.id);
+        }
       }
     },
   },

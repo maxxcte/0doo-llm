@@ -4,6 +4,20 @@ import { attr, many, one } from "@mail/model/model_field";
 import { clear } from "@mail/model/model_field_command";
 import { registerModel } from "@mail/model/model_core";
 
+// Constants for thread fields
+const THREAD_SEARCH_FIELDS = [
+  "name",
+  "message_ids",
+  "create_uid",
+  "create_date",
+  "write_date",
+  "model_id",
+  "provider_id",
+  "related_thread_model",
+  "related_thread_id",
+  "tool_ids",
+];
+
 registerModel({
   name: "LLMChat",
   recordMethods: {
@@ -73,46 +87,87 @@ registerModel({
         method: "search_read",
         kwargs: {
           domain: [["create_uid", "=", this.env.services.user.userId]],
-          fields: [
-            "name",
-            "message_ids",
-            "create_uid",
-            "create_date",
-            "write_date",
-            "model_id",
-            "provider_id",
-            "related_thread_model",
-            "related_thread_id",
-            "tool_ids",
-          ],
+          fields: THREAD_SEARCH_FIELDS,
           order: "write_date desc",
         },
       });
 
-      const threadData = result.map((thread) => ({
-        id: thread.id,
-        model: "llm.thread",
-        name: thread.name,
-        message_needaction_counter: 0,
-        creator: thread.create_uid ? { id: thread.create_uid } : undefined,
-        isServerPinned: true,
-        updatedAt: thread.write_date,
-        relatedThreadModel: thread.related_thread_model,
-        relatedThreadId: thread.related_thread_id,
-        selectedToolIds: thread.tool_ids || [],
-        llmModel: thread.model_id
-          ? {
-              id: thread.model_id[0],
-              name: thread.model_id[1],
-              llmProvider: {
-                id: thread.provider_id[0],
-                name: thread.provider_id[1],
-              },
-            }
-          : undefined,
-      }));
-
+      const threadData = result.map((thread) => this._mapThreadDataFromServer(thread));
       this.update({ threads: threadData });
+    },
+    
+    /**
+     * Maps server thread data to the format expected by the Thread model
+     * @param {Object} threadData - Raw thread data from server
+     * @returns {Object} - Formatted thread data
+     * @private
+     */
+    _mapThreadDataFromServer(threadData) {
+      const mappedData = {
+        id: threadData.id,
+        model: "llm.thread",
+        name: threadData.name,
+        message_needaction_counter: 0,
+        creator: threadData.create_uid ? { id: threadData.create_uid } : undefined,
+        isServerPinned: true,
+        updatedAt: threadData.write_date,
+        relatedThreadModel: threadData.related_thread_model,
+        relatedThreadId: threadData.related_thread_id,
+        selectedToolIds: threadData.tool_ids || [],
+      };
+      
+      // Handle the llmModel field separately to avoid undefined errors
+      if (threadData.model_id && threadData.provider_id) {
+        mappedData.llmModel = {
+          id: threadData.model_id[0],
+          name: threadData.model_id[1],
+          llmProvider: {
+            id: threadData.provider_id[0],
+            name: threadData.provider_id[1],
+          },
+        };
+      }
+      
+      return mappedData;
+    },
+    
+    /**
+     * Refreshes a specific thread in the threads collection.
+     * @param {Number} threadId - ID of the thread to refresh
+     * @returns {Promise<void>}
+     */
+    async refreshThread(threadId) {
+      try {
+        const result = await this.messaging.rpc({
+          model: "llm.thread",
+          method: "search_read",
+          kwargs: {
+            domain: [["id", "=", threadId]],
+            fields: THREAD_SEARCH_FIELDS,
+          },
+        });
+        
+        if (!result || !result.length) {
+          return;
+        }
+        
+        const mappedThreadData = this._mapThreadDataFromServer(result[0]);
+        
+        // Find the thread in the collection and update it directly
+        if (this.threads) {
+          const threadIndex = this.threads.findIndex(thread => thread.id === threadId);
+          
+          if (threadIndex !== -1) {
+            // Get the existing thread
+            const thread = this.threads[threadIndex];
+            
+            // Update the thread directly
+            thread.update(mappedThreadData);
+          }
+        }
+      } catch (error) {
+        console.error("Error refreshing thread:", error);
+      }
     },
 
     /**
