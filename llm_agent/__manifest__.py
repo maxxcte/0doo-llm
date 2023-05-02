@@ -29,6 +29,13 @@ Use cases include creating specialized agents for customer support, data analysi
     "images": [
         "static/description/banner.jpeg",
     ],
+    "assets": {
+        "web.assets_backend": [
+            # Models
+            "llm_agent/static/src/models/llm_agent.js",
+            "llm_agent/static/src/models/llm_chat.js",
+        ],
+    },
     "license": "LGPL-3",
     "installable": True,
     "application": False,
