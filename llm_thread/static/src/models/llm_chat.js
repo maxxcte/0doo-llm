@@ -80,14 +80,15 @@ registerModel({
 
     /**
      * Load threads from the server for the current user.
+     * @param {Array} [additionalFields=[]] - Additional fields to fetch
      */
-    async loadThreads() {
+    async loadThreads(additionalFields = []) {
       const result = await this.messaging.rpc({
         model: "llm.thread",
         method: "search_read",
         kwargs: {
           domain: [["create_uid", "=", this.env.services.user.userId]],
-          fields: THREAD_SEARCH_FIELDS,
+          fields: [...THREAD_SEARCH_FIELDS, ...additionalFields],
           order: "write_date desc",
         },
       });
@@ -134,16 +135,17 @@ registerModel({
     /**
      * Refreshes a specific thread in the threads collection.
      * @param {Number} threadId - ID of the thread to refresh
+     * @param {Array} [additionalFields=[]] - Additional fields to fetch
      * @returns {Promise<void>}
      */
-    async refreshThread(threadId) {
+    async refreshThread(threadId, additionalFields = []) {
       try {
         const result = await this.messaging.rpc({
           model: "llm.thread",
           method: "search_read",
           kwargs: {
             domain: [["id", "=", threadId]],
-            fields: THREAD_SEARCH_FIELDS,
+            fields: [...THREAD_SEARCH_FIELDS, ...additionalFields],
           },
         });
         
