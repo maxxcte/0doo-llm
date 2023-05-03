@@ -162,7 +162,6 @@ registerModel({
 
       try {
         await thread.updateLLMChatThreadSettings({ name: newName });
-        await thread.llmChat.loadThreads();
         this.update({
           isEditingName: false,
           pendingName: "",
