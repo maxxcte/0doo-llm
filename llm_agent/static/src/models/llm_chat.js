@@ -32,5 +32,28 @@ registerPatch({
 
       this.update({ llmAgents: agentData });
     },
+    
+    /**
+     * Override ensureThread to load agents as well
+     * @override
+     */
+    async ensureThread(options) {
+      // Load agents if not already loaded
+      if (!this.llmAgents || this.llmAgents.length === 0) {
+        await this.loadAgents();
+      }
+      
+      // Call the original method
+      return this._super(options);
+    },
+    
+    /**
+     * Override initializeLLMChat to include agent loading
+     * @override
+     */
+    async initializeLLMChat(action, initActiveId, postInitializationPromises = []) {
+      // Pass our loadAgents promise to the original method
+      return this._super(action, initActiveId, [...postInitializationPromises, this.loadAgents()]);
+    }
   },
 });

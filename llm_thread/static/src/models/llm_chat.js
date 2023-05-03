@@ -352,7 +352,13 @@ registerModel({
       }
     },
 
-    async initializeLLMChat(action, initActiveId) {
+    /**
+     * Initialize the LLM chat with the given action.
+     * @param {Object} action - The action that triggered the initialization
+     * @param {Number} initActiveId - The ID of the thread to initialize with
+     * @param {Array} [postInitializationPromises=[]] - Additional promises to execute after loading basic resources
+     */
+    async initializeLLMChat(action, initActiveId, postInitializationPromises = []) {
       this.update({
         llmChatView: {
           actionId: action.id,
@@ -366,6 +372,11 @@ registerModel({
       // Load threads first
       await this.loadThreads();
       await this.loadTools();
+      
+      // Execute any additional initialization promises
+      if (postInitializationPromises.length > 0) {
+        await Promise.all(postInitializationPromises);
+      }
 
       // Then handle initial thread
       if (!this.isInitThreadHandled) {
