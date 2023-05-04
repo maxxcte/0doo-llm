@@ -4,6 +4,15 @@ import { attr, many, one } from "@mail/model/model_field";
 import { clear } from "@mail/model/model_field_command";
 import { registerPatch } from "@mail/model/model_core";
 
+/**
+ * Utility function to convert camelCase to snake_case
+ * @param {String} str - String to convert
+ * @returns {String} - Converted string
+ */
+function camelToSnakeCase(str) {
+  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
 registerPatch({
   name: "Thread",
   fields: {
@@ -53,18 +62,21 @@ registerPatch({
   recordMethods: {
     /**
      * Update thread settings
-     * @param {Object} params
-     * @param {String} [params.name] - New thread name
-     * @param {Number} [params.llmModelId] - New model ID
-     * @param {Number} [params.llmProviderId] - New provider ID
+     * @param {Object} settings - Settings object
+     * @param {String} [settings.name] - Thread name
+     * @param {Number} [settings.llmModelId] - Model ID
+     * @param {Number} [settings.llmProviderId] - Provider ID
+     * @param {Array} [settings.toolIds] - Tool IDs
+     * @param {Object} [settings.additionalValues] - Additional values
      */
     async updateLLMChatThreadSettings({
       name,
       llmModelId,
       llmProviderId,
       toolIds,
+      additionalValues = {},
     } = {}) {
-      const values = {};
+      const values = { ...additionalValues };
 
       // Only include name if it's a non-empty string
       if (typeof name === "string" && name.trim()) {
@@ -100,7 +112,18 @@ registerPatch({
         
         // If this thread is part of an LLMChat, use the refreshThread method to update it
         if (this.llmChat) {
-          await this.llmChat.refreshThread(this.id);
+          // Get the field names from additionalValues, ensuring they're in snake_case
+          const additionalFields = Object.keys(additionalValues).map(key => {
+            // If the key is already snake_case (contains underscore), return as is
+            if (key.includes('_')) {
+              return key;
+            }
+            // Otherwise convert from camelCase to snake_case
+            return camelToSnakeCase(key);
+          });
+          
+          // Refresh the thread with any additional fields
+          await this.llmChat.refreshThread(this.id, additionalFields);
         }
       }
     },

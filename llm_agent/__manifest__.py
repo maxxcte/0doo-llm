@@ -35,6 +35,7 @@ Use cases include creating specialized agents for customer support, data analysi
             # Models
             "llm_agent/static/src/models/llm_agent.js",
             "llm_agent/static/src/models/llm_chat.js",
+            "llm_agent/static/src/models/thread.js",
         ],
     },
     "license": "LGPL-3",
