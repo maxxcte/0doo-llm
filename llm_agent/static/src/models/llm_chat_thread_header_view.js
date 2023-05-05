@@ -40,7 +40,7 @@ registerPatch({
     },
 
     /**
-     * Save selected agent to the thread
+     * Save selected agent to the thread using the dedicated endpoint
      * @param {Number|false} agentId - ID of the selected agent or false to clear
      */
     async saveSelectedAgent(agentId) {
@@ -48,13 +48,41 @@ registerPatch({
         return;
       }
 
+      // Update the local state immediately for responsive UI
       this.update({
         selectedAgentId: agentId,
       });
 
-      await this.threadView.thread.updateLLMChatThreadSettings({
-        agentId: agentId,
+      // Call the dedicated endpoint to set the agent
+      const result = await this.messaging.rpc({
+        route: '/llm/thread/set_agent',
+        params: {
+          thread_id: this.threadView.thread.id,
+          agent_id: agentId,
+        },
       });
+      
+      if (result.success) {
+        // Refresh the thread to get updated data
+        await this.threadView.thread.llmChat.refreshThread(this.threadView.thread.id);
+        if(agentId !== false){
+          this.update({
+            selectedModelId: this.threadView.thread.llmModel?.id,
+            selectedProviderId: this.threadView.thread.llmModel?.llmProvider?.id,
+          });
+        }
+      } else {
+        // Revert the local state if the server call failed
+        this.update({
+          selectedAgentId: this.threadView.thread.llmAgent?.id,
+        });
+        
+        // Show error message
+        this.messaging.notify({
+          type: 'warning',
+          message: 'Failed to update agent',
+        });
+      }
     },
   },
 });

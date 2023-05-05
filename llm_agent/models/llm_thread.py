@@ -19,6 +19,34 @@ class LLMThread(models.Model):
             self.model_id = self.agent_id.model_id
             self.tool_ids = self.agent_id.tool_ids
     
+    def set_agent(self, agent_id):
+        """Set the agent for this thread and update related fields
+        
+        Args:
+            agent_id (int): The ID of the agent to set
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        self.ensure_one()
+        
+        # If agent_id is False or 0, just clear the agent
+        if not agent_id:
+            return self.write({'agent_id': False})
+            
+        # Get the agent record
+        agent = self.env['llm.agent'].browse(agent_id)
+        if not agent.exists():
+            return False
+            
+        # Update the thread with the agent and related fields
+        return self.write({
+            'agent_id': agent_id,
+            'provider_id': agent.provider_id.id,
+            'model_id': agent.model_id.id,
+            'tool_ids': [(6, 0, agent.tool_ids.ids)],
+        })
+    
     def get_assistant_response(self, stream=True, system_prompt=None):
         """Override to include agent's system prompt if agent is set
         
