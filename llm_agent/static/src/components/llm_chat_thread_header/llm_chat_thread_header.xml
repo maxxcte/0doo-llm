@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="llm_agent.LLMChatThreadHeader" t-inherit="llm_thread.LLMChatThreadHeader" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('o_ThreadDropdowns')]" position="inside">
+            <!-- LLM Agent Dropdown -->
+            <div class="dropdown ms-2">
+                <button
+                    class="btn btn-light dropdown-toggle d-flex align-items-center gap-2"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    style="max-width: 200px;"
+                >
+                    <div class="text-truncate">
+                        <t t-if="llmChatThreadHeaderView.selectedAgent">
+                            <t t-esc="llmChatThreadHeaderView.selectedAgent.name"/>
+                        </t>
+                        <t t-else="">
+                            Select Agent
+                        </t>
+                    </div>
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a
+                            class="dropdown-item text-truncate"
+                            href="#"
+                            t-on-click="onClearAgent"
+                        >
+                            <i class="fa fa-times me-1"></i> No Agent
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"/></li>
+                    <t t-foreach="llmAgents" t-as="agent" t-key="agent.id">
+                        <li>
+                            <a
+                                class="dropdown-item text-truncate"
+                                href="#"
+                                t-on-click="() => this.onSelectAgent(agent)"
+                                t-att-title="agent.name"
+                            >
+                                <t t-esc="agent.name"/>
+                            </a>
+                        </li>
+                    </t>
+                </ul>
+            </div>
+        </xpath>
+    </t>
+</templates>

@@ -1,6 +1,8 @@
 {
     "name": "LLM Agent",
-    "summary": "Agent configuration for LLM chat",
+    "summary": """
+        LLM Agent module for Odoo
+    """,
     "description": """
 LLM Agent for Odoo
 ==================
@@ -36,6 +38,10 @@ Use cases include creating specialized agents for customer support, data analysi
             "llm_agent/static/src/models/llm_agent.js",
             "llm_agent/static/src/models/llm_chat.js",
             "llm_agent/static/src/models/thread.js",
+            "llm_agent/static/src/models/llm_chat_thread_header_view.js",
+            # Components
+            "llm_agent/static/src/components/llm_chat_thread_header/llm_chat_thread_header.js",
+            "llm_agent/static/src/components/llm_chat_thread_header/llm_chat_thread_header.xml",
         ],
     },
     "license": "LGPL-3",
