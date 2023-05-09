@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="llm_agent.LLMChatThreadHeader" t-inherit="llm_thread.LLMChatThreadHeader" t-inherit-mode="extension">
-        <xpath expr="//div[hasclass('o_ThreadDropdowns')]" position="inside">
+        <xpath expr="//div[hasclass('o_ThreadDropdowns')]/div[hasclass('dropdown')][1]" position="before">
             <!-- LLM Agent Dropdown -->
-            <div class="dropdown ms-2">
+            <div class="dropdown me-2">
                 <button
                     class="btn btn-light dropdown-toggle d-flex align-items-center gap-2"
                     type="button"
