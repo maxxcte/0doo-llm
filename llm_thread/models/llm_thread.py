@@ -172,8 +172,7 @@ class LLMThread(models.Model):
             )
 
             # Process the response stream using the helper method
-            for response in self._process_llm_response(response_generator):
-                yield response
+            yield from self._process_llm_response(response_generator)
 
         except Exception as e:
             _logger.error("Error getting AI response: %s", str(e))
