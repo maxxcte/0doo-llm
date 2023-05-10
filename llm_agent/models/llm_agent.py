@@ -83,13 +83,12 @@ Instructions: {{ instructions }}""",
         tracking=True,
     )
     
-    # Thread count for reference
+    # Stats
     thread_count = fields.Integer(
         string="Thread Count",
         compute="_compute_thread_count",
         help="Number of threads using this agent",
     )
-    
     thread_ids = fields.One2many(
         "llm.thread",
         "agent_id",
@@ -97,15 +96,16 @@ Instructions: {{ instructions }}""",
         help="Threads using this agent",
     )
     
+    @api.depends("thread_ids")
     def _compute_thread_count(self):
         """Compute the number of threads using this agent"""
-        for record in self:
-            record.thread_count = len(record.thread_ids)
+        for agent in self:
+            agent.thread_count = len(agent.thread_ids)
     
     def action_view_threads(self):
         """Open the threads using this agent"""
         self.ensure_one()
-        action = self.env["ir.actions.actions"]._for_xml_id("llm_thread.action_llm_thread")
+        action = self.env["ir.actions.actions"]._for_xml_id("llm_thread.llm_thread_action")
         action["domain"] = [("agent_id", "=", self.id)]
         action["context"] = {"default_agent_id": self.id}
         return action

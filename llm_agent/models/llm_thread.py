@@ -47,6 +47,25 @@ class LLMThread(models.Model):
             'tool_ids': [(6, 0, agent.tool_ids.ids)],
         })
     
+    def action_open_thread(self):
+        """Open the thread in the chat client interface
+        
+        Returns:
+            dict: Action to open the thread in the chat client
+        """
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'llm_thread.chat_client_action',
+            'params': {
+                'default_active_id': self.id,
+            },
+            'context': {
+                'active_id': self.id,
+            },
+            'target': 'current',
+        }
+    
     def get_assistant_response(self, stream=True, system_prompt=None):
         """Override to include agent's system prompt if agent is set
         
