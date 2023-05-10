@@ -3,7 +3,7 @@
 import { patch } from "@web/core/utils/patch";
 import { LLMChatThreadHeader } from "@llm_thread/components/llm_chat_thread_header/llm_chat_thread_header";
 
-patch(LLMChatThreadHeader.prototype,"llm_agent.llm_agent_dropdown_patch", {
+patch(LLMChatThreadHeader.prototype, "llm_agent.llm_agent_dropdown_patch", {
   /**
    * Get all available agents
    */
@@ -24,5 +24,5 @@ patch(LLMChatThreadHeader.prototype,"llm_agent.llm_agent_dropdown_patch", {
    */
   onClearAgent() {
     this.llmChatThreadHeaderView.saveSelectedAgent(false);
-  }
+  },
 });

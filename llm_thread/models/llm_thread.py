@@ -158,9 +158,13 @@ class LLMThread(models.Model):
 
             # Format messages using the provider (which will handle validation)
             try:
-                formatted_messages = self.provider_id.format_messages(messages, system_prompt=system_prompt)
+                formatted_messages = self.provider_id.format_messages(
+                    messages, system_prompt=system_prompt
+                )
             except Exception:
-                formatted_messages = self._default_format_messages(messages, system_prompt=system_prompt)
+                formatted_messages = self._default_format_messages(
+                    messages, system_prompt=system_prompt
+                )
 
             # Process response with possible tool calls
             response_generator = self._chat_with_tools(
@@ -178,10 +182,10 @@ class LLMThread(models.Model):
     def _process_llm_response(self, response_generator):
         """
         Process the LLM response stream, handling content and tool calls.
-        
+
         Args:
             response_generator: Generator yielding response chunks from the LLM
-            
+
         Yields:
             dict: Processed response chunks with proper formatting
         """
@@ -238,7 +242,7 @@ class LLMThread(models.Model):
                 self.post_ai_response(
                     body=content or "", tool_calls=assistant_tool_calls
                 )
-                
+
         except Exception as e:
             _logger.error("Error processing LLM response: %s", str(e))
             yield {"type": "error", "error": str(e)}
@@ -255,14 +259,11 @@ class LLMThread(models.Model):
         """
         # First use the default implementation from the llm_tool module
         formatted_messages = []
-        
+
         # Add system prompt if provided
         if system_prompt:
-            formatted_messages.append({
-                "role": "system",
-                "content": system_prompt
-            })
-        
+            formatted_messages.append({"role": "system", "content": system_prompt})
+
         # Format the rest of the messages
         for message in messages:
             formatted_messages.append(self.provider_id._default_format_message(message))

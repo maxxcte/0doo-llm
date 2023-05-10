@@ -93,10 +93,12 @@ registerModel({
         },
       });
 
-      const threadData = result.map((thread) => this._mapThreadDataFromServer(thread));
+      const threadData = result.map((thread) =>
+        this._mapThreadDataFromServer(thread)
+      );
       this.update({ threads: threadData });
     },
-    
+
     /**
      * Maps server thread data to the format expected by the Thread model
      * @param {Object} threadData - Raw thread data from server
@@ -109,14 +111,16 @@ registerModel({
         model: "llm.thread",
         name: threadData.name,
         message_needaction_counter: 0,
-        creator: threadData.create_uid ? { id: threadData.create_uid } : undefined,
+        creator: threadData.create_uid
+          ? { id: threadData.create_uid }
+          : undefined,
         isServerPinned: true,
         updatedAt: threadData.write_date,
         relatedThreadModel: threadData.related_thread_model,
         relatedThreadId: threadData.related_thread_id,
         selectedToolIds: threadData.tool_ids || [],
       };
-      
+
       // Handle the llmModel field separately to avoid undefined errors
       if (threadData.model_id && threadData.provider_id) {
         mappedData.llmModel = {
@@ -128,10 +132,10 @@ registerModel({
           },
         };
       }
-      
+
       return mappedData;
     },
-    
+
     /**
      * Refreshes a specific thread in the threads collection.
      * @param {Number} threadId - ID of the thread to refresh
@@ -148,21 +152,23 @@ registerModel({
             fields: [...THREAD_SEARCH_FIELDS, ...additionalFields],
           },
         });
-        
+
         if (!result || !result.length) {
           return;
         }
-        
+
         const mappedThreadData = this._mapThreadDataFromServer(result[0]);
-        
+
         // Find the thread in the collection and update it directly
         if (this.threads) {
-          const threadIndex = this.threads.findIndex(thread => thread.id === threadId);
-          
+          const threadIndex = this.threads.findIndex(
+            (thread) => thread.id === threadId
+          );
+
           if (threadIndex !== -1) {
             // Get the existing thread
             const thread = this.threads[threadIndex];
-            
+
             // Update the thread directly
             thread.update(mappedThreadData);
           }
@@ -360,7 +366,11 @@ registerModel({
      * @param {Number} initActiveId - The ID of the thread to initialize with
      * @param {Array} [postInitializationPromises=[]] - Additional promises to execute after loading basic resources
      */
-    async initializeLLMChat(action, initActiveId, postInitializationPromises = []) {
+    async initializeLLMChat(
+      action,
+      initActiveId,
+      postInitializationPromises = []
+    ) {
       this.update({
         llmChatView: {
           actionId: action.id,
@@ -374,7 +384,7 @@ registerModel({
       // Load threads first
       await this.loadThreads();
       await this.loadTools();
-      
+
       // Execute any additional initialization promises
       if (postInitializationPromises.length > 0) {
         await Promise.all(postInitializationPromises);

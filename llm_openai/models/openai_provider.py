@@ -376,14 +376,11 @@ class LLMProvider(models.Model):
         """
         # First use the default implementation from the llm_tool module
         formatted_messages = []
-        
+
         # Add system prompt if provided
         if system_prompt:
-            formatted_messages.append({
-                "role": "system",
-                "content": system_prompt
-            })
-            
+            formatted_messages.append({"role": "system", "content": system_prompt})
+
         # Format the rest of the messages
         for message in messages:
             formatted_messages.append(self._format_message_for_openai(message))

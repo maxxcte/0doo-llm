@@ -10,7 +10,7 @@ import { registerPatch } from "@mail/model/model_core";
  * @returns {String} - Converted string
  */
 function camelToSnakeCase(str) {
-  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 }
 
 registerPatch({
@@ -109,19 +109,19 @@ registerPatch({
           method: "write",
           args: [[this.id], values],
         });
-        
+
         // If this thread is part of an LLMChat, use the refreshThread method to update it
         if (this.llmChat) {
           // Get the field names from additionalValues, ensuring they're in snake_case
-          const additionalFields = Object.keys(additionalValues).map(key => {
+          const additionalFields = Object.keys(additionalValues).map((key) => {
             // If the key is already snake_case (contains underscore), return as is
-            if (key.includes('_')) {
+            if (key.includes("_")) {
               return key;
             }
             // Otherwise convert from camelCase to snake_case
             return camelToSnakeCase(key);
           });
-          
+
           // Refresh the thread with any additional fields
           await this.llmChat.refreshThread(this.id, additionalFields);
         }

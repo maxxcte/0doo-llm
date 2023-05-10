@@ -28,14 +28,14 @@ registerPatch({
         },
       });
 
-      const agentData = result.map(agent => ({
+      const agentData = result.map((agent) => ({
         id: agent.id,
         name: agent.name,
       }));
 
       this.update({ llmAgents: agentData });
     },
-    
+
     /**
      * Override ensureThread to load agents as well
      * @override
@@ -45,20 +45,27 @@ registerPatch({
       if (!this.llmAgents || this.llmAgents.length === 0) {
         await this.loadAgents();
       }
-      
+
       // Call the original method
       return this._super(options);
     },
-    
+
     /**
      * Override initializeLLMChat to include agent loading
      * @override
      */
-    async initializeLLMChat(action, initActiveId, postInitializationPromises = []) {
+    async initializeLLMChat(
+      action,
+      initActiveId,
+      postInitializationPromises = []
+    ) {
       // Pass our loadAgents promise to the original method
-      return this._super(action, initActiveId, [...postInitializationPromises, this.loadAgents()]);
+      return this._super(action, initActiveId, [
+        ...postInitializationPromises,
+        this.loadAgents(),
+      ]);
     },
-    
+
     /**
      * Override loadThreads to include agent_id field
      * @override
@@ -67,16 +74,19 @@ registerPatch({
       // Call the super method with our additional fields
       return this._super([...additionalFields, ...AGENT_THREAD_FIELDS]);
     },
-    
+
     /**
      * Override refreshThread to include agent_id field
      * @override
      */
     async refreshThread(threadId, additionalFields = []) {
       // Call the super method with our additional fields
-      return this._super(threadId, [...additionalFields, ...AGENT_THREAD_FIELDS]);
+      return this._super(threadId, [
+        ...additionalFields,
+        ...AGENT_THREAD_FIELDS,
+      ]);
     },
-    
+
     /**
      * Override _mapThreadDataFromServer to add agent information
      * @override
@@ -84,7 +94,7 @@ registerPatch({
     _mapThreadDataFromServer(threadData) {
       // Get the base mapped data from super
       const mappedData = this._super(threadData);
-      
+
       // Add agent information if present
       if (threadData.agent_id) {
         mappedData.llmAgent = {
@@ -92,8 +102,8 @@ registerPatch({
           name: threadData.agent_id[1],
         };
       }
-      
+
       return mappedData;
-    }
+    },
   },
 });

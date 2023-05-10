@@ -19,7 +19,9 @@ class LLMThreadController(http.Controller):
 
             # Stream responses
             thread = env["llm.thread"].browse(int(thread_id))
-            for response in thread.get_assistant_response(stream=True, system_prompt=system_prompt):
+            for response in thread.get_assistant_response(
+                stream=True, system_prompt=system_prompt
+            ):
                 if response.get("type") == "error":
                     error_data = f"data: {json.dumps({'type': 'error', 'error': response['error']})}\n\n"
                     yield error_data.encode("utf-8")
@@ -61,7 +63,7 @@ class LLMThreadController(http.Controller):
     @http.route("/llm/thread/stream_response", type="http", auth="user", csrf=True)
     def stream_response(self, thread_id, system_prompt=None):
         """Stream assistant responses using server-sent events
-        
+
         Args:
             thread_id: ID of the thread to stream responses from
             system_prompt: Optional system prompt to include with the agent's system prompt

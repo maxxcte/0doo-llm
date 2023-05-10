@@ -55,20 +55,23 @@ registerPatch({
 
       // Call the dedicated endpoint to set the agent
       const result = await this.messaging.rpc({
-        route: '/llm/thread/set_agent',
+        route: "/llm/thread/set_agent",
         params: {
           thread_id: this.threadView.thread.id,
           agent_id: agentId,
         },
       });
-      
+
       if (result.success) {
         // Refresh the thread to get updated data
-        await this.threadView.thread.llmChat.refreshThread(this.threadView.thread.id);
-        if(agentId !== false){
+        await this.threadView.thread.llmChat.refreshThread(
+          this.threadView.thread.id
+        );
+        if (agentId !== false) {
           this.update({
             selectedModelId: this.threadView.thread.llmModel?.id,
-            selectedProviderId: this.threadView.thread.llmModel?.llmProvider?.id,
+            selectedProviderId:
+              this.threadView.thread.llmModel?.llmProvider?.id,
           });
         }
       } else {
@@ -76,11 +79,11 @@ registerPatch({
         this.update({
           selectedAgentId: this.threadView.thread.llmAgent?.id,
         });
-        
+
         // Show error message
         this.messaging.notify({
-          type: 'warning',
-          message: 'Failed to update agent',
+          type: "warning",
+          message: "Failed to update agent",
         });
       }
     },

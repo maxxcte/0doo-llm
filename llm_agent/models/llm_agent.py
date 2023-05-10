@@ -17,7 +17,7 @@ class LLMAgent(models.Model):
         tracking=True,
     )
     active = fields.Boolean(default=True, tracking=True)
-    
+
     # Agent configuration
     provider_id = fields.Many2one(
         "llm.provider",
@@ -34,7 +34,7 @@ class LLMAgent(models.Model):
         ondelete="restrict",
         tracking=True,
     )
-    
+
     # Agent capabilities
     role = fields.Char(
         string="Role",
@@ -60,7 +60,7 @@ class LLMAgent(models.Model):
         tracking=True,
         required=True,
     )
-    
+
     # Tools configuration
     tool_ids = fields.Many2many(
         "llm.tool",
@@ -68,7 +68,7 @@ class LLMAgent(models.Model):
         help="Tools that this agent can use",
         tracking=True,
     )
-    
+
     # System prompt template
     system_prompt = fields.Text(
         string="System Prompt Template",
@@ -82,7 +82,7 @@ Instructions: {{ instructions }}""",
         help="Template for the system prompt. Use {{ field_name }} placeholders for variable substitution.",
         tracking=True,
     )
-    
+
     # Stats
     thread_count = fields.Integer(
         string="Thread Count",
@@ -95,27 +95,29 @@ Instructions: {{ instructions }}""",
         string="Threads",
         help="Threads using this agent",
     )
-    
+
     @api.depends("thread_ids")
     def _compute_thread_count(self):
         """Compute the number of threads using this agent"""
         for agent in self:
             agent.thread_count = len(agent.thread_ids)
-    
+
     def action_view_threads(self):
         """Open the threads using this agent"""
         self.ensure_one()
-        action = self.env["ir.actions.actions"]._for_xml_id("llm_thread.llm_thread_action")
+        action = self.env["ir.actions.actions"]._for_xml_id(
+            "llm_thread.llm_thread_action"
+        )
         action["domain"] = [("agent_id", "=", self.id)]
         action["context"] = {"default_agent_id": self.id}
         return action
-    
+
     def get_formatted_system_prompt(self):
         """Generate a formatted system prompt based on the template and agent's configuration"""
         self.ensure_one()
         if not self.system_prompt:
             return ""
-            
+
         # Create a dictionary with the field values for template substitution
         values = {
             "role": self.role,
@@ -123,11 +125,11 @@ Instructions: {{ instructions }}""",
             "background": self.background,
             "instructions": self.instructions,
         }
-        
+
         # Replace template variables with actual values
         prompt = self.system_prompt
         for key, value in values.items():
             placeholder = "{{ " + key + " }}"
             prompt = prompt.replace(placeholder, value)
-        
+
         return prompt
