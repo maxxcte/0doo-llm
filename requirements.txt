@@ -3,6 +3,6 @@ anthropic
 emoji
 ollama
 openai
-pydantic
+pydantic>=2.0.0
 replicate
 requests
