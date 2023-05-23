@@ -67,15 +67,15 @@ registerPatch({
         await this.threadView.thread.llmChat.refreshThread(
           this.threadView.thread.id
         );
-        if (agentId !== false) {
+        if (agentId === false) {
+          this.update({
+            selectedAgentId: false,
+          });
+        } else {
           this.update({
             selectedModelId: this.threadView.thread.llmModel?.id,
             selectedProviderId:
               this.threadView.thread.llmModel?.llmProvider?.id,
-          });
-        } else {
-          this.update({
-            selectedAgentId: false,
           });
         }
       } else {
