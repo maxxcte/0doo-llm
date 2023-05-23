@@ -35,7 +35,7 @@ registerPatch({
     _initializeState() {
       this._super();
       this.update({
-        selectedAgentId: this.threadView.thread.llmAgent?.id,
+        selectedAgentId: this.threadView.thread.llmAgent?.id || false,
       });
     },
 
@@ -50,7 +50,7 @@ registerPatch({
 
       // Update the local state immediately for responsive UI
       this.update({
-        selectedAgentId: agentId,
+        selectedAgentId: agentId || false,
       });
 
       // Call the dedicated endpoint to set the agent
@@ -73,11 +73,15 @@ registerPatch({
             selectedProviderId:
               this.threadView.thread.llmModel?.llmProvider?.id,
           });
+        } else {
+          this.update({
+            selectedAgentId: false,
+          });
         }
       } else {
         // Revert the local state if the server call failed
         this.update({
-          selectedAgentId: this.threadView.thread.llmAgent?.id,
+          selectedAgentId: this.threadView.thread.llmAgent?.id || false,
         });
 
         // Show error message
