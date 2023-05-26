@@ -1,10 +1,10 @@
 {
     "name": "LLM Agent",
     "summary": """
-        LLM Agent module for Odoo
+        LLM/AI Agent module for Odoo
     """,
     "description": """
-LLM Agent for Odoo
+Agentic AI (LLM) Agent for Odoo
 ==================
 Configure AI agents with specific roles, goals, and tools to enhance your AI interactions.
 
