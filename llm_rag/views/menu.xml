@@ -1,17 +1,17 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <odoo>
     <menuitem
-        id="menu_llm_rag"
-        name="RAG"
-        parent="llm.menu_llm_root"
-        sequence="30"
-    />
+    id="menu_llm_rag"
+    name="RAG"
+    parent="llm.menu_llm_root"
+    sequence="30"
+  />
 
     <menuitem
-        id="menu_llm_document"
-        name="Documents"
-        parent="menu_llm_rag"
-        action="action_llm_document"
-        sequence="10"
-    />
+    id="menu_llm_document"
+    name="Documents"
+    parent="menu_llm_rag"
+    action="action_llm_document"
+    sequence="10"
+  />
 </odoo>

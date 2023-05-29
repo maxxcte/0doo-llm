@@ -1,17 +1,21 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <odoo>
     <!-- Kanban View -->
     <record id="view_llm_document_kanban" model="ir.ui.view">
         <field name="name">llm.document.kanban</field>
         <field name="model">llm.document</field>
         <field name="arch" type="xml">
-            <kanban default_group_by="state" class="o_kanban_small_column" sample="1">
-                <field name="id"/>
-                <field name="name"/>
-                <field name="state"/>
-                <field name="kanban_state"/>
-                <field name="chunk_count"/>
-                <field name="lock_date"/>
+            <kanban
+        default_group_by="state"
+        class="o_kanban_small_column"
+        sample="1"
+      >
+                <field name="id" />
+                <field name="name" />
+                <field name="state" />
+                <field name="kanban_state" />
+                <field name="chunk_count" />
+                <field name="lock_date" />
                 <templates>
                     <t t-name="kanban-box">
                         <div t-attf-class="oe_kanban_global_click">
@@ -19,50 +23,99 @@
                                 <div class="o_kanban_record_top">
                                     <div class="o_kanban_record_headings">
                                         <strong class="o_kanban_record_title">
-                                            <field name="name"/>
+                                            <field name="name" />
                                         </strong>
                                     </div>
                                     <div class="o_dropdown_kanban dropdown">
-                                        <a class="dropdown-toggle o-no-caret btn" data-toggle="dropdown" href="#" role="button">
-                                            <span class="fa fa-ellipsis-v"/>
+                                        <a
+                      class="dropdown-toggle o-no-caret btn"
+                      data-toggle="dropdown"
+                      href="#"
+                      role="button"
+                    >
+                                            <span class="fa fa-ellipsis-v" />
                                         </a>
                                         <div class="dropdown-menu" role="menu">
                                             <t t-if="widget.editable">
-                                                <a type="edit" class="dropdown-item">Edit</a>
+                                                <a
+                          type="edit"
+                          class="dropdown-item"
+                        >Edit</a>
                                             </t>
                                             <t t-if="widget.deletable">
-                                                <a type="delete" class="dropdown-item">Delete</a>
+                                                <a
+                          type="delete"
+                          class="dropdown-item"
+                        >Delete</a>
                                             </t>
-                                            <div role="separator" class="dropdown-divider"/>
-                                            <a name="retrieve" type="object" class="dropdown-item" t-if="record.state.raw_value == 'draft'">Retrieve</a>
-                                            <a name="parse" type="object" class="dropdown-item" t-if="record.state.raw_value == 'retrieved'">Parse</a>
-                                            <a name="chunk" type="object" class="dropdown-item" t-if="record.state.raw_value == 'parsed'">Chunk</a>
-                                            <a name="embed" type="object" class="dropdown-item" t-if="record.state.raw_value == 'chunked'">Embed</a>
-                                            <a name="process_document" type="object" class="dropdown-item">Process All</a>
+                                            <div
+                        role="separator"
+                        class="dropdown-divider"
+                      />
+                                            <a
+                        name="retrieve"
+                        type="object"
+                        class="dropdown-item"
+                        t-if="record.state.raw_value == 'draft'"
+                      >Retrieve</a>
+                                            <a
+                        name="parse"
+                        type="object"
+                        class="dropdown-item"
+                        t-if="record.state.raw_value == 'retrieved'"
+                      >Parse</a>
+                                            <a
+                        name="chunk"
+                        type="object"
+                        class="dropdown-item"
+                        t-if="record.state.raw_value == 'parsed'"
+                      >Chunk</a>
+                                            <a
+                        name="embed"
+                        type="object"
+                        class="dropdown-item"
+                        t-if="record.state.raw_value == 'chunked'"
+                      >Embed</a>
+                                            <a
+                        name="process_document"
+                        type="object"
+                        class="dropdown-item"
+                      >Process All</a>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="o_kanban_record_body">
                                     <div>
                                         <span class="o_kanban_tag">
-                                            <field name="res_model"/>:<field name="res_id"/>
+                                            <field name="res_model" />:<field
+                        name="res_id"
+                      />
                                         </span>
                                     </div>
                                     <div class="text-muted">
-                                        <span t-if="record.chunk_count.raw_value">
-                                            <field name="chunk_count"/> chunks
+                                        <span
+                      t-if="record.chunk_count.raw_value"
+                    >
+                                            <field name="chunk_count" /> chunks
                                         </span>
                                     </div>
                                 </div>
                                 <div class="o_kanban_record_bottom">
                                     <div class="oe_kanban_bottom_left">
-                                        <field name="kanban_state" widget="state_selection"/>
+                                        <field
+                      name="kanban_state"
+                      widget="state_selection"
+                    />
                                     </div>
                                     <div class="oe_kanban_bottom_right">
-                                        <field name="state" widget="label_selection" options="{'classes': {'draft': 'default', 'retrieved': 'primary', 'parsed': 'info', 'chunked': 'warning', 'ready': 'success'}}"/>
+                                        <field
+                      name="state"
+                      widget="label_selection"
+                      options="{'classes': {'draft': 'default', 'retrieved': 'primary', 'parsed': 'info', 'chunked': 'warning', 'ready': 'success'}}"
+                    />
                                     </div>
                                 </div>
-                                <div class="oe_clear"/>
+                                <div class="oe_clear" />
                             </div>
                         </div>
                     </t>
@@ -78,54 +131,115 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="retrieve" string="Retrieve" type="object" class="oe_highlight" states="draft"/>
-                    <button name="parse" string="Parse" type="object" class="oe_highlight" states="retrieved"/>
-                    <button name="chunk" string="Chunk" type="object" class="oe_highlight" states="parsed"/>
-                    <button name="embed" string="Embed" type="object" class="oe_highlight" states="chunked"/>
-                    <button name="process_document" string="Process All" type="object" class="btn-secondary"/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,retrieved,parsed,chunked,ready"/>
+                    <button
+            name="retrieve"
+            string="Retrieve"
+            type="object"
+            class="oe_highlight"
+            states="draft"
+          />
+                    <button
+            name="parse"
+            string="Parse"
+            type="object"
+            class="oe_highlight"
+            states="retrieved"
+          />
+                    <button
+            name="chunk"
+            string="Chunk"
+            type="object"
+            class="oe_highlight"
+            states="parsed"
+          />
+                    <button
+            name="embed"
+            string="Embed"
+            type="object"
+            class="oe_highlight"
+            states="chunked"
+          />
+                    <button
+            name="process_document"
+            string="Process All"
+            type="object"
+            class="btn-secondary"
+          />
+                    <field
+            name="state"
+            widget="statusbar"
+            statusbar_visible="draft,retrieved,parsed,chunked,ready"
+          />
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_view_chunks" type="object" class="oe_stat_button" icon="fa-puzzle-piece" attrs="{'invisible': [('chunk_count', '=', 0)]}">
-                            <field name="chunk_count" widget="statinfo" string="Chunks"/>
+                        <button
+              name="action_view_chunks"
+              type="object"
+              class="oe_stat_button"
+              icon="fa-puzzle-piece"
+              attrs="{'invisible': [('chunk_count', '=', 0)]}"
+            >
+                            <field
+                name="chunk_count"
+                widget="statinfo"
+                string="Chunks"
+              />
                         </button>
                     </div>
                     <div class="oe_title">
                         <h1>
-                            <field name="name" placeholder="Document Name"/>
+                            <field name="name" placeholder="Document Name" />
                         </h1>
                     </div>
                     <group>
                         <group>
-                            <field name="res_model"/>
-                            <field name="res_id"/>
-                            <field name="lock_date" readonly="1"/>
+                            <field name="res_model" />
+                            <field name="res_id" />
+                            <field name="lock_date" readonly="1" />
                         </group>
                         <group>
-                            <field name="kanban_state" widget="state_selection"/>
-                            <field name="chunk_count" invisible="1"/>
+                            <field
+                name="kanban_state"
+                widget="state_selection"
+              />
+                            <field name="chunk_count" invisible="1" />
                         </group>
                     </group>
                     <notebook>
                         <page string="Content" name="content">
-                            <field name="content" nolabel="1" placeholder="Document content will appear here after retrieval and parsing" widget="text"/>
+                            <field
+                name="content"
+                nolabel="1"
+                placeholder="Document content will appear here after retrieval and parsing"
+                widget="text"
+              />
                         </page>
-                        <page string="Chunks" name="chunks" attrs="{'invisible': [('chunk_count', '=', 0)]}">
-                            <field name="chunk_ids" context="{'default_document_id': active_id}">
+                        <page
+              string="Chunks"
+              name="chunks"
+              attrs="{'invisible': [('chunk_count', '=', 0)]}"
+            >
+                            <field
+                name="chunk_ids"
+                context="{'default_document_id': active_id}"
+              >
                                 <tree>
-                                    <field name="sequence" widget="handle"/>
-                                    <field name="name"/>
-                                    <field name="embedding_model"/>
+                                    <field name="sequence" widget="handle" />
+                                    <field name="name" />
+                                    <field name="embedding_model" />
                                 </tree>
                             </field>
                         </page>
                     </notebook>
                 </sheet>
                 <div class="oe_chatter">
-                    <field name="message_follower_ids" widget="mail_followers"/>
-                    <field name="activity_ids" widget="mail_activity"/>
-                    <field name="message_ids" widget="mail_thread"/>
+                    <field
+            name="message_follower_ids"
+            widget="mail_followers"
+          />
+                    <field name="activity_ids" widget="mail_activity" />
+                    <field name="message_ids" widget="mail_thread" />
                 </div>
             </form>
         </field>
@@ -137,12 +251,12 @@
         <field name="model">llm.document</field>
         <field name="arch" type="xml">
             <tree>
-                <field name="name"/>
-                <field name="res_model"/>
-                <field name="res_id"/>
-                <field name="state"/>
-                <field name="chunk_count"/>
-                <field name="lock_date"/>
+                <field name="name" />
+                <field name="res_model" />
+                <field name="res_id" />
+                <field name="state" />
+                <field name="chunk_count" />
+                <field name="lock_date" />
             </tree>
         </field>
     </record>
@@ -153,18 +267,52 @@
         <field name="model">llm.document</field>
         <field name="arch" type="xml">
             <search>
-                <field name="name"/>
-                <field name="res_model"/>
-                <field name="res_id"/>
-                <filter string="Draft" name="state_draft" domain="[('state', '=', 'draft')]"/>
-                <filter string="Retrieved" name="state_retrieved" domain="[('state', '=', 'retrieved')]"/>
-                <filter string="Parsed" name="state_parsed" domain="[('state', '=', 'parsed')]"/>
-                <filter string="Chunked" name="state_chunked" domain="[('state', '=', 'chunked')]"/>
-                <filter string="Ready" name="state_ready" domain="[('state', '=', 'ready')]"/>
-                <filter string="Locked" name="locked" domain="[('lock_date', '!=', False)]"/>
+                <field name="name" />
+                <field name="res_model" />
+                <field name="res_id" />
+                <filter
+          string="Draft"
+          name="state_draft"
+          domain="[('state', '=', 'draft')]"
+        />
+                <filter
+          string="Retrieved"
+          name="state_retrieved"
+          domain="[('state', '=', 'retrieved')]"
+        />
+                <filter
+          string="Parsed"
+          name="state_parsed"
+          domain="[('state', '=', 'parsed')]"
+        />
+                <filter
+          string="Chunked"
+          name="state_chunked"
+          domain="[('state', '=', 'chunked')]"
+        />
+                <filter
+          string="Ready"
+          name="state_ready"
+          domain="[('state', '=', 'ready')]"
+        />
+                <filter
+          string="Locked"
+          name="locked"
+          domain="[('lock_date', '!=', False)]"
+        />
                 <group expand="0" string="Group By">
-                    <filter string="State" name="group_by_state" domain="[]" context="{'group_by':'state'}"/>
-                    <filter string="Model" name="group_by_model" domain="[]" context="{'group_by':'res_model'}"/>
+                    <filter
+            string="State"
+            name="group_by_state"
+            domain="[]"
+            context="{'group_by':'state'}"
+          />
+                    <filter
+            string="Model"
+            name="group_by_model"
+            domain="[]"
+            context="{'group_by':'res_model'}"
+          />
                 </group>
             </search>
         </field>

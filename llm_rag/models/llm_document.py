@@ -1,5 +1,6 @@
 import logging
-from odoo import api, fields, models, _
+
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -99,10 +100,12 @@ class LLMDocument(models.Model):
             # This is a placeholder for the actual implementation
 
             # Update state after successful retrieval
-            self.write({
-                "state": "retrieved",
-                "lock_date": False,
-            })
+            self.write(
+                {
+                    "state": "retrieved",
+                    "lock_date": False,
+                }
+            )
 
             return True
 
@@ -130,10 +133,12 @@ class LLMDocument(models.Model):
             # This is a placeholder for the actual implementation
 
             # Update state after successful parsing
-            self.write({
-                "state": "parsed",
-                "lock_date": False,
-            })
+            self.write(
+                {
+                    "state": "parsed",
+                    "lock_date": False,
+                }
+            )
 
             return True
 
@@ -161,10 +166,12 @@ class LLMDocument(models.Model):
             # This is a placeholder for the actual implementation
 
             # Update state after successful chunking
-            self.write({
-                "state": "chunked",
-                "lock_date": False,
-            })
+            self.write(
+                {
+                    "state": "chunked",
+                    "lock_date": False,
+                }
+            )
 
             return True
 
@@ -192,10 +199,12 @@ class LLMDocument(models.Model):
             # This is a placeholder for the actual implementation
 
             # Update state after successful embedding
-            self.write({
-                "state": "ready",
-                "lock_date": False,
-            })
+            self.write(
+                {
+                    "state": "ready",
+                    "lock_date": False,
+                }
+            )
 
             return True
 
@@ -223,3 +232,17 @@ class LLMDocument(models.Model):
             self.embed()
 
         return True
+
+    def action_view_chunks(self):
+        """
+        Open a view with all chunks for this document
+        """
+        self.ensure_one()
+        return {
+            "name": _("Document Chunks"),
+            "view_mode": "tree,form",
+            "res_model": "llm.document.chunk",
+            "domain": [("document_id", "=", self.id)],
+            "type": "ir.actions.act_window",
+            "context": {"default_document_id": self.id},
+        }
