@@ -3,3 +3,4 @@ access_llm_document_user,llm.document.user,model_llm_document,base.group_user,1,
 access_llm_document_manager,llm.document.manager,model_llm_document,llm.group_llm_manager,1,1,1,1
 access_llm_document_chunk_user,llm.document.chunk.user,model_llm_document_chunk,base.group_user,1,0,0,0
 access_llm_document_chunk_manager,llm.document.chunk.manager,model_llm_document_chunk,llm.group_llm_manager,1,1,1,1
+access_llm_create_rag_document_wizard_manager,llm.create.rag.document.wizard.manager,model_llm_create_rag_document_wizard,llm.group_llm_manager,1,1,1,1
