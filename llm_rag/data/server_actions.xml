@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Server Action for creating RAG Documents -->
+    <record id="action_create_rag_document" model="ir.actions.server">
+        <field name="name">Create RAG Document</field>
+        <field name="model_id" ref="base.model_base"/>
+        <field name="binding_model_id" ref="base.model_ir_attachment"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+            if records:
+                action = {
+                    'type': 'ir.actions.act_window',
+                    'name': 'Create RAG Documents',
+                    'res_model': 'llm.create.rag.document.wizard',
+                    'view_mode': 'form',
+                    'target': 'new',
+                    'context': {
+                        'active_model': records._name,
+                        'active_ids': records.ids,
+                        }
+                }
+            </field>
+    </record>
+</odoo>

@@ -18,6 +18,8 @@
         "security/ir.model.access.csv",
         "views/llm_document_views.xml",
         "views/menu.xml",
+        "wizards/create_rag_document_wizard_views.xml",
+        "data/server_actions.xml",
     ],
     "assets": {},
     "license": "LGPL-3",
