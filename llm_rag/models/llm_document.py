@@ -83,7 +83,10 @@ class LLMDocument(models.Model):
 
     def retrieve(self):
         """
-        Retrieve the document content from the related model
+        Retrieve the document content from the related model.
+        This calls the rag_retrieve method on the related model.
+        Each model can implement its own rag_retrieve method to define
+        how its content should be retrieved for RAG.
         """
         self.ensure_one()
         if self.state != "draft":
@@ -96,16 +99,21 @@ class LLMDocument(models.Model):
         self.write({"lock_date": fields.Datetime.now()})
 
         try:
-            # TODO: Implement document retrieval logic
-            # This is a placeholder for the actual implementation
+            # Get the related record
+            record = self.env[self.res_model].browse(self.res_id)
+            if not record.exists():
+                raise UserError(_("Referenced record not found"))
 
-            # Update state after successful retrieval
-            self.write(
-                {
-                    "state": "retrieved",
-                    "lock_date": False,
-                }
-            )
+            # Call the rag_retrieve method on the record if it exists
+            # This method should be implemented by each model that wants to support RAG
+            if hasattr(record, 'rag_retrieve'):
+                record.rag_retrieve(self)
+
+            # Mark as retrieved and unlock
+            self.write({
+                "state": "retrieved",
+                "lock_date": False,
+            })
 
             return True
 
@@ -113,7 +121,6 @@ class LLMDocument(models.Model):
             self.write({"lock_date": False})
             _logger.error("Error retrieving document: %s", str(e))
             raise UserError(_("Error retrieving document: %s") % str(e))
-
     def parse(self):
         """
         Parse the retrieved content to markdown
