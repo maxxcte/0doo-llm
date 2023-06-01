@@ -70,6 +70,11 @@ class LLMDocument(models.Model):
         compute="_compute_chunk_count",
         store=True,
     )
+    embedding_model = fields.Char(
+        string="Embedding Model",
+        tracking=True,
+        help="The model used to create embeddings for this document",
+    )
 
     @api.depends("chunk_ids")
     def _compute_chunk_count(self):
@@ -121,6 +126,7 @@ class LLMDocument(models.Model):
             self.write({"lock_date": False})
             _logger.error("Error retrieving document: %s", str(e))
             raise UserError(_("Error retrieving document: %s") % str(e))
+
     def parse(self):
         """
         Parse the retrieved content to markdown

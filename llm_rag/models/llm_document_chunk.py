@@ -33,6 +33,9 @@ class LLMDocumentChunk(models.Model):
     )
     embedding_model = fields.Char(
         string="Embedding Model",
+        related="document_id.embedding_model",
+        readonly=True,
+        store=True,
         help="The model used to create the embedding",
     )
 
