@@ -1,5 +1,6 @@
 import base64
 import logging
+import re
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
@@ -80,6 +81,20 @@ class LLMDocument(models.Model):
         string="Embedding Model",
         tracking=True,
         help="The model used to create embeddings for this document",
+    )
+    target_chunk_size = fields.Integer(
+        string="Target Chunk Size",
+        default=512,
+        required=True,
+        help="Target size of chunks in tokens",
+        tracking=True,
+    )
+    target_chunk_overlap = fields.Integer(
+        string="Chunk Overlap",
+        default=50,
+        required=True,
+        help="Number of tokens to overlap between chunks",
+        tracking=True,
     )
 
     # New selection fields for the RAG pipeline components
@@ -400,44 +415,6 @@ class LLMDocument(models.Model):
             documents._unlock()
             raise UserError(_("Error in batch parsing: %s") % str(e)) from e
 
-    def chunk(self):
-        """Split the document into chunks"""
-        for document in self:
-            if document.state != "parsed":
-                _logger.warning(
-                    "Document %s must be in parsed state to create chunks", document.id
-                )
-                continue
-
-        # Lock documents and process only the successfully locked ones
-        documents = self._lock()
-        if not documents:
-            return False
-
-        try:
-            # Process each document
-            for document in documents:
-                try:
-                    # Placeholder for actual implementation
-                    # Will be replaced by specific chunker implementations in extending modules
-
-                    # Mark as chunked
-                    document.write({"state": "chunked"})
-
-                except Exception as e:
-                    document._post_message(
-                        f"Error chunking document: {str(e)}", "error"
-                    )
-                    document._unlock()
-
-            # Unlock all successfully processed documents
-            documents._unlock()
-            return True
-
-        except Exception as e:
-            documents._unlock()
-            raise UserError(_("Error in batch chunking: %s") % str(e)) from e
-
     def embed(self):
         """Embed the document chunks"""
         for document in self:
@@ -503,3 +480,165 @@ class LLMDocument(models.Model):
             "type": "ir.actions.act_window",
             "context": {"default_document_id": self.id},
         }
+
+    def _chunk_default(self):
+        """
+        Default implementation for splitting document into chunks.
+        Uses a simple sentence-based splitting approach.
+        """
+        self.ensure_one()
+
+        if not self.content:
+            raise UserError(_("No content to chunk"))
+
+        # Delete existing chunks
+        self.chunk_ids.unlink()
+
+        # Get chunking parameters
+        chunk_size = self.target_chunk_size
+        chunk_overlap = min(
+            self.target_chunk_overlap, chunk_size // 2
+        )  # Ensure overlap is not too large
+
+        # Split content into sentences (simple regex-based approach)
+        # Note: for a more sophisticated approach, consider using a NLP library
+        sentences = re.split(r"(?<=[.!?])\s+", self.content)
+
+        # Function to estimate token count (approximation)
+        def estimate_tokens(text):
+            # Simple approximation: 1 token ≈ 4 characters for English text
+            return len(text) // 4
+
+        # Create chunks using a sliding window approach
+        chunks = []
+        current_chunk = []
+        current_size = 0
+
+        for _i, sentence in enumerate(sentences):
+            sentence_tokens = estimate_tokens(sentence)
+
+            # If a single sentence exceeds chunk size, we have to include it anyway
+            if current_size + sentence_tokens > chunk_size and current_chunk:
+                # Create a chunk from accumulated sentences
+                chunk_text = " ".join(current_chunk)
+                chunk_seq = len(chunks) + 1
+
+                # Create chunk record
+                chunk = self.env["llm.document.chunk"].create(
+                    {
+                        "document_id": self.id,
+                        "sequence": chunk_seq,
+                        "content": chunk_text,
+                        "metadata": {
+                            "document_name": self.name,
+                            "res_model": self.res_model,
+                            "res_id": self.res_id,
+                            "chunk_index": chunk_seq,
+                            "estimated_tokens": current_size,
+                        },
+                    }
+                )
+                chunks.append(chunk)
+
+                # Handle overlap: keep some sentences for the next chunk
+                overlap_tokens = 0
+                overlap_sentences = []
+
+                # Work backwards through current_chunk to build overlap
+                for sent in reversed(current_chunk):
+                    sent_tokens = estimate_tokens(sent)
+                    if overlap_tokens + sent_tokens <= chunk_overlap:
+                        overlap_sentences.insert(0, sent)
+                        overlap_tokens += sent_tokens
+                    else:
+                        break
+
+                # Start new chunk with overlap sentences
+                current_chunk = overlap_sentences
+                current_size = overlap_tokens
+
+            # Add current sentence to the chunk
+            current_chunk.append(sentence)
+            current_size += sentence_tokens
+
+        # Don't forget the last chunk if there's anything left
+        if current_chunk:
+            chunk_text = " ".join(current_chunk)
+            chunk_seq = len(chunks) + 1
+
+            chunk = self.env["llm.document.chunk"].create(
+                {
+                    "document_id": self.id,
+                    "sequence": chunk_seq,
+                    "content": chunk_text,
+                    "metadata": {
+                        "document_name": self.name,
+                        "res_model": self.res_model,
+                        "res_id": self.res_id,
+                        "chunk_index": chunk_seq,
+                        "estimated_tokens": current_size,
+                    },
+                }
+            )
+            chunks.append(chunk)
+
+        # Post success message
+        self._post_message(
+            f"Created {len(chunks)} chunks (target size: {chunk_size}, overlap: {chunk_overlap})",
+            "success",
+        )
+
+        return len(chunks) > 0
+
+    # Update the chunk method in the LLMDocument model class to use the chunker selection
+    def chunk(self):
+        """Split the document into chunks"""
+        for document in self:
+            if document.state != "parsed":
+                _logger.warning(
+                    "Document %s must be in parsed state to create chunks", document.id
+                )
+                continue
+
+        # Lock documents and process only the successfully locked ones
+        documents = self._lock()
+        if not documents:
+            return False
+
+        try:
+            # Process each document
+            for document in documents:
+                try:
+                    # Use appropriate chunker based on selection
+                    success = False
+                    if document.chunker == "default":
+                        success = document._chunk_default()
+                    else:
+                        _logger.warning(
+                            "Unknown chunker %s, falling back to default",
+                            document.chunker,
+                        )
+                        success = document._chunk_default()
+
+                    if success:
+                        # Mark as chunked
+                        document.write({"state": "chunked"})
+                    else:
+                        document._post_message(
+                            "Failed to create chunks - no content or empty result",
+                            "warning",
+                        )
+
+                except Exception as e:
+                    document._post_message(
+                        f"Error chunking document: {str(e)}", "error"
+                    )
+                    document._unlock()
+
+            # Unlock all successfully processed documents
+            documents._unlock()
+            return True
+
+        except Exception as e:
+            documents._unlock()
+            raise UserError(_("Error in batch chunking: %s") % str(e)) from e

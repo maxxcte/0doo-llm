@@ -227,6 +227,15 @@
                 attrs="{'readonly': [('state', 'not in', ['draft', 'retrieved', 'parsed'])]}"
               />
                             <field
+                name="target_chunk_size"
+                attrs="{'readonly': [('state', 'not in', ['draft', 'retrieved', 'parsed'])]}"
+              />
+                            <field
+                name="target_chunk_overlap"
+                attrs="{'readonly': [('state', 'not in', ['draft', 'retrieved', 'parsed'])]}"
+              />
+
+                            <field
                 name="kanban_state"
                 widget="state_selection"
               />
@@ -257,6 +266,7 @@
                                     <field name="embedding_model" />
                                 </tree>
                             </field>
+
                         </page>
                     </notebook>
                 </sheet>
