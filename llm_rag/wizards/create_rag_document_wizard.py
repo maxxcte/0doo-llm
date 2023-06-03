@@ -19,7 +19,7 @@ class CreateRAGDocumentWizard(models.TransientModel):
     process_immediately = fields.Boolean(
         string="Process Immediately",
         default=False,
-        help="If checked, documents will be immediately processed through the RAG pipeline"
+        help="If checked, documents will be immediately processed through the RAG pipeline",
     )
     state = fields.Selection(
         [
@@ -54,14 +54,17 @@ class CreateRAGDocumentWizard(models.TransientModel):
             return {"type": "ir.actions.act_window_close"}
 
         records = self.env[active_model].browse(active_ids)
-        model_name = self.env[active_model]._description or active_model.replace(".", " ").title()
+        model_name = (
+            self.env[active_model]._description
+            or active_model.replace(".", " ").title()
+        )
 
         created_documents = self.env["llm.document"]
 
         for record in records:
             # Get record name - try different common name fields
             record_name = record.display_name
-            if not record_name and hasattr(record, 'name'):
+            if not record_name and hasattr(record, "name"):
                 record_name = record.name
             if not record_name:
                 record_name = f"{model_name} #{record.id}"
@@ -74,11 +77,13 @@ class CreateRAGDocumentWizard(models.TransientModel):
             )
 
             # Create RAG document
-            document = self.env["llm.document"].create({
-                "name": document_name,
-                "res_model": active_model,
-                "res_id": record.id,
-            })
+            document = self.env["llm.document"].create(
+                {
+                    "name": document_name,
+                    "res_model": active_model,
+                    "res_id": record.id,
+                }
+            )
 
             # Process document if requested
             if self.process_immediately:
@@ -86,10 +91,12 @@ class CreateRAGDocumentWizard(models.TransientModel):
 
             created_documents |= document
 
-        self.write({
-            "state": "done",
-            "created_document_ids": [(6, 0, created_documents.ids)],
-        })
+        self.write(
+            {
+                "state": "done",
+                "created_document_ids": [(6, 0, created_documents.ids)],
+            }
+        )
 
         return {
             "type": "ir.actions.act_window",

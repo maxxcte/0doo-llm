@@ -1,8 +1,8 @@
-from odoo import api, models
+from odoo import models
 
 
 class IrAttachment(models.Model):
-    _inherit = 'ir.attachment'
+    _inherit = "ir.attachment"
 
     def rag_retrieve(self, llm_document):
         """
@@ -15,10 +15,12 @@ class IrAttachment(models.Model):
         self.ensure_one()
 
         # Update the existing attachment to link it to the llm.document
-        self.write({
-            'res_model': 'llm.document',  # Link to llm.document model
-            'res_id': llm_document.id,    # Link to this specific document
-        })
+        self.write(
+            {
+                "res_model": "llm.document",  # Link to llm.document model
+                "res_id": llm_document.id,  # Link to this specific document
+            }
+        )
 
         # Optionally post a message in the chatter for traceability
         llm_document.message_post(

@@ -76,6 +76,32 @@ class LLMDocument(models.Model):
         help="The model used to create embeddings for this document",
     )
 
+    # New selection fields for the RAG pipeline components
+    retriever = fields.Selection(
+        selection="_get_available_retrievers",
+        string="Retriever",
+        default="default",
+        required=True,
+        help="Method used to retrieve document content",
+        tracking=True,
+    )
+    parser = fields.Selection(
+        selection="_get_available_parsers",
+        string="Parser",
+        default="default",
+        required=True,
+        help="Method used to parse document content",
+        tracking=True,
+    )
+    chunker = fields.Selection(
+        selection="_get_available_chunkers",
+        string="Chunker",
+        default="default",
+        required=True,
+        help="Method used to chunk document content",
+        tracking=True,
+    )
+
     @api.depends("chunk_ids")
     def _compute_chunk_count(self):
         for record in self:
@@ -86,170 +112,216 @@ class LLMDocument(models.Model):
         for record in self:
             record.kanban_state = "blocked" if record.lock_date else "normal"
 
+    @api.model
+    def _get_available_retrievers(self):
+        """Get all available retriever methods"""
+        return [("default", "Default Retriever")]
+
+    @api.model
+    def _get_available_parsers(self):
+        """Get all available parser methods"""
+        return [("default", "Default Parser")]
+
+    @api.model
+    def _get_available_chunkers(self):
+        """Get all available chunker methods"""
+        return [("default", "Default Chunker")]
+
+    def _lock(self):
+        """Lock documents for processing and return the ones successfully locked"""
+        successfully_locked = self.env["llm.document"]
+        for document in self:
+            if document.lock_date:
+                _logger.warning(
+                    "Document %s is already locked for processing", document.id
+                )
+                continue
+            document.lock_date = fields.Datetime.now()
+            successfully_locked |= document
+        return successfully_locked
+
+    def _unlock(self):
+        """Unlock documents after processing"""
+        return self.write({"lock_date": False})
+
     def retrieve(self):
-        """
-        Retrieve the document content from the related model.
-        This calls the rag_retrieve method on the related model.
-        Each model can implement its own rag_retrieve method to define
-        how its content should be retrieved for RAG.
-        """
-        self.ensure_one()
-        if self.state != "draft":
-            raise UserError(_("Document must be in draft state to retrieve content"))
+        """Retrieve document content from the related record"""
+        for document in self:
+            if document.state != "draft":
+                _logger.warning(
+                    "Document %s must be in draft state to retrieve content",
+                    document.id,
+                )
+                continue
 
-        if self.lock_date:
-            raise UserError(_("Document is locked for processing"))
-
-        # Lock the document
-        self.write({"lock_date": fields.Datetime.now()})
+        # Lock documents and process only the successfully locked ones
+        documents = self._lock()
+        if not documents:
+            return False
 
         try:
-            # Get the related record
-            record = self.env[self.res_model].browse(self.res_id)
-            if not record.exists():
-                raise UserError(_("Referenced record not found"))
+            # Process each document
+            for document in documents:
+                try:
+                    # Get the related record
+                    record = self.env[document.res_model].browse(document.res_id)
+                    if not record.exists():
+                        raise UserError(_("Referenced record not found"))
 
-            # Call the rag_retrieve method on the record if it exists
-            # This method should be implemented by each model that wants to support RAG
-            if hasattr(record, 'rag_retrieve'):
-                record.rag_retrieve(self)
+                    # Call the rag_retrieve method on the record if it exists
+                    if hasattr(record, "rag_retrieve"):
+                        record.rag_retrieve(document)
 
-            # Mark as retrieved and unlock
-            self.write({
-                "state": "retrieved",
-                "lock_date": False,
-            })
+                    # Mark as retrieved
+                    document.write({"state": "retrieved"})
 
+                except Exception as e:
+                    _logger.error(
+                        "Error retrieving document %s: %s", document.id, str(e)
+                    )
+                    document._unlock()
+
+            # Unlock all successfully processed documents
+            documents._unlock()
             return True
 
         except Exception as e:
-            self.write({"lock_date": False})
-            _logger.error("Error retrieving document: %s", str(e))
-            raise UserError(_("Error retrieving document: %s") % str(e))
+            documents._unlock()
+            _logger.error("Error in batch retrieval: %s", str(e))
+            raise UserError(_("Error in batch retrieval: %s") % str(e)) from e
 
     def parse(self):
-        """
-        Parse the retrieved content to markdown
-        """
-        self.ensure_one()
-        if self.state != "retrieved":
-            raise UserError(_("Document must be in retrieved state to parse content"))
+        """Parse the retrieved content to markdown"""
+        for document in self:
+            if document.state != "retrieved":
+                _logger.warning(
+                    "Document %s must be in retrieved state to parse content",
+                    document.id,
+                )
+                continue
 
-        if self.lock_date:
-            raise UserError(_("Document is locked for processing"))
-
-        # Lock the document
-        self.write({"lock_date": fields.Datetime.now()})
+        # Lock documents and process only the successfully locked ones
+        documents = self._lock()
+        if not documents:
+            return False
 
         try:
-            # TODO: Implement document parsing logic
-            # This is a placeholder for the actual implementation
+            # Process each document
+            for document in documents:
+                try:
+                    # Placeholder for actual implementation
+                    # Will be replaced by specific parser implementations in extending modules
 
-            # Update state after successful parsing
-            self.write(
-                {
-                    "state": "parsed",
-                    "lock_date": False,
-                }
-            )
+                    # Mark as parsed
+                    document.write({"state": "parsed"})
 
+                except Exception as e:
+                    _logger.error("Error parsing document %s: %s", document.id, str(e))
+                    document._unlock()
+
+            # Unlock all successfully processed documents
+            documents._unlock()
             return True
 
         except Exception as e:
-            self.write({"lock_date": False})
-            _logger.error("Error parsing document: %s", str(e))
-            raise UserError(_("Error parsing document: %s") % str(e))
+            documents._unlock()
+            _logger.error("Error in batch parsing: %s", str(e))
+            raise UserError(_("Error in batch parsing: %s") % str(e)) from e
 
     def chunk(self):
-        """
-        Split the document into chunks
-        """
-        self.ensure_one()
-        if self.state != "parsed":
-            raise UserError(_("Document must be in parsed state to create chunks"))
+        """Split the document into chunks"""
+        for document in self:
+            if document.state != "parsed":
+                _logger.warning(
+                    "Document %s must be in parsed state to create chunks", document.id
+                )
+                continue
 
-        if self.lock_date:
-            raise UserError(_("Document is locked for processing"))
-
-        # Lock the document
-        self.write({"lock_date": fields.Datetime.now()})
+        # Lock documents and process only the successfully locked ones
+        documents = self._lock()
+        if not documents:
+            return False
 
         try:
-            # TODO: Implement document chunking logic
-            # This is a placeholder for the actual implementation
+            # Process each document
+            for document in documents:
+                try:
+                    # Placeholder for actual implementation
+                    # Will be replaced by specific chunker implementations in extending modules
 
-            # Update state after successful chunking
-            self.write(
-                {
-                    "state": "chunked",
-                    "lock_date": False,
-                }
-            )
+                    # Mark as chunked
+                    document.write({"state": "chunked"})
 
+                except Exception as e:
+                    _logger.error("Error chunking document %s: %s", document.id, str(e))
+                    document._unlock()
+
+            # Unlock all successfully processed documents
+            documents._unlock()
             return True
 
         except Exception as e:
-            self.write({"lock_date": False})
-            _logger.error("Error chunking document: %s", str(e))
-            raise UserError(_("Error chunking document: %s") % str(e))
+            documents._unlock()
+            _logger.error("Error in batch chunking: %s", str(e))
+            raise UserError(_("Error in batch chunking: %s") % str(e)) from e
 
     def embed(self):
-        """
-        Embed the document chunks
-        """
-        self.ensure_one()
-        if self.state != "chunked":
-            raise UserError(_("Document must be in chunked state to embed"))
+        """Embed the document chunks"""
+        for document in self:
+            if document.state != "chunked":
+                _logger.warning(
+                    "Document %s must be in chunked state to embed", document.id
+                )
+                continue
 
-        if self.lock_date:
-            raise UserError(_("Document is locked for processing"))
-
-        # Lock the document
-        self.write({"lock_date": fields.Datetime.now()})
+        # Lock documents and process only the successfully locked ones
+        documents = self._lock()
+        if not documents:
+            return False
 
         try:
-            # TODO: Implement document embedding logic
-            # This is a placeholder for the actual implementation
+            # Process each document
+            for document in documents:
+                try:
+                    # Placeholder for actual implementation
 
-            # Update state after successful embedding
-            self.write(
-                {
-                    "state": "ready",
-                    "lock_date": False,
-                }
-            )
+                    # Mark as ready
+                    document.write({"state": "ready"})
 
+                except Exception as e:
+                    _logger.error(
+                        "Error embedding document %s: %s", document.id, str(e)
+                    )
+                    document._unlock()
+
+            # Unlock all successfully processed documents
+            documents._unlock()
             return True
 
         except Exception as e:
-            self.write({"lock_date": False})
-            _logger.error("Error embedding document: %s", str(e))
-            raise UserError(_("Error embedding document: %s") % str(e))
+            documents._unlock()
+            _logger.error("Error in batch embedding: %s", str(e))
+            raise UserError(_("Error in batch embedding: %s") % str(e)) from e
 
     def process_document(self):
-        """
-        Process the document through the entire pipeline
-        """
-        self.ensure_one()
+        """Process the document through the entire pipeline"""
+        for document in self:
+            if document.state == "draft":
+                document.retrieve()
 
-        if self.state == "draft":
-            self.retrieve()
+            if document.state == "retrieved":
+                document.parse()
 
-        if self.state == "retrieved":
-            self.parse()
+            if document.state == "parsed":
+                document.chunk()
 
-        if self.state == "parsed":
-            self.chunk()
-
-        if self.state == "chunked":
-            self.embed()
+            if document.state == "chunked":
+                document.embed()
 
         return True
 
     def action_view_chunks(self):
-        """
-        Open a view with all chunks for this document
-        """
+        """Open a view with all chunks for this document"""
         self.ensure_one()
         return {
             "name": _("Document Chunks"),
