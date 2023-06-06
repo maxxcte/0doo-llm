@@ -1,4 +1,5 @@
 from odoo import api, fields, models
+import json
 
 
 class LLMDocumentChunk(models.Model):
@@ -38,6 +39,12 @@ class LLMDocumentChunk(models.Model):
         store=True,
         help="The model used to create the embedding",
     )
+    metadata = fields.Text(
+        string="Metadata",
+        compute="_compute_metadata",
+        store=True,
+        help="JSON metadata for this chunk",
+    )
 
     @api.depends("document_id.name", "sequence")
     def _compute_name(self):
@@ -46,3 +53,32 @@ class LLMDocumentChunk(models.Model):
                 record.name = f"{record.document_id.name} - Chunk {record.sequence}"
             else:
                 record.name = f"Chunk {record.sequence}"
+
+    @api.depends(
+        "document_id.name",
+        "document_id.res_model",
+        "document_id.res_id",
+        "sequence",
+        "document_id.embedding_model"
+    )
+    def _compute_metadata(self):
+        """Compute metadata as a JSON string with information from the document and chunk"""
+        for record in self:
+            if not record.document_id:
+                record.metadata = "{}"
+                continue
+
+            # Estimate token count (simplified approach)
+            estimated_tokens = len(record.content) // 4 if record.content else 0
+
+            metadata = {
+                "document_name": record.document_id.name,
+                "res_model": record.document_id.res_model,
+                "res_id": record.document_id.res_id,
+                "chunk_index": record.sequence,
+                "estimated_tokens": estimated_tokens,
+                "embedding_model": record.document_id.embedding_model,
+            }
+
+            # Add any additional metadata you might need
+            record.metadata = json.dumps(metadata)

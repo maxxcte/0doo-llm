@@ -380,7 +380,7 @@ class LLMDocument(models.Model):
                 try:
                     # Use appropriate parser based on selection
                     if document.parser == "default":
-                        document._parse_default()
+                        success = document._parse_default()
                     elif document.parser == "pdf":
                         # Get the related record's attachments
                         attachments = self.env["ir.attachment"].search(
@@ -390,7 +390,7 @@ class LLMDocument(models.Model):
                             ]
                         )
                         if attachments:
-                            document._parse_pdf(attachments[0])
+                            success = document._parse_pdf(attachments[0])
                         else:
                             raise UserError(_("No PDF attachment found"))
                     else:
@@ -398,12 +398,29 @@ class LLMDocument(models.Model):
                             "Unknown parser %s, falling back to default",
                             document.parser,
                         )
-                        document._parse_default()
+                        success = document._parse_default()
 
-                    # Mark as parsed
-                    document.write({"state": "parsed"})
+                    # Only update state if parsing was successful
+                    if success:
+                        # Debug logging
+                        _logger.info("Parsing successful for document %s, updating state to 'parsed'", document.id)
+
+                        # Explicitly commit the state change to ensure it's saved
+                        document.write({"state": "parsed"})
+                        self.env.cr.commit()  # Force commit the transaction
+
+                        document._post_message(
+                            "Document successfully parsed",
+                            "success"
+                        )
+                    else:
+                        document._post_message(
+                            "Parsing completed but did not return success",
+                            "warning"
+                        )
 
                 except Exception as e:
+                    _logger.error("Error parsing document %s: %s", document.id, str(e), exc_info=True)
                     document._post_message(f"Error parsing document: {str(e)}", "error")
                     document._unlock()
 
@@ -414,7 +431,6 @@ class LLMDocument(models.Model):
         except Exception as e:
             documents._unlock()
             raise UserError(_("Error in batch parsing: %s") % str(e)) from e
-
     def embed(self):
         """Embed the document chunks"""
         for document in self:
@@ -523,19 +539,12 @@ class LLMDocument(models.Model):
                 chunk_text = " ".join(current_chunk)
                 chunk_seq = len(chunks) + 1
 
-                # Create chunk record
+                # Create chunk record - metadata is now computed automatically
                 chunk = self.env["llm.document.chunk"].create(
                     {
                         "document_id": self.id,
                         "sequence": chunk_seq,
                         "content": chunk_text,
-                        "metadata": {
-                            "document_name": self.name,
-                            "res_model": self.res_model,
-                            "res_id": self.res_id,
-                            "chunk_index": chunk_seq,
-                            "estimated_tokens": current_size,
-                        },
                     }
                 )
                 chunks.append(chunk)
@@ -566,18 +575,12 @@ class LLMDocument(models.Model):
             chunk_text = " ".join(current_chunk)
             chunk_seq = len(chunks) + 1
 
+            # Create chunk record - metadata is now computed automatically
             chunk = self.env["llm.document.chunk"].create(
                 {
                     "document_id": self.id,
                     "sequence": chunk_seq,
                     "content": chunk_text,
-                    "metadata": {
-                        "document_name": self.name,
-                        "res_model": self.res_model,
-                        "res_id": self.res_id,
-                        "chunk_index": chunk_seq,
-                        "estimated_tokens": current_size,
-                    },
                 }
             )
             chunks.append(chunk)
@@ -589,7 +592,6 @@ class LLMDocument(models.Model):
         )
 
         return len(chunks) > 0
-
     # Update the chunk method in the LLMDocument model class to use the chunker selection
     def chunk(self):
         """Split the document into chunks"""
