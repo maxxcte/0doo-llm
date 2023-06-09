@@ -233,11 +233,15 @@ class LLMDocument(models.Model):
             # Open PDF using PyMuPDF
             text_content = []
             image_count = 0
+            page_count = 0
 
             # Create a BytesIO object from the PDF data
             with pymupdf.open(stream=pdf_data, filetype="pdf") as doc:
+                # Store page count before document is closed
+                page_count = doc.page_count
+
                 # Process each page
-                for page_num in range(doc.page_count):
+                for page_num in range(page_count):
                     page = doc[page_num]
 
                     # Extract text
@@ -285,9 +289,9 @@ class LLMDocument(models.Model):
             # Update document with extracted content
             self.content = final_content
 
-            # Post success message
+            # Post success message - using stored page_count instead of accessing closed doc
             self._post_message(
-                f"Successfully extracted content from document ({doc.page_count} pages, {image_count} images)",
+                f"Successfully extracted content from document ({page_count} pages, {image_count} images)",
                 "success",
             )
 
@@ -403,24 +407,30 @@ class LLMDocument(models.Model):
                     # Only update state if parsing was successful
                     if success:
                         # Debug logging
-                        _logger.info("Parsing successful for document %s, updating state to 'parsed'", document.id)
+                        _logger.info(
+                            "Parsing successful for document %s, updating state to 'parsed'",
+                            document.id,
+                        )
 
                         # Explicitly commit the state change to ensure it's saved
                         document.write({"state": "parsed"})
                         self.env.cr.commit()  # Force commit the transaction
 
                         document._post_message(
-                            "Document successfully parsed",
-                            "success"
+                            "Document successfully parsed", "success"
                         )
                     else:
                         document._post_message(
-                            "Parsing completed but did not return success",
-                            "warning"
+                            "Parsing completed but did not return success", "warning"
                         )
 
                 except Exception as e:
-                    _logger.error("Error parsing document %s: %s", document.id, str(e), exc_info=True)
+                    _logger.error(
+                        "Error parsing document %s: %s",
+                        document.id,
+                        str(e),
+                        exc_info=True,
+                    )
                     document._post_message(f"Error parsing document: {str(e)}", "error")
                     document._unlock()
 
@@ -431,6 +441,7 @@ class LLMDocument(models.Model):
         except Exception as e:
             documents._unlock()
             raise UserError(_("Error in batch parsing: %s") % str(e)) from e
+
     def embed(self):
         """Embed the document chunks"""
         for document in self:
@@ -592,6 +603,7 @@ class LLMDocument(models.Model):
         )
 
         return len(chunks) > 0
+
     # Update the chunk method in the LLMDocument model class to use the chunker selection
     def chunk(self):
         """Split the document into chunks"""

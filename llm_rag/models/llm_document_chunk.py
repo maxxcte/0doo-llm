@@ -1,5 +1,6 @@
-from odoo import api, fields, models
 import json
+
+from odoo import api, fields, models
 
 
 class LLMDocumentChunk(models.Model):
@@ -59,7 +60,7 @@ class LLMDocumentChunk(models.Model):
         "document_id.res_model",
         "document_id.res_id",
         "sequence",
-        "document_id.embedding_model"
+        "document_id.embedding_model",
     )
     def _compute_metadata(self):
         """Compute metadata as a JSON string with information from the document and chunk"""
