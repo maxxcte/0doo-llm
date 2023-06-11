@@ -140,6 +140,7 @@
     </record>
 
     <!-- Form View -->
+    <!-- Form View with embedding_model_id field added -->
     <record id="view_llm_document_form" model="ir.ui.view">
         <field name="name">llm.document.form</field>
         <field name="model">llm.document</field>
@@ -215,6 +216,11 @@
                         </group>
                         <group>
                             <field
+                name="embedding_model_id"
+                options="{'no_create': True}"
+                attrs="{'readonly': [('state', '=', 'ready')]}"
+              />
+                            <field
                 name="retriever"
                 attrs="{'readonly': [('state', '!=', 'draft')]}"
               />
@@ -234,7 +240,6 @@
                 name="target_chunk_overlap"
                 attrs="{'readonly': [('state', 'not in', ['draft', 'retrieved', 'parsed'])]}"
               />
-
                             <field
                 name="kanban_state"
                 widget="state_selection"
@@ -263,7 +268,7 @@
                                 <tree>
                                     <field name="sequence" widget="handle" />
                                     <field name="name" />
-                                    <field name="embedding_model" />
+                                    <field name="embedding_model_id" />
                                     <field
                     name="metadata"
                     widget="json_preview"

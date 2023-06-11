@@ -77,8 +77,10 @@ class LLMDocument(models.Model):
         compute="_compute_chunk_count",
         store=True,
     )
-    embedding_model = fields.Char(
+    embedding_model_id = fields.Many2one(
+        "llm.model",
         string="Embedding Model",
+        domain="[('model_use', '=', 'embedding')]",
         tracking=True,
         help="The model used to create embeddings for this document",
     )

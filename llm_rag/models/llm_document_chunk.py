@@ -33,9 +33,10 @@ class LLMDocumentChunk(models.Model):
         attachment=True,
         help="Vector embedding for this chunk",
     )
-    embedding_model = fields.Char(
+    embedding_model_id = fields.Many2one(
+        "llm.model",
         string="Embedding Model",
-        related="document_id.embedding_model",
+        related="document_id.embedding_model_id",
         readonly=True,
         store=True,
         help="The model used to create the embedding",
@@ -60,7 +61,7 @@ class LLMDocumentChunk(models.Model):
         "document_id.res_model",
         "document_id.res_id",
         "sequence",
-        "document_id.embedding_model",
+        "document_id.embedding_model_id",
     )
     def _compute_metadata(self):
         """Compute metadata as a JSON string with information from the document and chunk"""
@@ -78,8 +79,16 @@ class LLMDocumentChunk(models.Model):
                 "res_id": record.document_id.res_id,
                 "chunk_index": record.sequence,
                 "estimated_tokens": estimated_tokens,
-                "embedding_model": record.document_id.embedding_model,
             }
+
+            # Store embedding model info properly
+            if record.document_id.embedding_model_id:
+                metadata["embedding_model_id"] = (
+                    record.document_id.embedding_model_id.id
+                )
+                metadata["embedding_model_name"] = (
+                    record.document_id.embedding_model_id.name
+                )
 
             # Add any additional metadata you might need
             record.metadata = json.dumps(metadata)
