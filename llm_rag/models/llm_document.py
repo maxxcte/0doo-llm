@@ -445,11 +445,19 @@ class LLMDocument(models.Model):
             raise UserError(_("Error in batch parsing: %s") % str(e)) from e
 
     def embed(self):
-        """Embed the document chunks"""
+        """Embed the document chunks using vector embeddings"""
         for document in self:
             if document.state != "chunked":
                 _logger.warning(
                     "Document %s must be in chunked state to embed", document.id
+                )
+                continue
+
+            # Ensure embedding model is specified
+            if not document.embedding_model_id:
+                document._post_message(
+                    "Embedding model not specified - please select an embedding model",
+                    "error",
                 )
                 continue
 
@@ -462,10 +470,45 @@ class LLMDocument(models.Model):
             # Process each document
             for document in documents:
                 try:
-                    # Placeholder for actual implementation
+                    # Check if embedding model exists and is configured
+                    if not document.embedding_model_id:
+                        raise UserError(_("Embedding model not specified"))
 
-                    # Mark as ready
-                    document.write({"state": "ready"})
+                    embedding_model = document.embedding_model_id
+
+                    # Process each chunk
+                    chunks_processed = 0
+                    for chunk in document.chunk_ids:
+                        # Skip chunks that already have embeddings
+                        if chunk.embedding:
+                            chunks_processed += 1
+                            continue
+
+                        # Get embedding from the model
+                        try:
+                            # Call embedding model to get vector
+                            embedding_result = embedding_model.embedding(chunk.content)
+
+                            # Store embedding as vector
+                            if embedding_result:
+                                chunk.embedding = embedding_result
+                                chunks_processed += 1
+                        except Exception as e:
+                            document._post_message(
+                                f"Error embedding chunk {chunk.id}: {str(e)}", "warning"
+                            )
+
+                    # Update document state if at least one chunk was processed
+                    if chunks_processed > 0:
+                        document.write({"state": "ready"})
+                        document._post_message(
+                            f"Embedded {chunks_processed} chunks using {embedding_model.name}",
+                            "success",
+                        )
+                    else:
+                        document._post_message(
+                            "No chunks were successfully embedded", "warning"
+                        )
 
                 except Exception as e:
                     document._post_message(

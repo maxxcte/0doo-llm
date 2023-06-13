@@ -1,6 +1,10 @@
 import json
 
+import numpy as np
+
 from odoo import api, fields, models
+
+from ..fields.pgvector import PgVector
 
 
 class LLMDocumentChunk(models.Model):
@@ -28,11 +32,14 @@ class LLMDocumentChunk(models.Model):
         required=True,
         help="The content of this document chunk",
     )
-    embedding = fields.Binary(
+
+    # Use pgvector field for embeddings
+    embedding = PgVector(
         string="Embedding",
-        attachment=True,
-        help="Vector embedding for this chunk",
+        dimensions=1536,  # Default to OpenAI dimensions, configurable later
+        help="Vector embedding for this chunk (pgvector format)",
     )
+
     embedding_model_id = fields.Many2one(
         "llm.model",
         string="Embedding Model",
@@ -92,3 +99,46 @@ class LLMDocumentChunk(models.Model):
 
             # Add any additional metadata you might need
             record.metadata = json.dumps(metadata)
+
+    def vector_search(self, query_vector, limit=10):
+        """
+        Search for similar chunks using vector similarity
+
+        Args:
+            query_vector: The query embedding vector (list or numpy array)
+            limit: Maximum number of results to return
+
+        Returns:
+            Recordset of matching chunks, ordered by similarity
+        """
+        if not query_vector:
+            return self.browse([])
+
+        # Convert to numpy array if it's a list
+        if isinstance(query_vector, list):
+            query_vector = np.array(query_vector, dtype=np.float32)
+
+        # Format for PostgreSQL vector
+        if isinstance(query_vector, np.ndarray):
+            pg_vector = f"[{','.join(map(str, query_vector.tolist()))}]"
+        else:
+            pg_vector = query_vector  # Assume it's already in the right format
+
+        # Register vector with the current cursor
+        from pgvector.psycopg2 import register_vector
+
+        register_vector(self.env.cr)
+
+        # Execute raw SQL for vector similarity search
+        self.env.cr.execute(
+            """
+            SELECT id
+            FROM llm_document_chunk
+            ORDER BY embedding <=> %s
+            LIMIT %s
+        """,
+            (pg_vector, limit),
+        )
+
+        chunk_ids = [row[0] for row in self.env.cr.fetchall()]
+        return self.browse(chunk_ids)

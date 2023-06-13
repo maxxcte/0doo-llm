@@ -1,6 +1,6 @@
 {
     "name": "LLM RAG",
-    "summary": "Retrieval Augmented Generation for LLM",
+    "summary": "Retrieval Augmented Generation for LLM with Vector Search",
     "description": """
         Implements Retrieval Augmented Generation for the LLM module.
 
@@ -8,12 +8,13 @@
         - Document management for RAG
         - Document processing pipeline (retrieve, parse, chunk, embed)
         - Integration with LLM models
+        - Vector search using pgvector
     """,
     "category": "Technical",
     "version": "16.0.1.0.0",
     "depends": ["llm"],
     "external_dependencies": {
-        "python": ["PyMuPDF"],
+        "python": ["PyMuPDF", "pgvector", "numpy"],
     },
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
@@ -25,6 +26,7 @@
         "data/server_actions.xml",
     ],
     "assets": {},
+    "pre_init_hook": "pre_init_hook",
     "license": "LGPL-3",
     "installable": True,
     "application": False,
