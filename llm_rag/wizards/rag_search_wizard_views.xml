@@ -11,15 +11,17 @@
                     <!-- Search Form -->
                     <div states="search">
                         <div class="alert alert-info" role="alert">
-                            <p><strong>Search for relevant information in your RAG documents</strong></p>
-                            <p>Enter your query and set search parameters to find the most relevant chunks.</p>
+                            <p><strong
+                >Search for relevant information in your RAG documents</strong></p>
+                            <p
+              >Enter your query and set search parameters to find the most relevant chunks.</p>
                         </div>
                         <group>
                             <field
-                                    name="query"
-                                    placeholder="What are the key features of our product?"
-                                    required="1"
-                            />
+                name="query"
+                placeholder="What are the key features of our product?"
+                required="1"
+              />
                         </group>
                         <group>
                             <group>
@@ -27,34 +29,66 @@
                                 <field name="top_n" />
                             </group>
                             <group>
-                                <field name="similarity_cutoff" widget="percentage" />
+                                <field
+                  name="similarity_cutoff"
+                  widget="percentage"
+                />
                             </group>
                         </group>
                     </div>
 
                     <!-- Results -->
                     <div states="results">
-                        <div class="alert alert-success" role="alert" attrs="{'invisible': [('result_count', '=', 0)]}">
-                            <p><i class="fa fa-check-circle" title="Success" aria-label="Success" />
-                                <strong>Found <field name="result_count" readonly="1" /> relevant chunks</strong>
+                        <div
+              class="alert alert-success"
+              role="alert"
+              attrs="{'invisible': [('result_count', '=', 0)]}"
+            >
+                            <p><i
+                  class="fa fa-check-circle"
+                  title="Success"
+                  aria-label="Success"
+                />
+                                <strong>Found <field
+                    name="result_count"
+                    readonly="1"
+                  /> relevant chunks</strong>
                             </p>
                         </div>
-                        <div class="alert alert-warning" role="alert" attrs="{'invisible': [('result_count', '>', 0)]}">
-                            <p><i class="fa fa-exclamation-triangle" title="Warning" aria-label="Warning" />
-                                <strong>No results found for your query.</strong> Try adjusting your search parameters or query.
+                        <div
+              class="alert alert-warning"
+              role="alert"
+              attrs="{'invisible': [('result_count', '>', 0)]}"
+            >
+                            <p><i
+                  class="fa fa-exclamation-triangle"
+                  title="Warning"
+                  aria-label="Warning"
+                />
+                                <strong
+                >No results found for your query.</strong> Try adjusting your search parameters or query.
                             </p>
                         </div>
 
-                        <group attrs="{'invisible': [('result_count', '=', 0)]}">
+                        <group
+              attrs="{'invisible': [('result_count', '=', 0)]}"
+            >
                             <group>
                                 <field name="query" readonly="1" />
                             </group>
                             <group>
-                                <field name="similarity_cutoff" widget="percentage" readonly="1" />
+                                <field
+                  name="similarity_cutoff"
+                  widget="percentage"
+                  readonly="1"
+                />
                             </group>
                         </group>
 
-                        <field name="result_lines" attrs="{'invisible': [('result_count', '=', 0)]}">
+                        <field
+              name="result_lines"
+              attrs="{'invisible': [('result_count', '=', 0)]}"
+            >
                             <tree>
                                 <field name="document_name" />
                                 <field name="chunk_name" />
@@ -62,7 +96,11 @@
                             </tree>
                         </field>
 
-                        <field name="result_lines" mode="form" attrs="{'invisible': [('result_count', '=', 0)]}">
+                        <field
+              name="result_lines"
+              mode="form"
+              attrs="{'invisible': [('result_count', '=', 0)]}"
+            >
                             <form>
                                 <group>
                                     <group>
@@ -73,7 +111,11 @@
                                 </group>
                                 <notebook>
                                     <page string="Content">
-                                        <field name="content" widget="text" readonly="1" />
+                                        <field
+                      name="content"
+                      widget="text"
+                      readonly="1"
+                    />
                                     </page>
                                 </notebook>
                             </form>
@@ -82,24 +124,24 @@
                 </sheet>
                 <footer>
                     <button
-                            name="action_search"
-                            string="Search"
-                            type="object"
-                            class="btn-primary"
-                            attrs="{'invisible': [('state', '=', 'results')]}"
-                    />
+            name="action_search"
+            string="Search"
+            type="object"
+            class="btn-primary"
+            attrs="{'invisible': [('state', '=', 'results')]}"
+          />
                     <button
-                            name="action_back_to_search"
-                            string="Back to Search"
-                            type="object"
-                            class="btn-secondary"
-                            attrs="{'invisible': [('state', '=', 'search')]}"
-                    />
+            name="action_back_to_search"
+            string="Back to Search"
+            type="object"
+            class="btn-secondary"
+            attrs="{'invisible': [('state', '=', 'search')]}"
+          />
                     <button
-                            string="Close"
-                            class="btn-secondary"
-                            special="cancel"
-                    />
+            string="Close"
+            class="btn-secondary"
+            special="cancel"
+          />
                 </footer>
             </form>
         </field>

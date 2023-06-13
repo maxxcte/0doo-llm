@@ -1,6 +1,6 @@
-from odoo import api, fields, models, _
-from odoo.exceptions import UserError
 import numpy as np
+
+from odoo import _, api, fields, models
 
 
 class RAGSearchWizard(models.TransientModel):
@@ -14,7 +14,7 @@ class RAGSearchWizard(models.TransientModel):
     )
     query = fields.Text(
         string="Search Query",
-        required=False,
+        required=True,
         help="Enter your search query here",
     )
     top_k = fields.Integer(
@@ -69,7 +69,7 @@ class RAGSearchWizard(models.TransientModel):
         """Execute the vector search with the given query"""
         self.ensure_one()
 
-        if not self.query.strip():
+        if not self.query or self.query.strip():
             return {
                 "type": "ir.actions.act_window",
                 "res_model": "llm.rag.search.wizard",
@@ -104,7 +104,7 @@ class RAGSearchWizard(models.TransientModel):
                     "message": _("Please configure at least one embedding model."),
                     "sticky": False,
                     "type": "danger",
-                }
+                },
             }
 
         # Get embedding for the query
@@ -119,14 +119,12 @@ class RAGSearchWizard(models.TransientModel):
                     "message": _("Failed to generate embedding: %s") % str(e),
                     "sticky": False,
                     "type": "danger",
-                }
+                },
             }
-
-        # Search for chunks using the embedding
-        chunk_model = self.env["llm.document.chunk"]
 
         # Use pgvector for the search
         from pgvector.psycopg2 import register_vector
+
         register_vector(self.env.cr)
 
         # Format for PostgreSQL vector
@@ -143,15 +141,15 @@ class RAGSearchWizard(models.TransientModel):
         # Define base SQL for similarity search with cosine distance
         # Lower cosine distance means higher similarity
         sql = """
-            SELECT 
-                ch.id, 
+            SELECT
+                ch.id,
                 ch.document_id,
                 1 - (ch.embedding <=> %s) as similarity
-            FROM 
+            FROM
                 llm_document_chunk ch
-            JOIN 
+            JOIN
                 llm_document doc ON ch.document_id = doc.id
-            WHERE 
+            WHERE
                 ch.embedding IS NOT NULL
         """
 
@@ -169,7 +167,9 @@ class RAGSearchWizard(models.TransientModel):
 
         # Order by similarity and limit
         sql += " ORDER BY similarity DESC LIMIT %s"
-        params.append(self.top_n * self.top_k)  # Get more results to ensure enough per document
+        params.append(
+            self.top_n * self.top_k
+        )  # Get more results to ensure enough per document
 
         # Execute the search
         self.env.cr.execute(sql, params)
@@ -191,25 +191,35 @@ class RAGSearchWizard(models.TransientModel):
             doc_chunk_count[doc_id] = doc_chunk_count.get(doc_id, 0) + 1
 
             # Add to result lines with similarity score
-            result_lines.append((0, 0, {
-                "chunk_id": chunk_id,
-                "similarity": similarity,
-            }))
+            result_lines.append(
+                (
+                    0,
+                    0,
+                    {
+                        "chunk_id": chunk_id,
+                        "similarity": similarity,
+                    },
+                )
+            )
 
             # Mark document as processed if we have enough chunks
             if doc_chunk_count[doc_id] >= self.top_k:
                 processed_docs.add(doc_id)
 
             # Break if we have enough documents and chunks
-            if len(processed_docs) >= self.top_n and all(count >= self.top_k for count in doc_chunk_count.values()):
+            if len(processed_docs) >= self.top_n and all(
+                count >= self.top_k for count in doc_chunk_count.values()
+            ):
                 break
 
         # Update wizard with results
-        self.write({
-            "state": "results",
-            "result_ids": [(6, 0, chunk_ids)],
-            "result_lines": result_lines,
-        })
+        self.write(
+            {
+                "state": "results",
+                "result_ids": [(6, 0, chunk_ids)],
+                "result_lines": result_lines,
+            }
+        )
 
         return {
             "type": "ir.actions.act_window",
@@ -223,11 +233,13 @@ class RAGSearchWizard(models.TransientModel):
     def action_back_to_search(self):
         """Go back to search form"""
         self.ensure_one()
-        self.write({
-            "state": "search",
-            "result_ids": [(5, 0, 0)],  # Clear results
-            "result_lines": [(5, 0, 0)],  # Clear result lines
-        })
+        self.write(
+            {
+                "state": "search",
+                "result_ids": [(5, 0, 0)],  # Clear results
+                "result_lines": [(5, 0, 0)],  # Clear result lines
+            }
+        )
 
         return {
             "type": "ir.actions.act_window",
