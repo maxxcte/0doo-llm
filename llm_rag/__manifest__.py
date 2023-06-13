@@ -21,9 +21,10 @@
     "data": [
         "security/ir.model.access.csv",
         "views/llm_document_views.xml",
-        "views/menu.xml",
+        "wizards/rag_search_wizard_views.xml",
         "wizards/create_rag_document_wizard_views.xml",
         "data/server_actions.xml",
+        "views/menu.xml",
     ],
     "assets": {},
     "pre_init_hook": "pre_init_hook",

@@ -1,7 +1,9 @@
 import logging
+
 from psycopg2.errors import UndefinedObject
 
 _logger = logging.getLogger(__name__)
+
 
 def pre_init_hook(cr):
     """
@@ -20,8 +22,12 @@ def pre_init_hook(cr):
                 _logger.info("pgvector extension successfully installed")
             except Exception as e:
                 _logger.error("Failed to create pgvector extension: %s", str(e))
-                _logger.error("Please ensure pgvector is installed on your PostgreSQL server")
-                _logger.error("See: https://github.com/pgvector/pgvector for installation instructions")
+                _logger.error(
+                    "Please ensure pgvector is installed on your PostgreSQL server"
+                )
+                _logger.error(
+                    "See: https://github.com/pgvector/pgvector for installation instructions"
+                )
                 raise Exception(
                     "Failed to install pgvector extension. "
                     "Is the pgvector extension installed on your PostgreSQL server? "
@@ -35,11 +41,13 @@ def pre_init_hook(cr):
         try:
             cr.execute("SELECT '[1,2]'::vector")
             _logger.info("Vector type is working correctly")
-        except UndefinedObject:
-            _logger.error("Vector type not available even though extension is installed")
+        except UndefinedObject as e:
+            _logger.error(
+                "Vector type not available even though extension is installed"
+            )
             raise Exception(
                 "Vector type not available. Something is wrong with the pgvector installation."
-            )
+            ) from e
 
     except Exception as e:
         if not isinstance(e, UndefinedObject):
@@ -47,7 +55,9 @@ def pre_init_hook(cr):
             raise Exception(f"Unexpected error checking pgvector: {str(e)}") from e
         else:
             _logger.error("Vector extension is not available in the database")
-            _logger.error("Please install pgvector: https://github.com/pgvector/pgvector")
+            _logger.error(
+                "Please install pgvector: https://github.com/pgvector/pgvector"
+            )
             raise Exception(
                 "Vector extension is not available. Please ensure pgvector is installed "
                 "on your PostgreSQL server before installing this module."

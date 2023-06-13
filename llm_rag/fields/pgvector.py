@@ -1,20 +1,24 @@
-from pgvector.psycopg2 import register_vector
 import numpy as np
-from odoo import fields, api, tools
-from odoo.tools import lazy_property
+from pgvector.psycopg2 import register_vector
+
+from odoo import fields, tools
+
 
 class PgVector(fields.Field):
     """PgVector field for Odoo, using pgvector extension for PostgreSQL."""
-    type = 'pgvector'
-    column_type = ('vector', 'vector')
-    column_cast_from = ('varchar', 'text')
+
+    type = "pgvector"
+    column_type = ("vector", "vector")
+    column_cast_from = ("varchar", "text")
 
     _slots = {
-        'dimension_field': None,  # Field name that stores the dimension information
-        'default_dimensions': None,  # Default dimensions if not specified elsewhere
+        "dimension_field": None,  # Field name that stores the dimension information
+        "default_dimensions": None,  # Default dimensions if not specified elsewhere
     }
 
-    def __init__(self, string=None, dimension_field=None, default_dimensions=None, **kwargs):
+    def __init__(
+        self, string=None, dimension_field=None, default_dimensions=None, **kwargs
+    ):
         super().__init__(string=string, **kwargs)
         self.dimension_field = dimension_field
         self.default_dimensions = default_dimensions
@@ -22,7 +26,9 @@ class PgVector(fields.Field):
     def _setup_regular_full(self, model):
         super()._setup_regular_full(model)
         if not self.dimension_field and not self.default_dimensions:
-            raise ValueError("Field %s: Either 'dimension_field' or 'default_dimensions' must be provided for pgvector fields" % self)
+            raise ValueError(
+                f"Field {self}: Either 'dimension_field' or 'default_dimensions' must be provided for pgvector fields"
+            )
 
     def convert_to_column(self, value, record, values=None, validate=True):
         if value is None:
@@ -54,9 +60,6 @@ class PgVector(fields.Field):
     def create_column(self, cr, table, column, value_field=None, **kwargs):
         # Register vector with this cursor
         register_vector(cr)
-
-        # Get field name on the specific model
-        model_field = self.model._name.replace('.', '_')
 
         # Determine dimensions for this field
         dimensions = self.default_dimensions
@@ -101,7 +104,7 @@ class PgVector(fields.Field):
 
             # Create new HNSW index
             cr.execute(f"""
-                CREATE INDEX {index_name} ON {table} 
+                CREATE INDEX {index_name} ON {table}
                 USING hnsw({column} vector_cosine_ops)
                 WHERE {column} IS NOT NULL
             """)
@@ -109,8 +112,8 @@ class PgVector(fields.Field):
 
         # Get distinct values of the dimension field to create separate indices
         cr.execute(f"""
-            SELECT DISTINCT {self.dimension_field} 
-            FROM {table} 
+            SELECT DISTINCT {self.dimension_field}
+            FROM {table}
             WHERE {self.dimension_field} IS NOT NULL
         """)
 
@@ -128,8 +131,11 @@ class PgVector(fields.Field):
             cr.execute(f"DROP INDEX IF EXISTS {index_name}")
 
             # Create new HNSW index filtered for this model
-            cr.execute(f"""
-                CREATE INDEX {index_name} ON {table} 
+            cr.execute(
+                f"""
+                CREATE INDEX {index_name} ON {table}
                 USING hnsw({column} vector_cosine_ops)
                 WHERE {self.dimension_field} = %s AND {column} IS NOT NULL
-            """, (model_id[0],))
+            """,
+                (model_id[0],),
+            )

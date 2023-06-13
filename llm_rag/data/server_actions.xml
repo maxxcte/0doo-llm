@@ -5,7 +5,7 @@
         <field name="name">Create RAG Document</field>
         <field name="model_id" ref="base.model_ir_attachment" />
         <field name="binding_model_id" ref="base.model_ir_attachment" />
-        <field name="binding_view_types">list</field>
+        <field name="binding_view_types">list,form</field>
         <field name="state">code</field>
         <field name="code">
             if records:
@@ -21,5 +21,51 @@
                         }
                 }
             </field>
+    </record>
+    <!-- Server Action for RAG Search -->
+    <record id="action_rag_search" model="ir.actions.server">
+        <field name="name">RAG Search</field>
+        <field name="model_id" ref="model_llm_document" />
+        <field name="binding_model_id" ref="model_llm_document" />
+        <field name="binding_view_types">list,form,kanban</field>
+        <field name="state">code</field>
+        <field name="code">
+            action = {
+                'type': 'ir.actions.act_window',
+                'name': 'RAG Search',
+                'res_model': 'llm.rag.search.wizard',
+                'view_mode': 'form',
+                'target': 'new',
+                'context': {
+                    'active_model': model._name,
+                    'active_ids': records.ids if records else [],
+                    'default_query': '',  # Add this line
+
+                }
+            }
+        </field>
+    </record>
+    <!-- Action -->
+    <record id="action_llm_document" model="ir.actions.act_window">
+        <field name="name">RAG Documents</field>
+        <field name="res_model">llm.document</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="context">{'search_default_group_by_state': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first document for retrieval augmented generation
+            </p>
+            <p>
+                Documents can be linked to any record in Odoo and processed for use in RAG.
+            </p>
+        </field>
+    </record>
+    <!-- Add the action to the documents menu as a direct action -->
+    <record id="menu_action_rag_search" model="ir.actions.act_window">
+        <field name="name">RAG Search</field>
+        <field name="res_model">llm.rag.search.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="view_id" ref="llm_rag.view_llm_rag_search_wizard_form" />
     </record>
 </odoo>
