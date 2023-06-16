@@ -8,21 +8,21 @@
         <field name="binding_view_types">list,form</field>
         <field name="state">code</field>
         <field name="code">
-            if records:
-                action = {
-                    'type': 'ir.actions.act_window',
-                    'name': 'Create RAG Documents',
-                    'res_model': 'llm.create.rag.document.wizard',
-                    'view_mode': 'form',
-                    'target': 'new',
-                    'context': {
-                        'active_model': records._name,
-                        'active_ids': records.ids,
-                        }
-                }
-            </field>
+if records:
+    action = {
+        'type': 'ir.actions.act_window',
+        'name': 'Create RAG Documents',
+        'res_model': 'llm.create.rag.document.wizard',
+        'view_mode': 'form',
+        'target': 'new',
+        'context': {
+            'active_model': records._name,
+            'active_ids': records.ids,
+        }
+    }
+        </field>
     </record>
-    <!-- Server Action for RAG Search -->
+
     <record id="action_rag_search" model="ir.actions.server">
         <field name="name">RAG Search</field>
         <field name="model_id" ref="model_llm_document" />
@@ -30,21 +30,24 @@
         <field name="binding_view_types">list,form,kanban</field>
         <field name="state">code</field>
         <field name="code">
-            action = {
-                'type': 'ir.actions.act_window',
-                'name': 'RAG Search',
-                'res_model': 'llm.rag.search.wizard',
-                'view_mode': 'form',
-                'target': 'new',
-                'context': {
-                    'active_model': model._name,
-                    'active_ids': records.ids if records else [],
-                    'default_query': '',  # Add this line
+# Get query from context if available, otherwise use empty string
+query = context.get('query', '')
 
-                }
-            }
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'RAG Search',
+    'res_model': 'llm.rag.search.wizard',
+    'view_mode': 'form',
+    'target': 'new',
+    'context': {
+        'active_model': model._name,
+        'active_ids': records.ids if records else [],
+        'default_query': query,
+    }
+}
         </field>
     </record>
+
     <!-- Action -->
     <record id="action_llm_document" model="ir.actions.act_window">
         <field name="name">RAG Documents</field>
@@ -60,6 +63,7 @@
             </p>
         </field>
     </record>
+
     <!-- Add the action to the documents menu as a direct action -->
     <record id="menu_action_rag_search" model="ir.actions.act_window">
         <field name="name">RAG Search</field>
@@ -67,5 +71,6 @@
         <field name="view_mode">form</field>
         <field name="target">new</field>
         <field name="view_id" ref="llm_rag.view_llm_rag_search_wizard_form" />
+        <field name="context">{'default_state': 'search'}</field>
     </record>
 </odoo>

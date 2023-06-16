@@ -69,57 +69,65 @@ class RAGSearchWizard(models.TransientModel):
         """Execute the vector search with the given query"""
         self.ensure_one()
 
-        if not self.query or self.query.strip():
+        # Make sure we have a query
+        if not self.query or self.query.strip() == '':
             return {
-                "type": "ir.actions.act_window",
-                "res_model": "llm.rag.search.wizard",
-                "res_id": self.id,
-                "view_mode": "form",
-                "target": "new",
-                "context": self.env.context,
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _("Missing Query"),
+                    'message': _("Please enter a search query."),
+                    'sticky': False,
+                    'type': 'warning',
+                }
             }
 
         # Get the embedding model from context or use a default one
-        active_model = self.env.context.get("active_model")
-        active_ids = self.env.context.get("active_ids", [])
+        active_model = self.env.context.get('active_model')
+        active_ids = self.env.context.get('active_ids', [])
 
         # If no specific model or records are provided, search all documents
         if not active_model or not active_ids:
             domain = []
         else:
             # Search only in the selected documents
-            domain = [("document_id.id", "in", active_ids)]
+            domain = [('document_id.id', 'in', active_ids)]
 
         # Find an embedding model to use
-        embedding_model = self.env["llm.model"].search(
-            [("model_use", "=", "embedding")], limit=1
+        embedding_model = self.env['llm.model'].search(
+            [('model_use', '=', 'embedding')], limit=1
         )
 
         if not embedding_model:
             return {
-                "type": "ir.actions.client",
-                "tag": "display_notification",
-                "params": {
-                    "title": _("No Embedding Model"),
-                    "message": _("Please configure at least one embedding model."),
-                    "sticky": False,
-                    "type": "danger",
-                },
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _("No Embedding Model"),
+                    'message': _("Please configure at least one embedding model."),
+                    'sticky': False,
+                    'type': 'danger',
+                }
             }
+
+        # Debug log to see the query that is being used
+        _logger = logging.getLogger(__name__)
+        _logger.info(f"Processing search query: '{self.query}'")
 
         # Get embedding for the query
         try:
             query_embedding = embedding_model.embedding(self.query)
         except Exception as e:
+            _logger.error(f"Embedding error: {str(e)}", exc_info=True)
             return {
-                "type": "ir.actions.client",
-                "tag": "display_notification",
-                "params": {
-                    "title": _("Embedding Error"),
-                    "message": _("Failed to generate embedding: %s") % str(e),
-                    "sticky": False,
-                    "type": "danger",
-                },
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _("Embedding Error"),
+                    'message': _("Failed to generate embedding: %s") % str(e),
+                    'sticky': False,
+                    'type': 'danger',
+                }
             }
 
         # Use pgvector for the search
