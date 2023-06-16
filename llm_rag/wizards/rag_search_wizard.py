@@ -1,7 +1,9 @@
+import logging
 import numpy as np
 
 from odoo import _, api, fields, models
 
+_logger = logging.getLogger(__name__)
 
 class RAGSearchWizard(models.TransientModel):
     _name = "llm.rag.search.wizard"
@@ -69,18 +71,27 @@ class RAGSearchWizard(models.TransientModel):
         """Execute the vector search with the given query"""
         self.ensure_one()
 
-        # Make sure we have a query
-        if not self.query or self.query.strip() == '':
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': _("Missing Query"),
-                    'message': _("Please enter a search query."),
-                    'sticky': False,
-                    'type': 'warning',
-                }
-            }
+        # Debug log the query we're receiving
+        _logger.info(f"Received query: '{self.query}'")
+
+        # Make sure we have a query - use more aggressive debugging
+        if not self.query:
+            _logger.warning("Query is None or False")
+            return self._show_error_message("Missing Query", "Please enter a search query.")
+
+        if not isinstance(self.query, str):
+            _logger.warning(f"Query is not a string: {type(self.query)}")
+            return self._show_error_message("Invalid Query", "Query must be a string.")
+
+        # Handle the case where query is literally the string 'False'
+        if self.query == 'False':
+            _logger.warning("Query is the string 'False', likely a UI binding issue")
+            return self._show_error_message("Invalid Query", "Please enter a valid search query and try again.")
+
+        query_text = self.query.strip()
+        if not query_text:
+            _logger.warning("Query is empty or only whitespace")
+            return self._show_error_message("Empty Query", "Please enter a search query with content.")
 
         # Get the embedding model from context or use a default one
         active_model = self.env.context.get('active_model')
@@ -99,36 +110,22 @@ class RAGSearchWizard(models.TransientModel):
         )
 
         if not embedding_model:
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': _("No Embedding Model"),
-                    'message': _("Please configure at least one embedding model."),
-                    'sticky': False,
-                    'type': 'danger',
-                }
-            }
-
-        # Debug log to see the query that is being used
-        _logger = logging.getLogger(__name__)
-        _logger.info(f"Processing search query: '{self.query}'")
+            return self._show_error_message(
+                "No Embedding Model",
+                "Please configure at least one embedding model.",
+                "danger"
+            )
 
         # Get embedding for the query
         try:
-            query_embedding = embedding_model.embedding(self.query)
+            query_embedding = embedding_model.embedding(query_text)
         except Exception as e:
             _logger.error(f"Embedding error: {str(e)}", exc_info=True)
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': _("Embedding Error"),
-                    'message': _("Failed to generate embedding: %s") % str(e),
-                    'sticky': False,
-                    'type': 'danger',
-                }
-            }
+            return self._show_error_message(
+                "Embedding Error",
+                f"Failed to generate embedding: {str(e)}",
+                "danger"
+            )
 
         # Use pgvector for the search
         from pgvector.psycopg2 import register_vector
@@ -216,7 +213,7 @@ class RAGSearchWizard(models.TransientModel):
 
             # Break if we have enough documents and chunks
             if len(processed_docs) >= self.top_n and all(
-                count >= self.top_k for count in doc_chunk_count.values()
+                    count >= self.top_k for count in doc_chunk_count.values()
             ):
                 break
 
@@ -236,6 +233,19 @@ class RAGSearchWizard(models.TransientModel):
             "view_mode": "form",
             "target": "new",
             "context": self.env.context,
+        }
+
+    def _show_error_message(self, title, message, message_type="warning"):
+        """Helper to show error messages consistently"""
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _(title),
+                'message': _(message),
+                'sticky': False,
+                'type': message_type,
+            }
         }
 
     def action_back_to_search(self):

@@ -71,6 +71,6 @@ action = {
         <field name="view_mode">form</field>
         <field name="target">new</field>
         <field name="view_id" ref="llm_rag.view_llm_rag_search_wizard_form" />
-        <field name="context">{'default_state': 'search'}</field>
+        <field name="context">{'default_state': 'search', 'default_query': ''}</field>
     </record>
 </odoo>
