@@ -9,11 +9,7 @@ class RAGSearchWizard(models.TransientModel):
     _name = "llm.rag.search.wizard"
     _description = "RAG Search Wizard"
 
-    name = fields.Char(
-        string="Name",
-        default="RAG Search",
-        readonly=True,
-    )
+    # Fields
     query = fields.Text(
         string="Search Query",
         required=True,
@@ -34,32 +30,26 @@ class RAGSearchWizard(models.TransientModel):
         default=0.7,
         help="Minimum similarity score (0-1) for results",
     )
-
-    # States for the wizard
     state = fields.Selection(
-        [
-            ("search", "Search"),
-            ("results", "Results"),
-        ],
+        [("search", "Search"), ("results", "Results")],
         default="search",
+        required=True,
     )
-
-    # Fields for the results page
-    result_count = fields.Integer(
-        string="Result Count",
-        compute="_compute_result_count",
-    )
-
     result_ids = fields.Many2many(
         "llm.document.chunk",
         string="Search Results",
         readonly=True,
     )
-
     result_lines = fields.One2many(
         "llm.rag.search.result.line",
         "wizard_id",
         string="Result Lines",
+    )
+
+    # Computed Fields
+    result_count = fields.Integer(
+        compute="_compute_result_count",
+        string="Result Count",
     )
 
     @api.depends("result_ids")
@@ -67,262 +57,119 @@ class RAGSearchWizard(models.TransientModel):
         for wizard in self:
             wizard.result_count = len(wizard.result_ids)
 
-    def action_search(self):
-        """Execute the vector search with the given query"""
-        self.ensure_one()
+    # Helper Methods
+    def _get_embedding_model(self):
+        """Retrieve an embedding model or raise an error."""
+        model = self.env["llm.model"].search([("model_use", "=", "embedding")], limit=1)
+        if not model:
+            self._raise_error("No Embedding Model", "Please configure an embedding model.")
+        return model
 
-        # Debug log the query we're receiving
-        _logger.info(f"Received query: '{self.query}'")
-
-        # Make sure we have a query - use more aggressive debugging
-        if not self.query:
-            _logger.warning("Query is None or False")
-            return self._show_error_message("Missing Query", "Please enter a search query.")
-
-        if not isinstance(self.query, str):
-            _logger.warning(f"Query is not a string: {type(self.query)}")
-            return self._show_error_message("Invalid Query", "Query must be a string.")
-
-        # Handle the case where query is literally the string 'False'
-        if self.query == 'False':
-            _logger.warning("Query is the string 'False', likely a UI binding issue")
-            return self._show_error_message("Invalid Query", "Please enter a valid search query and try again.")
-
-        query_text = self.query.strip()
-        if not query_text:
-            _logger.warning("Query is empty or only whitespace")
-            return self._show_error_message("Empty Query", "Please enter a search query with content.")
-
-        # Get the embedding model from context or use a default one
-        active_model = self.env.context.get('active_model')
-        active_ids = self.env.context.get('active_ids', [])
-
-        # If no specific model or records are provided, search all documents
-        if not active_model or not active_ids:
-            domain = []
-        else:
-            # Search only in the selected documents
-            domain = [('document_id.id', 'in', active_ids)]
-
-        # Find an embedding model to use
-        embedding_model = self.env['llm.model'].search(
-            [('model_use', '=', 'embedding')], limit=1
-        )
-
-        if not embedding_model:
-            return self._show_error_message(
-                "No Embedding Model",
-                "Please configure at least one embedding model.",
-                "danger"
-            )
-
-        # Get embedding for the query
+    def _get_query_vector(self, embedding_model):
+        """Generate query embedding vector."""
         try:
-            query_embedding = embedding_model.embedding(query_text)
+            embedding = embedding_model.embedding(self.query.strip())
+            return np.array(embedding, dtype=np.float32) if isinstance(embedding, list) else embedding
         except Exception as e:
-            _logger.error(f"Embedding error: {str(e)}", exc_info=True)
-            return self._show_error_message(
-                "Embedding Error",
-                f"Failed to generate embedding: {str(e)}",
-                "danger"
-            )
+            self._raise_error("Embedding Error", f"Failed to generate embedding: {str(e)}")
 
-        # Use pgvector for the search
-        from pgvector.psycopg2 import register_vector
-
-        register_vector(self.env.cr)
-
-        # Format for PostgreSQL vector
-        if isinstance(query_embedding, list):
-            query_vector = np.array(query_embedding, dtype=np.float32)
-        else:
-            query_vector = query_embedding
-
-        if isinstance(query_vector, np.ndarray):
-            pg_vector = f"[{','.join(map(str, query_vector.tolist()))}]"
-        else:
-            pg_vector = query_vector
-
-        # Define base SQL for similarity search with cosine distance
-        # Lower cosine distance means higher similarity
+    def _build_search_sql(self, domain):
+        """Build SQL query for vector search."""
         sql = """
-            SELECT
-                ch.id,
-                ch.document_id,
-                1 - (ch.embedding <=> %s) as similarity
-            FROM
-                llm_document_chunk ch
-            JOIN
-                llm_document doc ON ch.document_id = doc.id
-            WHERE
-                ch.embedding IS NOT NULL
+            SELECT ch.id, ch.document_id, 1 - (ch.embedding <=> %s) AS similarity
+            FROM llm_document_chunk ch
+            JOIN llm_document doc ON ch.document_id = doc.id
+            WHERE ch.embedding IS NOT NULL
         """
-
-        params = [pg_vector]
-
-        # Add domain filters if needed
+        params = [None]  # Placeholder for vector
         if domain:
             if domain[0][0] == "document_id.id" and domain[0][1] == "in":
                 sql += " AND doc.id IN %s"
                 params.append(tuple(domain[0][2]))
+        sql += " AND 1 - (ch.embedding <=> %s) >= %s ORDER BY similarity DESC LIMIT %s"
+        return sql, params
 
-        # Add similarity cutoff
-        sql += " AND 1 - (ch.embedding <=> %s) >= %s"
-        params.extend([pg_vector, self.similarity_cutoff])
+    def _raise_error(self, title, message, message_type="warning"):
+        """Raise a user-friendly error notification."""
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {"title": _(title), "message": _(message), "type": message_type, "sticky": False},
+        }
 
-        # Order by similarity and limit
-        sql += " ORDER BY similarity DESC LIMIT %s"
-        params.append(
-            self.top_n * self.top_k
-        )  # Get more results to ensure enough per document
+    def _return_wizard(self):
+        """Return action to reopen the wizard."""
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": self._name,
+            "res_id": self.id,
+            "view_mode": "form",
+            "target": "new",
+            "context": self.env.context,
+        }
 
-        # Execute the search
+    # Main Action
+    def action_search(self):
+        """Execute vector search with the query."""
+        self.ensure_one()
+        _logger.debug(f"Search query: {self.query}")
+
+        # Get domain from context
+        active_ids = self.env.context.get("active_ids", [])
+        domain = [("document_id.id", "in", active_ids)] if active_ids else []
+
+        # Get embedding and vector
+        embedding_model = self._get_embedding_model()
+        query_vector = self._get_query_vector(embedding_model)
+        pg_vector = f"[{','.join(map(str, query_vector.tolist()))}]" if isinstance(query_vector, np.ndarray) else query_vector
+
+        # Prepare and execute SQL
+        from pgvector.psycopg2 import register_vector
+        register_vector(self.env.cr)
+        sql, params = self._build_search_sql(domain)
+        params[0] = pg_vector  # Set vector
+        params.extend([pg_vector, self.similarity_cutoff, self.top_n * self.top_k])
         self.env.cr.execute(sql, params)
-        results = self.env.cr.fetchall()
 
         # Process results
-        chunk_ids = []
-        result_lines = []
-        processed_docs = set()
-        doc_chunk_count = {}
-
+        results = self.env.cr.fetchall()
+        chunk_ids, result_lines, doc_chunk_count, processed_docs = [], [], {}, set()
         for chunk_id, doc_id, similarity in results:
-            # Skip if we already have enough chunks for this document
             doc_chunk_count.setdefault(doc_id, 0)
             if doc_id in processed_docs and doc_chunk_count[doc_id] >= self.top_k:
                 continue
-
             chunk_ids.append(chunk_id)
-            doc_chunk_count[doc_id] = doc_chunk_count.get(doc_id, 0) + 1
-
-            # Add to result lines with similarity score
-            result_lines.append(
-                (
-                    0,
-                    0,
-                    {
-                        "chunk_id": chunk_id,
-                        "similarity": similarity,
-                    },
-                )
-            )
-
-            # Mark document as processed if we have enough chunks
+            doc_chunk_count[doc_id] += 1
+            result_lines.append((0, 0, {"chunk_id": chunk_id, "similarity": similarity}))
             if doc_chunk_count[doc_id] >= self.top_k:
                 processed_docs.add(doc_id)
-
-            # Break if we have enough documents and chunks
-            if len(processed_docs) >= self.top_n and all(
-                    count >= self.top_k for count in doc_chunk_count.values()
-            ):
+            if len(processed_docs) >= self.top_n and all(c >= self.top_k for c in doc_chunk_count.values()):
                 break
 
-        # Update wizard with results
-        self.write(
-            {
-                "state": "results",
-                "result_ids": [(6, 0, chunk_ids)],
-                "result_lines": result_lines,
-            }
-        )
-
-        return {
-            "type": "ir.actions.act_window",
-            "res_model": "llm.rag.search.wizard",
-            "res_id": self.id,
-            "view_mode": "form",
-            "target": "new",
-            "context": self.env.context,
-        }
-
-    def _show_error_message(self, title, message, message_type="warning"):
-        """Helper to show error messages consistently"""
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': _(title),
-                'message': _(message),
-                'sticky': False,
-                'type': message_type,
-            }
-        }
+        # Update wizard
+        self.write({"state": "results", "result_ids": [(6, 0, chunk_ids)], "result_lines": result_lines})
+        return self._return_wizard()
 
     def action_back_to_search(self):
-        """Go back to search form"""
+        """Reset to search state."""
         self.ensure_one()
-        self.write(
-            {
-                "state": "search",
-                "result_ids": [(5, 0, 0)],  # Clear results
-                "result_lines": [(5, 0, 0)],  # Clear result lines
-            }
-        )
-
-        return {
-            "type": "ir.actions.act_window",
-            "res_model": "llm.rag.search.wizard",
-            "res_id": self.id,
-            "view_mode": "form",
-            "target": "new",
-            "context": self.env.context,
-        }
+        self.write({"state": "search", "result_ids": [(5, 0, 0)], "result_lines": [(5, 0, 0)]})
+        return self._return_wizard()
 
 
 class RAGSearchResultLine(models.TransientModel):
     _name = "llm.rag.search.result.line"
     _description = "RAG Search Result Line"
-    _order = "similarity desc, id"
+    _order = "similarity desc"
 
-    wizard_id = fields.Many2one(
-        "llm.rag.search.wizard",
-        string="Wizard",
-        required=True,
-        ondelete="cascade",
-    )
-
-    chunk_id = fields.Many2one(
-        "llm.document.chunk",
-        string="Chunk",
-        required=True,
-        readonly=True,
-    )
-
-    document_id = fields.Many2one(
-        related="chunk_id.document_id",
-        string="Document",
-        readonly=True,
-        store=True,
-    )
-
-    document_name = fields.Char(
-        related="document_id.name",
-        string="Document Name",
-        readonly=True,
-    )
-
-    chunk_name = fields.Char(
-        related="chunk_id.name",
-        string="Chunk Name",
-        readonly=True,
-    )
-
-    content = fields.Text(
-        related="chunk_id.content",
-        string="Content",
-        readonly=True,
-    )
-
-    similarity = fields.Float(
-        string="Similarity",
-        digits=(5, 4),
-        readonly=True,
-    )
-
-    similarity_percentage = fields.Char(
-        string="Similarity %",
-        compute="_compute_similarity_percentage",
-    )
+    wizard_id = fields.Many2one("llm.rag.search.wizard", required=True, ondelete="cascade")
+    chunk_id = fields.Many2one("llm.document.chunk", required=True, readonly=True)
+    document_id = fields.Many2one(related="chunk_id.document_id", store=True, readonly=True)
+    document_name = fields.Char(related="document_id.name", readonly=True)
+    chunk_name = fields.Char(related="chunk_id.name", readonly=True)
+    content = fields.Text(related="chunk_id.content", readonly=True)
+    similarity = fields.Float(digits=(5, 4), readonly=True)
+    similarity_percentage = fields.Char(compute="_compute_similarity_percentage")
 
     @api.depends("similarity")
     def _compute_similarity_percentage(self):

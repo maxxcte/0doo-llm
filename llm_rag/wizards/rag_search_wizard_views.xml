@@ -1,82 +1,49 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Fix for the Search Wizard Form View -->
     <record id="view_llm_rag_search_wizard_form" model="ir.ui.view">
         <field name="name">llm.rag.search.wizard.form</field>
         <field name="model">llm.rag.search.wizard</field>
         <field name="arch" type="xml">
             <form string="RAG Search">
-                <field name="state" invisible="1" />
+                <field name="state" invisible="1"/>
                 <sheet>
-                    <!-- Search Form -->
-                    <div states="search">
-                        <div class="alert alert-info" role="alert">
-                            <p><strong>Search for relevant information in your RAG documents</strong></p>
-                            <p>Enter your query and set search parameters to find the most relevant chunks.</p>
+                    <!-- Search State -->
+                    <group attrs="{'invisible': [('state', '=', 'results')]}">
+                        <div class="alert alert-info">
+                            <p><strong>Search RAG Documents</strong></p>
+                            <p>Enter a query to find relevant chunks.</p>
                         </div>
+                        <field name="query" placeholder="e.g., What are the key features?" required="1"/>
                         <group>
-                            <field
-                                    name="query"
-                                    placeholder="What are the key features of our product?"
-                                    required="1"
-                                    attrs="{'readonly': [('state', '=', 'results')]}"
-                            />
+                            <field name="top_k"/>
+                            <field name="top_n"/>
+                            <field name="similarity_cutoff" widget="percentage"/>
                         </group>
-                        <group>
-                            <group>
-                                <field name="top_k" attrs="{'readonly': [('state', '=', 'results')]}" />
-                                <field name="top_n" attrs="{'readonly': [('state', '=', 'results')]}" />
-                            </group>
-                            <group>
-                                <field
-                                        name="similarity_cutoff"
-                                        widget="percentage"
-                                        attrs="{'readonly': [('state', '=', 'results')]}"
-                                />
-                            </group>
-                        </group>
-                    </div>
+                    </group>
 
-                    <!-- Results -->
-                    <div states="results">
-                        <div class="alert alert-success" role="alert" attrs="{'invisible': [('result_count', '=', 0)]}">
-                            <p>
-                                <i class="fa fa-check-circle" title="Success" aria-label="Success"/>
-                                <strong>Found <field name="result_count" readonly="1"/> relevant chunks</strong>
-                            </p>
+                    <!-- Results State -->
+                    <group attrs="{'invisible': [('state', '=', 'search')]}">
+                        <div class="alert alert-success" attrs="{'invisible': [('result_count', '=', 0)]}">
+                            <i class="fa fa-check-circle"/> Found <field name="result_count"/> chunks
                         </div>
-                        <div class="alert alert-warning" role="alert" attrs="{'invisible': [('result_count', '>', 0)]}">
-                            <p>
-                                <i class="fa fa-exclamation-triangle" title="Warning" aria-label="Warning"/>
-                                <strong>No results found for your query.</strong> Try adjusting your search parameters or query.
-                            </p>
+                        <div class="alert alert-warning" attrs="{'invisible': [('result_count', '>', 0)]}">
+                            <i class="fa fa-exclamation-triangle"/> No results found. Adjust your query or parameters.
                         </div>
-
                         <group attrs="{'invisible': [('result_count', '=', 0)]}">
-                            <group>
-                                <field name="query" readonly="1" />
-                            </group>
-                            <group>
-                                <field name="similarity_cutoff" widget="percentage" readonly="1"/>
-                            </group>
+                            <field name="query" readonly="1"/>
+                            <field name="similarity_cutoff" widget="percentage" readonly="1"/>
                         </group>
-
                         <field name="result_lines" attrs="{'invisible': [('result_count', '=', 0)]}">
                             <tree>
-                                <field name="document_name" />
-                                <field name="chunk_name" />
-                                <field name="similarity_percentage" />
+                                <field name="document_name"/>
+                                <field name="chunk_name"/>
+                                <field name="similarity_percentage"/>
                             </tree>
-                        </field>
-
-                        <field name="result_lines" mode="form" attrs="{'invisible': [('result_count', '=', 0)]}">
                             <form>
                                 <group>
-                                    <group>
-                                        <field name="document_name" />
-                                        <field name="chunk_name" />
-                                        <field name="similarity_percentage" />
-                                    </group>
+                                    <field name="document_name"/>
+                                    <field name="chunk_name"/>
+                                    <field name="similarity_percentage"/>
                                 </group>
                                 <notebook>
                                     <page string="Content">
@@ -85,28 +52,12 @@
                                 </notebook>
                             </form>
                         </field>
-                    </div>
+                    </group>
                 </sheet>
                 <footer>
-                    <button
-                            name="action_search"
-                            string="Search"
-                            type="object"
-                            class="btn-primary"
-                            attrs="{'invisible': [('state', '=', 'results')]}"
-                    />
-                    <button
-                            name="action_back_to_search"
-                            string="Back to Search"
-                            type="object"
-                            class="btn-secondary"
-                            attrs="{'invisible': [('state', '=', 'search')]}"
-                    />
-                    <button
-                            string="Close"
-                            class="btn-secondary"
-                            special="cancel"
-                    />
+                    <button name="action_search" string="Search" type="object" class="btn-primary" attrs="{'invisible': [('state', '=', 'results')]}"/>
+                    <button name="action_back_to_search" string="New Search" type="object" class="btn-secondary" attrs="{'invisible': [('state', '=', 'search')]}"/>
+                    <button string="Close" special="cancel" class="btn-secondary"/>
                 </footer>
             </form>
         </field>
