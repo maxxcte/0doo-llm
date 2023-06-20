@@ -49,12 +49,6 @@
                         <group
               attrs="{'invisible': [('result_count', '=', 0)]}"
             >
-                            <field name="query" readonly="1" />
-                            <field
-                name="similarity_cutoff"
-                widget="percentage"
-                readonly="1"
-              />
                         </group>
                         <field
               name="result_lines"
