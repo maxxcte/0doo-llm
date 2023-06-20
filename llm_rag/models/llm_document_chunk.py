@@ -1,11 +1,12 @@
 import json
-
+import logging
 import numpy as np
 
 from odoo import api, fields, models
 
 from ..fields.pgvector import PgVector
 
+_logger = logging.getLogger(__name__)
 
 class LLMDocumentChunk(models.Model):
     _name = "llm.document.chunk"
@@ -111,34 +112,91 @@ class LLMDocumentChunk(models.Model):
         Returns:
             Recordset of matching chunks, ordered by similarity
         """
-        if not query_vector:
-            return self.browse([])
-
-        # Convert to numpy array if it's a list
-        if isinstance(query_vector, list):
-            query_vector = np.array(query_vector, dtype=np.float32)
-
-        # Format for PostgreSQL vector
+        _logger = logging.getLogger(__name__)
+        
+        # Ensure query_vector is in the correct format for pgvector
         if isinstance(query_vector, np.ndarray):
-            pg_vector = f"[{','.join(map(str, query_vector.tolist()))}]"
+            # Convert numpy array to list
+            pg_vector = query_vector.tolist()
+        elif isinstance(query_vector, list):
+            # Handle nested lists (flatten if needed)
+            if query_vector and isinstance(query_vector[0], list):
+                # If it's a list of lists, take the first non-empty list
+                pg_vector = next((v for v in query_vector if v), query_vector[0])
+                if len(query_vector) > 1:
+                    _logger.warning(f"Multiple vectors provided ({len(query_vector)}), using first non-empty one")
+            else:
+                # Already a flat list
+                pg_vector = query_vector
         else:
-            pg_vector = query_vector  # Assume it's already in the right format
+            # Not a list or numpy array
+            pg_vector = query_vector
 
-        # Register vector with the current cursor
-        from pgvector.psycopg2 import register_vector
-
-        register_vector(self.env.cr)
-
-        # Execute raw SQL for vector similarity search
-        self.env.cr.execute(
-            """
-            SELECT id
-            FROM llm_document_chunk
-            ORDER BY embedding <=> %s
-            LIMIT %s
-        """,
-            (pg_vector, limit),
-        )
-
-        chunk_ids = [row[0] for row in self.env.cr.fetchall()]
-        return self.browse(chunk_ids)
+        # Final check to ensure pg_vector is a flat list
+        if isinstance(pg_vector, list) and pg_vector and isinstance(pg_vector[0], list):
+            _logger.warning("Vector is still nested after processing, flattening to first element")
+            pg_vector = pg_vector[0]
+            
+        # Get a direct connection to the database instead of using self.env.cr
+        # This ensures we're using the correct cursor object that pgvector expects
+        try:
+            # Ensure pg_vector is a list of numbers
+            if not isinstance(pg_vector, list):
+                _logger.error(f"Vector is not a list: {type(pg_vector)}")
+                return self.browse([])
+                
+            # Check if all elements are numbers
+            if not all(isinstance(x, (int, float)) for x in pg_vector):
+                _logger.error("Vector contains non-numeric elements")
+                return self.browse([])
+                
+            # Get the database connection from the cursor
+            connection = self.env.cr._cnx
+            # Register vector with the connection
+            from pgvector.psycopg2 import register_vector
+            register_vector(connection)
+            
+            # Format the vector as a string that PostgreSQL can understand
+            vector_str = f"[{','.join(str(x) for x in pg_vector)}]"
+            
+            # Get the IDs of the current recordset to filter the SQL query
+            if self.ids:
+                # If we have a filtered recordset, only search within those records
+                _logger.info(f"Searching within {len(self.ids)} chunks")
+                
+                # Execute raw SQL for vector similarity search with ID filter
+                self.env.cr.execute(
+                    """
+                    SELECT id
+                    FROM llm_document_chunk
+                    WHERE id IN %s
+                    ORDER BY embedding <=> %s::vector
+                    LIMIT %s
+                """,
+                    (tuple(self.ids), vector_str, limit),
+                )
+            else:
+                # If no filter was applied, search all chunks
+                _logger.info("Searching all chunks")
+                
+                # Execute raw SQL for vector similarity search without filter
+                self.env.cr.execute(
+                    """
+                    SELECT id
+                    FROM llm_document_chunk
+                    ORDER BY embedding <=> %s::vector
+                    LIMIT %s
+                """,
+                    (vector_str, limit),
+                )
+            
+            chunk_ids = [row[0] for row in self.env.cr.fetchall()]
+            return self.browse(chunk_ids)
+            
+        except Exception as e:
+            _logger.error(f"Vector search error: {str(e)}")
+            if isinstance(pg_vector, list):
+                _logger.error(f"Vector type: {type(pg_vector)}, length: {len(pg_vector)}, sample: {str(pg_vector[:10]) if pg_vector else 'empty'}")
+            else:
+                _logger.error(f"Vector type: {type(pg_vector)}")
+            return self.browse([])
