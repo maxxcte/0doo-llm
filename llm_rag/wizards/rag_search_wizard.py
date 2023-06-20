@@ -1,9 +1,11 @@
 import logging
+
 import numpy as np
 
 from odoo import _, api, fields, models
 
 _logger = logging.getLogger(__name__)
+
 
 class RAGSearchWizard(models.TransientModel):
     _name = "llm.rag.search.wizard"
@@ -62,16 +64,24 @@ class RAGSearchWizard(models.TransientModel):
         """Retrieve an embedding model or raise an error."""
         model = self.env["llm.model"].search([("model_use", "=", "embedding")], limit=1)
         if not model:
-            self._raise_error("No Embedding Model", "Please configure an embedding model.")
+            self._raise_error(
+                "No Embedding Model", "Please configure an embedding model."
+            )
         return model
 
     def _get_query_vector(self, embedding_model):
         """Generate query embedding vector."""
         try:
             embedding = embedding_model.embedding(self.query.strip())
-            return np.array(embedding, dtype=np.float32) if isinstance(embedding, list) else embedding
+            return (
+                np.array(embedding, dtype=np.float32)
+                if isinstance(embedding, list)
+                else embedding
+            )
         except Exception as e:
-            self._raise_error("Embedding Error", f"Failed to generate embedding: {str(e)}")
+            self._raise_error(
+                "Embedding Error", f"Failed to generate embedding: {str(e)}"
+            )
 
     def _build_search_sql(self, domain):
         """Build SQL query for vector search."""
@@ -94,7 +104,12 @@ class RAGSearchWizard(models.TransientModel):
         return {
             "type": "ir.actions.client",
             "tag": "display_notification",
-            "params": {"title": _(title), "message": _(message), "type": message_type, "sticky": False},
+            "params": {
+                "title": _(title),
+                "message": _(message),
+                "type": message_type,
+                "sticky": False,
+            },
         }
 
     def _return_wizard(self):
@@ -121,10 +136,15 @@ class RAGSearchWizard(models.TransientModel):
         # Get embedding and vector
         embedding_model = self._get_embedding_model()
         query_vector = self._get_query_vector(embedding_model)
-        pg_vector = f"[{','.join(map(str, query_vector.tolist()))}]" if isinstance(query_vector, np.ndarray) else query_vector
+        pg_vector = (
+            f"[{','.join(map(str, query_vector.tolist()))}]"
+            if isinstance(query_vector, np.ndarray)
+            else query_vector
+        )
 
         # Prepare and execute SQL
         from pgvector.psycopg2 import register_vector
+
         register_vector(self.env.cr)
         sql, params = self._build_search_sql(domain)
         params[0] = pg_vector  # Set vector
@@ -140,20 +160,32 @@ class RAGSearchWizard(models.TransientModel):
                 continue
             chunk_ids.append(chunk_id)
             doc_chunk_count[doc_id] += 1
-            result_lines.append((0, 0, {"chunk_id": chunk_id, "similarity": similarity}))
+            result_lines.append(
+                (0, 0, {"chunk_id": chunk_id, "similarity": similarity})
+            )
             if doc_chunk_count[doc_id] >= self.top_k:
                 processed_docs.add(doc_id)
-            if len(processed_docs) >= self.top_n and all(c >= self.top_k for c in doc_chunk_count.values()):
+            if len(processed_docs) >= self.top_n and all(
+                c >= self.top_k for c in doc_chunk_count.values()
+            ):
                 break
 
         # Update wizard
-        self.write({"state": "results", "result_ids": [(6, 0, chunk_ids)], "result_lines": result_lines})
+        self.write(
+            {
+                "state": "results",
+                "result_ids": [(6, 0, chunk_ids)],
+                "result_lines": result_lines,
+            }
+        )
         return self._return_wizard()
 
     def action_back_to_search(self):
         """Reset to search state."""
         self.ensure_one()
-        self.write({"state": "search", "result_ids": [(5, 0, 0)], "result_lines": [(5, 0, 0)]})
+        self.write(
+            {"state": "search", "result_ids": [(5, 0, 0)], "result_lines": [(5, 0, 0)]}
+        )
         return self._return_wizard()
 
 
@@ -162,9 +194,13 @@ class RAGSearchResultLine(models.TransientModel):
     _description = "RAG Search Result Line"
     _order = "similarity desc"
 
-    wizard_id = fields.Many2one("llm.rag.search.wizard", required=True, ondelete="cascade")
+    wizard_id = fields.Many2one(
+        "llm.rag.search.wizard", required=True, ondelete="cascade"
+    )
     chunk_id = fields.Many2one("llm.document.chunk", required=True, readonly=True)
-    document_id = fields.Many2one(related="chunk_id.document_id", store=True, readonly=True)
+    document_id = fields.Many2one(
+        related="chunk_id.document_id", store=True, readonly=True
+    )
     document_name = fields.Char(related="document_id.name", readonly=True)
     chunk_name = fields.Char(related="chunk_id.name", readonly=True)
     content = fields.Text(related="chunk_id.content", readonly=True)
