@@ -9,7 +9,7 @@
                 <sheet>
                     <!-- Search State -->
                     <group attrs="{'invisible': [('state', '=', 'results')]}">
-                        <div class="alert alert-info">
+                        <div class="alert alert-info" role="alert">
                             <p><strong>Search RAG Documents</strong></p>
                             <p>Enter a query to find relevant chunks.</p>
                         </div>
@@ -33,6 +33,7 @@
                         <div
               class="alert alert-success"
               attrs="{'invisible': [('result_count', '=', 0)]}"
+              role="alert"
             >
                             <i class="fa fa-check-circle" /> Found <field
                 name="result_count"
@@ -41,6 +42,7 @@
                         <div
               class="alert alert-warning"
               attrs="{'invisible': [('result_count', '>', 0)]}"
+              role="alert"
             >
                             <i
                 class="fa fa-exclamation-triangle"
