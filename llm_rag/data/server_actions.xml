@@ -66,4 +66,15 @@ action = {
         <field name="view_id" ref="view_llm_rag_search_wizard_form" />
         <field name="context">{"default_state": "search"}</field>
     </record>
+    <!-- Server Action for Re-indexing RAG Documents -->
+    <record id="action_reindex_rag_documents" model="ir.actions.server">
+        <field name="name">Re-index RAG Documents</field>
+        <field name="model_id" ref="model_llm_document" />
+        <field name="binding_model_id" ref="model_llm_document" />
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+            action = records.action_mass_reindex()
+        </field>
+    </record>
 </odoo>

@@ -701,3 +701,110 @@ class LLMDocument(models.Model):
         except Exception as e:
             documents._unlock()
             raise UserError(_("Error in batch chunking: %s") % str(e)) from e
+    def action_reindex(self):
+        """
+        Re-index RAG documents by recreating the indices in the database.
+        This is useful when the vector indices need to be rebuilt.
+        """
+        self.ensure_one()
+
+        # Check if there are any chunks to reindex
+        if not self.chunk_ids:
+            raise UserError(_("No chunks found to reindex"))
+
+        # Get the embedding model
+        if not self.embedding_model_id:
+            raise UserError(_("Embedding model not specified"))
+
+        # Lock document for processing
+        self._lock()
+
+        try:
+            # Post a message to the chatter
+            self._post_message(
+                "Starting re-indexing process...",
+                "info"
+            )
+
+            # Get the database cursor
+            cr = self.env.cr
+
+            # Get all chunk records with embeddings
+            chunks_with_embeddings = self.chunk_ids.filtered(lambda c: c.embedding)
+
+            if not chunks_with_embeddings:
+                raise UserError(_("No chunks with embeddings found"))
+
+            # Get the first chunk to determine the vector dimensions
+            first_chunk = chunks_with_embeddings[0]
+
+            # Get the embedding model ID
+            embedding_model_id = self.embedding_model_id.id
+
+            # Execute SQL to rebuild the index
+            index_name = f"llm_document_chunk_embedding_model_{embedding_model_id}_idx"
+
+            # Drop existing index if it exists
+            cr.execute(f"DROP INDEX IF EXISTS {index_name}")
+
+            # Create new HNSW index filtered for this model
+            cr.execute(f"""
+                CREATE INDEX {index_name} ON llm_document_chunk
+                USING hnsw(embedding vector_cosine_ops)
+                WHERE embedding_model_id = %s AND embedding IS NOT NULL
+            """, (embedding_model_id,))
+
+            # Commit the changes
+            self.env.cr.commit()
+
+            # Post success message
+            self._post_message(
+                f"Successfully recreated index for {len(chunks_with_embeddings)} chunks",
+                "success"
+            )
+
+        except Exception as e:
+            # Post error message
+            self._post_message(
+                f"Error during re-indexing: {str(e)}",
+                "error"
+            )
+            raise UserError(_("Re-indexing failed: %s") % str(e))
+
+        finally:
+            # Unlock the document
+            self._unlock()
+
+    def action_mass_reindex(self):
+        """
+        Mass action to reindex multiple RAG documents.
+        """
+        # Get all documents with chunks
+        documents_with_chunks = self.filtered(lambda d: d.chunk_ids and d.embedding_model_id)
+
+        if not documents_with_chunks:
+            raise UserError(_("No valid documents found for reindexing.\nDocuments must have chunks and an embedding model assigned."))
+
+        # Process each document
+        success_count = 0
+        error_count = 0
+        for document in documents_with_chunks:
+            try:
+                document.action_reindex()
+                success_count += 1
+            except Exception as e:
+                error_count += 1
+                _logger.error(f"Error reindexing document {document.id}: {str(e)}")
+
+        # Show a notification with the results
+        message = f"Reindexing complete: {success_count} successful, {error_count} failed."
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('Re-index RAG Documents'),
+                'message': message,
+                'sticky': False,
+                'type': 'success' if error_count == 0 else 'warning',
+            }
+        }
