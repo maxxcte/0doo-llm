@@ -60,10 +60,10 @@ class PgVector(fields.Field):
         # Update the column format to match vector type
         tools.set_column_type(cr, table, column, "vector")
 
-    def create_index(self, cr, table, column, index_name, dimensions=None, model_field_name=None, model_id=None):
+    def create_index(self, cr, table, column, index_name, dimensions=None, model_field_name=None, model_id=None, force=False):
         """
-        Create a vector index for the specified column.
-        
+        Create a vector index for the specified column if it doesn't already exist.
+
         Args:
             cr: Database cursor
             table: Table name
@@ -72,34 +72,47 @@ class PgVector(fields.Field):
             dimensions: Vector dimensions (optional)
             model_field_name: Field name that stores model information (optional)
             model_id: Model ID to filter by (optional)
+            force: If True, drop existing index and recreate it (default: False)
         """
         # Register vector with this cursor
         register_vector(cr)
 
-        # Drop existing index if it exists
-        cr.execute(f"DROP INDEX IF EXISTS {index_name}")
+        # Check if index already exists
+        if force:
+            # Drop existing index if force is True
+            cr.execute(f"DROP INDEX IF EXISTS {index_name}")
+        else:
+            # Check if index exists
+            cr.execute("""
+                    SELECT 1 FROM pg_indexes 
+                    WHERE indexname = %s
+                """, (index_name,))
+
+            # If index already exists, return early
+            if cr.fetchone():
+                _logger.info(f"Index {index_name} already exists, skipping creation")
+                return
 
         # Determine the dimension specification
         dim_spec = f"({dimensions})" if dimensions else ""
-        
+
         # Create the appropriate index with or without model filtering
         if model_field_name and model_id:
             # Create model-specific index
             cr.execute(f"""
-                CREATE INDEX {index_name} ON {table}
-                USING hnsw(({column}::vector{dim_spec}) vector_cosine_ops)
-                WHERE {model_field_name} = %s AND {column} IS NOT NULL
-            """, (model_id,))
+                    CREATE INDEX {index_name} ON {table}
+                    USING hnsw(({column}::vector{dim_spec}) vector_cosine_ops)
+                    WHERE {model_field_name} = %s AND {column} IS NOT NULL
+                """, (model_id,))
         else:
             # Create general index
             cr.execute(f"""
-                CREATE INDEX {index_name} ON {table}
-                USING hnsw(({column}::vector{dim_spec}) vector_cosine_ops)
-                WHERE {column} IS NOT NULL
-            """)
-            
-        _logger.info(f"Created vector index {index_name} on {table}.{column}")
+                    CREATE INDEX {index_name} ON {table}
+                    USING hnsw(({column}::vector{dim_spec}) vector_cosine_ops)
+                    WHERE {column} IS NOT NULL
+                """)
 
+        _logger.info(f"Created vector index {index_name} on {table}.{column}")
     def drop_index(self, cr, index_name):
         """Drop a vector index by name."""
         cr.execute(f"DROP INDEX IF EXISTS {index_name}")

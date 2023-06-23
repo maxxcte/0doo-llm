@@ -1,6 +1,7 @@
 import logging
 from odoo import api, fields, models
 from pgvector.psycopg2 import register_vector
+from .fields import PgVector
 
 _logger = logging.getLogger(__name__)
 
@@ -12,6 +13,10 @@ class EmbeddingMixin(models.AbstractModel):
     """
     _name = 'llm.embedding.mixin'
     _description = 'Vector Embedding Mixin'
+    embedding = PgVector(
+        string="Embedding",
+        help="Vector embedding for this chunk (pgvector format)",
+    )
 
     def _prepare_vector_for_search(self, query_vector):
         """
