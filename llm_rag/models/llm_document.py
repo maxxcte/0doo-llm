@@ -155,6 +155,42 @@ class LLMDocument(models.Model):
         """Get all available chunker methods"""
         return [("default", "Default Chunker")]
 
+    @api.onchange('embedding_model_id')
+    def _onchange_embedding_model_id(self):
+        """When embedding model changes, ensure index exists for that model."""
+        if self.embedding_model_id:
+            self._ensure_index_exists(self.embedding_model_id.id)
+
+    def _ensure_index_exists(self, embedding_model_id):
+        """
+        Ensure a vector index exists for the specified embedding model.
+        Uses the PgVector field's create_index method.
+
+        Args:
+            embedding_model_id: The ID of the embedding model
+        """
+        if not embedding_model_id:
+            return False
+
+        # Get the pgvector field from document chunk model
+        pgvector_field = self.env['llm.document.chunk']._fields['embedding']
+
+        # Create index name
+        index_name = f"llm_document_chunk_embedding_model_{embedding_model_id}_idx"
+
+        # Create index if it doesn't exist (force=False)
+        pgvector_field.create_index(
+            cr=self.env.cr,
+            table='llm_document_chunk',
+            column='embedding',
+            index_name=index_name,
+            model_field_name="embedding_model_id",
+            model_id=embedding_model_id,
+            force=False  # Don't recreate if it already exists
+        )
+
+        return True
+
     def _post_message(self, message, message_type="info"):
         """
         Post a message to the document's chatter with appropriate styling.
@@ -505,6 +541,9 @@ class LLMDocument(models.Model):
                             f"Embedded {chunks_processed} chunks using {embedding_model.name}",
                             "success",
                         )
+
+                        # Ensure index exists for this embedding model
+                        document._ensure_index_exists(embedding_model.id)
                     else:
                         document._post_message(
                             "No chunks were successfully embedded", "warning"
@@ -701,6 +740,7 @@ class LLMDocument(models.Model):
         except Exception as e:
             documents._unlock()
             raise UserError(_("Error in batch chunking: %s") % str(e)) from e
+
     def action_reindex(self):
         """
         Re-index RAG documents by recreating the indices in the database.
@@ -726,36 +766,31 @@ class LLMDocument(models.Model):
                 "info"
             )
 
-            # Get the database cursor
-            cr = self.env.cr
-
             # Get all chunk records with embeddings
             chunks_with_embeddings = self.chunk_ids.filtered(lambda c: c.embedding)
 
             if not chunks_with_embeddings:
                 raise UserError(_("No chunks with embeddings found"))
 
-            # Get the first chunk to determine the vector dimensions
-            first_chunk = chunks_with_embeddings[0]
-
             # Get the embedding model ID
             embedding_model_id = self.embedding_model_id.id
 
-            # Execute SQL to rebuild the index
+            # Get the pgvector field
+            pgvector_field = self.env['llm.document.chunk']._fields['embedding']
+
+            # Create or recreate the index
             index_name = f"llm_document_chunk_embedding_model_{embedding_model_id}_idx"
 
-            # Drop existing index if it exists
-            cr.execute(f"DROP INDEX IF EXISTS {index_name}")
-
-            # Create new HNSW index filtered for this model
-            cr.execute(f"""
-                CREATE INDEX {index_name} ON llm_document_chunk
-                USING hnsw(embedding vector_cosine_ops)
-                WHERE embedding_model_id = %s AND embedding IS NOT NULL
-            """, (embedding_model_id,))
-
-            # Commit the changes
-            self.env.cr.commit()
+            # Create the index, forcing recreation
+            pgvector_field.create_index(
+                cr=self.env.cr,
+                table='llm_document_chunk',
+                column='embedding',
+                index_name=index_name,
+                model_field_name="embedding_model_id",
+                model_id=embedding_model_id,
+                force=True  # Force recreation of the index
+            )
 
             # Post success message
             self._post_message(
@@ -785,16 +820,28 @@ class LLMDocument(models.Model):
         if not documents_with_chunks:
             raise UserError(_("No valid documents found for reindexing.\nDocuments must have chunks and an embedding model assigned."))
 
-        # Process each document
+        # Group documents by embedding model for efficient indexing
+        docs_by_model = {}
+        for doc in documents_with_chunks:
+            model_id = doc.embedding_model_id.id
+            if model_id not in docs_by_model:
+                docs_by_model[model_id] = self.env['llm.document']
+            docs_by_model[model_id] |= doc
+
+        # Process each model group
         success_count = 0
         error_count = 0
-        for document in documents_with_chunks:
+
+        for model_id, docs in docs_by_model.items():
             try:
-                document.action_reindex()
-                success_count += 1
+                # Get the first document to represent the group
+                first_doc = docs[0]
+                # Use its reindex method which now uses the improved create_index
+                first_doc.action_reindex()
+                success_count += len(docs)
             except Exception as e:
-                error_count += 1
-                _logger.error(f"Error reindexing document {document.id}: {str(e)}")
+                error_count += len(docs)
+                _logger.error(f"Error reindexing documents for model {model_id}: {str(e)}")
 
         # Show a notification with the results
         message = f"Reindexing complete: {success_count} successful, {error_count} failed."
@@ -808,3 +855,4 @@ class LLMDocument(models.Model):
                 'type': 'success' if error_count == 0 else 'warning',
             }
         }
+    
