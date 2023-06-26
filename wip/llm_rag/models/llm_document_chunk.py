@@ -85,4 +85,3 @@ class LLMDocumentChunk(models.Model):
         )
 
         return chunks
-    

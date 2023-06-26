@@ -6,7 +6,7 @@ from odoo.exceptions import UserError
 _logger = logging.getLogger(__name__)
 
 
-class LLMDocumentRetrieve(models.Model):
+class LLMDocumentRetriever(models.Model):
     _inherit = "llm.document"
 
     # Selection field for document retriever

@@ -5,7 +5,7 @@ from odoo.exceptions import UserError
 _logger = logging.getLogger(__name__)
 
 
-class LLMDocumentEmbed(models.Model):
+class LLMDocumentEmbeder(models.Model):
     _inherit = "llm.document"
 
     @api.onchange('embedding_model_id')
@@ -25,6 +25,21 @@ class LLMDocumentEmbed(models.Model):
         if not embedding_model_id:
             return False
 
+        # Get the embedding model to determine dimensions
+        embedding_model = self.env['llm.model'].browse(embedding_model_id)
+        if not embedding_model.exists():
+            return False
+
+        # Get the model dimensions by embedding an empty string and measuring the result
+
+        empty_embedding = embedding_model.embedding("")
+
+        # Determine dimensions from the empty embedding
+        if isinstance(empty_embedding, list):
+            dimensions = len(empty_embedding)
+        elif hasattr(empty_embedding, 'shape'):  # For numpy arrays
+            dimensions = empty_embedding.shape[0]
+
         # Get the pgvector field from document chunk model
         pgvector_field = self.env['llm.document.chunk']._fields['embedding']
 
@@ -37,6 +52,7 @@ class LLMDocumentEmbed(models.Model):
             table='llm_document_chunk',
             column='embedding',
             index_name=index_name,
+            dimensions=dimensions,  # Pass the dimensions here
             model_field_name="embedding_model_id",
             model_id=embedding_model_id,
             force=False  # Don't recreate if it already exists

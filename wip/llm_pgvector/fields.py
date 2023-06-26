@@ -51,16 +51,15 @@ class PgVector(fields.Field):
         # Register vector with this cursor
         register_vector(cr)
 
-        # Create the column with dynamic vector dimensions
-        # Note: Not specifying dimensions allows for variable-length vectors
+        # Create the column with NO specific dimensions
         cr.execute(f"""
             ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} vector
         """)
 
-        # Update the column format to match vector type
+        # Update the column format to be generic vector
         tools.set_column_type(cr, table, column, "vector")
 
-    def create_index(self, cr, table, column, index_name, dimensions=None, model_field_name=None, model_id=None, force=False):
+    def create_index(self, cr, table, column, index_name, dimensions, model_field_name=None, model_id=None, force=False):
         """
         Create a vector index for the specified column if it doesn't already exist.
 
@@ -75,7 +74,7 @@ class PgVector(fields.Field):
             force: If True, drop existing index and recreate it (default: False)
         """
         # Register vector with this cursor
-        register_vector(cr)
+        register_vector(cr._cnx)
 
         # Check if index already exists
         if force:

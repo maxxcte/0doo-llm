@@ -70,16 +70,13 @@ class EmbeddingMixin(models.AbstractModel):
         return True
 
     def _format_vector_for_sql(self, pg_vector):
-        """
-        Format a vector as a string for PostgreSQL.
-
-        Args:
-            pg_vector: The vector to format
-
-        Returns:
-            str: Formatted vector string
-        """
-        return f"[{','.join(str(x) for x in pg_vector)}]"
+        """Format a vector as a string for PostgreSQL."""
+        if isinstance(pg_vector, list):
+            return f"[{','.join(str(x) for x in pg_vector)}]"
+        elif hasattr(pg_vector, 'tolist'):  # For numpy arrays
+            return f"[{','.join(str(x) for x in pg_vector.tolist())}]"
+        else:
+            return str(pg_vector)
     
     def search_similar(self, query_vector, domain=None, limit=10, min_similarity=0.0):
         """
