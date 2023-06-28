@@ -1,9 +1,7 @@
 import logging
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
-
 
 class LLMDocumentChunk(models.Model):
     _name = "llm.document.chunk"
@@ -52,36 +50,11 @@ class LLMDocumentChunk(models.Model):
             else:
                 chunk.name = f"Chunk {chunk.sequence}"
 
-    def vector_search(self, query_vector, limit=10, min_similarity=0.5):
-        """
-        Search for similar chunks using vector similarity.
+    def update_embedding(self):
+        """Update embedding for the chunk using the related embedding model."""
+        for chunk in self:
+            if not chunk.embedding_model_id:
+                continue
 
-        Args:
-            query_vector: The query embedding vector
-            limit: Maximum number of results to return
-            min_similarity: Minimum similarity threshold
-
-        Returns:
-            Recordset of matching chunks, ordered by similarity
-        """
-        chunk_model = self.env["llm.document.chunk"]
-
-        # Prepare domain to search only in the current recordset
-        if self:
-            domain = [("id", "in", self.ids)]
-        else:
-            domain = []
-
-        # Use a sample chunk to perform the search
-        sample_chunk = chunk_model.search([], limit=1)
-        if not sample_chunk:
-            return chunk_model
-
-        chunks, _ = sample_chunk.search_similar(
-            query_vector=query_vector,
-            domain=domain,
-            limit=limit,
-            min_similarity=min_similarity
-        )
-
-        return chunks
+            embedding = chunk.embedding_model_id.embedding(chunk.content)
+            chunk.embedding = embedding

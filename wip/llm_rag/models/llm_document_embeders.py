@@ -5,19 +5,12 @@ from odoo.exceptions import UserError
 _logger = logging.getLogger(__name__)
 
 
-class LLMDocumentEmbeder(models.Model):
+class LLMDocumentEmbedder(models.Model):
     _inherit = "llm.document"
-
-    @api.onchange('embedding_model_id')
-    def _onchange_embedding_model_id(self):
-        """When embedding model changes, ensure index exists for that model."""
-        if self.embedding_model_id:
-            self._ensure_index_exists(self.embedding_model_id.id)
 
     def _ensure_index_exists(self, embedding_model_id):
         """
         Ensure a vector index exists for the specified embedding model.
-        Uses the PgVector field's create_index method.
 
         Args:
             embedding_model_id: The ID of the embedding model
@@ -30,34 +23,25 @@ class LLMDocumentEmbeder(models.Model):
         if not embedding_model.exists():
             return False
 
-        # Get the model dimensions by embedding an empty string and measuring the result
+        # Get sample embedding to determine dimensions
+        sample_embedding = embedding_model.embedding("")
+        if not sample_embedding:
+            return False
 
-        empty_embedding = embedding_model.embedding("")
+        # Get the table name for document chunks
+        table_name = 'llm_document_chunk'
+        column_name = 'embedding'
+        index_name = f"{table_name}_{column_name}_model_{embedding_model_id}_idx"
 
-        # Determine dimensions from the empty embedding
-        if isinstance(empty_embedding, list):
-            dimensions = len(empty_embedding)
-        elif hasattr(empty_embedding, 'shape'):  # For numpy arrays
-            dimensions = empty_embedding.shape[0]
+        # Generate SQL to create HNSW index
+        self.env.cr.execute(f"""
+            DROP INDEX IF EXISTS {index_name};
+            CREATE INDEX {index_name} ON {table_name}
+            USING hnsw({column_name} vector_cosine_ops)
+            WHERE embedding_model_id = %s AND {column_name} IS NOT NULL
+        """, (embedding_model_id,))
 
-        # Get the pgvector field from document chunk model
-        pgvector_field = self.env['llm.document.chunk']._fields['embedding']
-
-        # Create index name
-        index_name = f"llm_document_chunk_embedding_model_{embedding_model_id}_idx"
-
-        # Create index if it doesn't exist (force=False)
-        pgvector_field.create_index(
-            cr=self.env.cr,
-            table='llm_document_chunk',
-            column='embedding',
-            index_name=index_name,
-            dimensions=dimensions,  # Pass the dimensions here
-            model_field_name="embedding_model_id",
-            model_id=embedding_model_id,
-            force=False  # Don't recreate if it already exists
-        )
-
+        _logger.info(f"Created index {index_name} for embedding model {embedding_model_id}")
         return True
 
     def embed(self):
@@ -92,26 +76,42 @@ class LLMDocumentEmbeder(models.Model):
 
                     embedding_model = document.embedding_model_id
 
-                    # Process each chunk
+                    # Process chunks in batches for efficiency
+                    chunks_to_process = document.chunk_ids.filtered(lambda c: not c.embedding)
+                    batch_size = 10  # Adjust based on embedding model capabilities
+
                     chunks_processed = 0
-                    for chunk in document.chunk_ids:
-                        # Skip chunks that already have embeddings
-                        if chunk.embedding:
-                            chunks_processed += 1
+                    for i in range(0, len(chunks_to_process), batch_size):
+                        batch = chunks_to_process[i:i + batch_size]
+
+                        # Skip empty batch
+                        if not batch:
                             continue
 
-                        # Get embedding from the model
-                        try:
-                            # Call embedding model to get vector
-                            embedding_result = embedding_model.embedding(chunk.content)
+                        # Get content for all chunks in batch
+                        contents = [chunk.content for chunk in batch]
 
-                            # Store embedding as vector
-                            if embedding_result:
-                                chunk.embedding = embedding_result
-                                chunks_processed += 1
+                        try:
+                            # Generate embeddings in batch if model supports it
+                            try:
+                                # Try batch embedding first
+                                embeddings = embedding_model.batch_embedding(contents)
+
+                                # Update each chunk with its embedding
+                                for chunk, embedding in zip(batch, embeddings):
+                                    chunk.embedding = embedding
+                                    chunks_processed += 1
+
+                            except (AttributeError, NotImplementedError):
+                                # Fallback to individual embeddings
+                                for chunk in batch:
+                                    embedding = embedding_model.embedding(chunk.content)
+                                    chunk.embedding = embedding
+                                    chunks_processed += 1
+
                         except Exception as e:
                             document._post_message(
-                                f"Error embedding chunk {chunk.id}: {str(e)}", "warning"
+                                f"Error embedding batch: {str(e)}", "warning"
                             )
 
                     # Update document state if at least one chunk was processed
@@ -145,54 +145,33 @@ class LLMDocumentEmbeder(models.Model):
 
     def action_reindex(self):
         """
-        Re-index RAG documents by recreating the indices in the database.
-        This is useful when the vector indices need to be rebuilt.
+        Re-index RAG document by recreating vector indices.
+        Useful when indices need to be rebuilt.
         """
         self.ensure_one()
 
-        # Check if there are any chunks to reindex
-        if not self.chunk_ids:
-            raise UserError(_("No chunks found to reindex"))
+        # Check for chunks with embeddings
+        chunks_with_embeddings = self.chunk_ids.filtered(lambda c: c.embedding is not None)
+        if not chunks_with_embeddings:
+            raise UserError(_("No chunks with embeddings found to reindex"))
 
-        # Get the embedding model
+        # Check for embedding model
         if not self.embedding_model_id:
             raise UserError(_("Embedding model not specified"))
 
-        # Lock document for processing
+        # Lock document
         self._lock()
 
         try:
-            # Post a message to the chatter
+            # Post status message
             self._post_message(
                 "Starting re-indexing process...",
                 "info"
             )
 
-            # Get all chunk records with embeddings
-            chunks_with_embeddings = self.chunk_ids.filtered(lambda c: c.embedding)
-
-            if not chunks_with_embeddings:
-                raise UserError(_("No chunks with embeddings found"))
-
-            # Get the embedding model ID
+            # Recreate index
             embedding_model_id = self.embedding_model_id.id
-
-            # Get the pgvector field
-            pgvector_field = self.env['llm.document.chunk']._fields['embedding']
-
-            # Create or recreate the index
-            index_name = f"llm_document_chunk_embedding_model_{embedding_model_id}_idx"
-
-            # Create the index, forcing recreation
-            pgvector_field.create_index(
-                cr=self.env.cr,
-                table='llm_document_chunk',
-                column='embedding',
-                index_name=index_name,
-                model_field_name="embedding_model_id",
-                model_id=embedding_model_id,
-                force=True  # Force recreation of the index
-            )
+            self._ensure_index_exists(embedding_model_id)
 
             # Post success message
             self._post_message(
@@ -209,18 +188,25 @@ class LLMDocumentEmbeder(models.Model):
             raise UserError(_("Re-indexing failed: %s") % str(e))
 
         finally:
-            # Unlock the document
+            # Unlock document
             self._unlock()
 
     def action_mass_reindex(self):
         """
-        Mass action to reindex multiple RAG documents.
+        Mass reindex multiple RAG documents grouped by embedding model.
         """
-        # Get all documents with chunks
-        documents_with_chunks = self.filtered(lambda d: d.chunk_ids and d.embedding_model_id)
+        # Filter documents with chunks and embedding model
+        documents_with_chunks = self.filtered(
+            lambda d: d.chunk_ids and d.chunk_ids.filtered(
+                lambda c: c.embedding is not None
+            ) and d.embedding_model_id
+        )
 
         if not documents_with_chunks:
-            raise UserError(_("No valid documents found for reindexing.\nDocuments must have chunks and an embedding model assigned."))
+            raise UserError(_(
+                "No valid documents found for reindexing.\n"
+                "Documents must have chunks with embeddings and an embedding model assigned."
+            ))
 
         # Group documents by embedding model for efficient indexing
         docs_by_model = {}
@@ -236,10 +222,8 @@ class LLMDocumentEmbeder(models.Model):
 
         for model_id, docs in docs_by_model.items():
             try:
-                # Get the first document to represent the group
-                first_doc = docs[0]
-                # Use its reindex method which now uses the improved create_index
-                first_doc.action_reindex()
+                # Use the first document to represent the group
+                docs[0]._ensure_index_exists(model_id)
                 success_count += len(docs)
             except Exception as e:
                 error_count += len(docs)

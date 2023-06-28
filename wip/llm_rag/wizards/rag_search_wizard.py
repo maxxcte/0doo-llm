@@ -1,17 +1,13 @@
 import logging
-
-import numpy as np
-
 from odoo import _, api, fields, models
 
 _logger = logging.getLogger(__name__)
-
 
 class RAGSearchWizard(models.TransientModel):
     _name = "llm.rag.search.wizard"
     _description = "RAG Search Wizard"
 
-    # Fields
+    # Search Fields
     query = fields.Text(
         string="Search Query",
         required=True,
@@ -32,11 +28,22 @@ class RAGSearchWizard(models.TransientModel):
         default=0.5,
         help="Minimum similarity score (0-1) for results",
     )
+    search_method = fields.Selection(
+        [
+            ("semantic", "Semantic Search"),
+            ("hybrid", "Hybrid Search"),
+        ],
+        string="Search Method",
+        default="semantic",
+        help="Method to use for searching documents",
+    )
     state = fields.Selection(
         [("search", "Search"), ("results", "Results")],
         default="search",
         required=True,
     )
+
+    # Results Fields
     result_ids = fields.Many2many(
         "llm.document.chunk",
         string="Search Results",
@@ -59,7 +66,6 @@ class RAGSearchWizard(models.TransientModel):
         for wizard in self:
             wizard.result_count = len(wizard.result_ids)
 
-    # Helper Methods
     def _get_embedding_model(self):
         """Retrieve an embedding model or raise an error."""
         model = self.env["llm.model"].search([("model_use", "=", "embedding")], limit=1)
@@ -68,20 +74,6 @@ class RAGSearchWizard(models.TransientModel):
                 "No Embedding Model", "Please configure an embedding model."
             )
         return model
-
-    def _get_query_vector(self, embedding_model):
-        """Generate query embedding vector."""
-        try:
-            embedding = embedding_model.embedding(self.query.strip())
-            return (
-                np.array(embedding, dtype=np.float32)
-                if isinstance(embedding, list)
-                else embedding
-            )
-        except Exception as e:
-            self._raise_error(
-                "Embedding Error", f"Failed to generate embedding: {str(e)}"
-            )
 
     def _raise_error(self, title, message, message_type="warning"):
         """Raise a user-friendly error notification."""
@@ -107,83 +99,6 @@ class RAGSearchWizard(models.TransientModel):
             "context": self.env.context,
         }
 
-    def _prepare_query_vector(self, query_vector):
-        """
-        Prepare the query vector for similarity calculations.
-
-        Args:
-            query_vector: The raw query vector from the embedding model
-
-        Returns:
-            tuple: (flattened_vector, vector_norm)
-        """
-        if not isinstance(query_vector, np.ndarray):
-            return query_vector, None
-
-        # Flatten if needed
-        if len(query_vector.shape) > 1:
-            query_vector = query_vector.flatten()
-
-        # Calculate norm
-        query_norm = np.linalg.norm(query_vector)
-
-        return query_vector, query_norm
-
-    def _prepare_chunk_vector(self, chunk_vector, query_vector_shape):
-        """
-        Prepare a chunk vector for similarity comparison.
-
-        Args:
-            chunk_vector: The chunk's embedding vector
-            query_vector_shape: Shape of the query vector to match
-
-        Returns:
-            numpy.ndarray or None: Prepared vector or None if incompatible
-        """
-        # Verify the array has elements
-        if chunk_vector.size == 0:
-            return None
-
-        # Check if dimensions match
-        if chunk_vector.shape != query_vector_shape:
-            # Flatten the chunk vector if needed
-            if len(chunk_vector.shape) > 1:
-                chunk_vector = chunk_vector.flatten()
-
-            # Final check to ensure sizes match
-            if chunk_vector.size != query_vector_shape[0]:
-                return None
-
-        return chunk_vector
-
-    def _calculate_similarity(self, query_vector, chunk_vector, query_norm=None):
-        """
-        Calculate similarity between query and chunk vectors.
-
-        Args:
-            query_vector: The prepared query vector
-            chunk_vector: The prepared chunk vector
-            query_norm: Pre-calculated query norm (optional)
-
-        Returns:
-            float: Similarity score between 0 and 1
-        """
-        # Calculate norms
-        if query_norm is None:
-            query_norm = np.linalg.norm(query_vector)
-
-        chunk_norm = np.linalg.norm(chunk_vector)
-
-        # Calculate similarity
-        if query_norm > 0 and chunk_norm > 0:
-            # Cosine similarity = dot product of normalized vectors
-            return np.dot(query_vector, chunk_vector) / (query_norm * chunk_norm)
-        else:
-            # Fallback for zero norm vectors
-            return 1 - np.linalg.norm(query_vector - chunk_vector) / (
-                np.linalg.norm(query_vector) + np.linalg.norm(chunk_vector) + 1e-10
-            )
-
     def _process_search_results(self, chunks_with_similarity):
         """
         Process search results to get the top chunks per document.
@@ -196,6 +111,9 @@ class RAGSearchWizard(models.TransientModel):
         """
         chunk_ids, result_lines = [], []
         doc_chunk_count, processed_docs = {}, set()
+
+        # Sort results by similarity score (descending)
+        chunks_with_similarity.sort(key=lambda x: x[1], reverse=True)
 
         for chunk, similarity in chunks_with_similarity:
             doc_id = chunk.document_id.id
@@ -218,7 +136,7 @@ class RAGSearchWizard(models.TransientModel):
 
             # Stop if we have enough documents with enough chunks each
             if len(processed_docs) >= self.top_n and all(
-                c >= self.top_k for c in doc_chunk_count.values()
+                    c >= self.top_k for c in doc_chunk_count.values()
             ):
                 break
 
@@ -233,7 +151,7 @@ class RAGSearchWizard(models.TransientModel):
 
         # Get embedding and vector
         embedding_model = self._get_embedding_model()
-        original_query_vector = self._get_query_vector(embedding_model)
+        query_vector = embedding_model.embedding(self.query.strip())
 
         # Get all chunks or filter by documents if active_ids is provided
         chunk_model = self.env["llm.document.chunk"]
@@ -257,46 +175,42 @@ class RAGSearchWizard(models.TransientModel):
             )
             return self._return_wizard()
 
-        # Execute vector search using the model's method
-        search_limit = (
-            self.top_n * self.top_k
-        )  # Get more results than needed for filtering
-        chunks = chunks_to_search.vector_search(
-            original_query_vector, limit=search_limit
-        )
+        # Execute semantic search using vector similarity
+        search_limit = self.top_n * self.top_k
 
-        # Prepare query vector once - outside the loop
-        query_vector, query_norm = self._prepare_query_vector(original_query_vector)
+        # Decide which search method to use
+        if self.search_method == "semantic":
+            # Use the search_similar method from EmbeddingMixin
+            chunks, similarities = chunk_model.search_similar(
+                query_vector=query_vector,
+                domain=domain,
+                limit=search_limit,
+                min_similarity=self.similarity_cutoff
+            )
+            chunks_with_similarity = list(zip(chunks, similarities))
+        else:  # hybrid search
+            # For hybrid search, combine vector search with keyword search
+            # This is a simplified implementation
+            semantic_chunks, semantic_similarities = chunk_model.search_similar(
+                query_vector=query_vector,
+                domain=domain,
+                limit=search_limit // 2,  # Half from semantic
+                min_similarity=self.similarity_cutoff / 2  # Lower threshold for hybrid
+            )
 
-        # Filter by similarity cutoff
-        chunks_with_similarity = []
-        for chunk in chunks:
-            try:
-                # Check if embedding attribute exists and has content
-                if hasattr(chunk, "embedding") and chunk.embedding is not None:
-                    # Convert to numpy array safely
-                    chunk_vector = np.array(chunk.embedding)
+            # Simple keyword search
+            keywords = self.query.strip().split()
+            keyword_domain = domain.copy()
+            for keyword in keywords:
+                keyword_domain.append(('content', 'ilike', keyword))
 
-                    # Prepare chunk vector
-                    prepared_chunk_vector = self._prepare_chunk_vector(
-                        chunk_vector, query_vector.shape
-                    )
-                    if prepared_chunk_vector is None:
-                        continue
+            keyword_chunks = chunk_model.search(keyword_domain, limit=search_limit // 2)
 
-                    # Calculate similarity
-                    similarity = self._calculate_similarity(
-                        query_vector, prepared_chunk_vector, query_norm
-                    )
-
-                    # Add to results if above cutoff
-                    if similarity >= self.similarity_cutoff:
-                        chunks_with_similarity.append((chunk, similarity))
-            except Exception as e:
-                _logger.warning(
-                    f"Error processing chunk {chunk.id} embedding: {str(e)}"
-                )
-                continue
+            # Combine results (with dummy similarity for keyword results)
+            chunks_with_similarity = list(zip(semantic_chunks, semantic_similarities))
+            for chunk in keyword_chunks:
+                if chunk not in semantic_chunks:
+                    chunks_with_similarity.append((chunk, 0.5))  # Default similarity
 
         # Process results to get top chunks per document
         chunk_ids, result_lines = self._process_search_results(chunks_with_similarity)
