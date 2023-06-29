@@ -1,6 +1,11 @@
-from odoo import fields, tools
+import logging
+
 import numpy as np
+from odoo import fields, tools
 from pgvector import Vector
+from pgvector.psycopg2 import register_vector
+
+_logger = logging.getLogger(__name__)
 
 
 class PgVector(fields.Field):
@@ -54,35 +59,60 @@ class PgVector(fields.Field):
         # Update the column format to match the dimensions
         tools.set_column_type(cr, table, column, f"vector{dim_spec}")
 
-    def create_index(self, cr, table, column, index_name, algorithm='hnsw',
-                     opclass='vector_l2_ops', parameters=None):
-        """Create a vector index on the column.
+    def create_index(self, cr, table, column, index_name, dimensions, model_field_name=None, model_id=None, force=False):
+        """
+        Create a vector index for the specified column if it doesn't already exist.
 
         Args:
             cr: Database cursor
             table: Table name
             column: Column name
             index_name: Name for the index
-            algorithm: Index algorithm ('hnsw' or 'ivfflat')
-            opclass: Operator class ('vector_l2_ops', 'vector_ip_ops', 'vector_cosine_ops')
-            parameters: Dictionary of additional parameters for the index
+            dimensions: Vector dimensions (optional)
+            model_field_name: Field name that stores model information (optional)
+            model_id: Model ID to filter by (optional)
+            force: If True, drop existing index and recreate it (default: False)
         """
         # Register vector with this cursor
-        from pgvector.psycopg2 import register_vector
-        register_vector(cr)
+        register_vector(cr._cnx)
 
-        # Build the WITH clause if parameters are provided
-        with_clause = ""
-        if parameters:
-            params = []
-            for key, value in parameters.items():
-                params.append(f"{key} = {value}")
-            if params:
-                with_clause = f" WITH ({', '.join(params)})"
+        # Check if index already exists
+        if force:
+            # Drop existing index if force is True
+            cr.execute(f"DROP INDEX IF EXISTS {index_name}")
+        else:
+            # Check if index exists
+            cr.execute("""
+                    SELECT 1 FROM pg_indexes 
+                    WHERE indexname = %s
+                """, (index_name,))
 
-        # Create the index
-        cr.execute(f"""
-            CREATE INDEX {index_name} ON {table} 
-            USING {algorithm} ({column} {opclass}){with_clause}
-        """)
-        
+            # If index already exists, return early
+            if cr.fetchone():
+                _logger.info(f"Index {index_name} already exists, skipping creation")
+                return
+
+        # Determine the dimension specification
+        dim_spec = f"({dimensions})" if dimensions else ""
+
+        # Create the appropriate index with or without model filtering
+        if model_field_name and model_id:
+            # Create model-specific index
+            cr.execute(f"""
+                    CREATE INDEX {index_name} ON {table}
+                    USING ivfflat(({column}::vector{dim_spec}) vector_cosine_ops)
+                    WHERE {model_field_name} = %s AND {column} IS NOT NULL
+                """, (model_id,))
+        else:
+            # Create general index
+            cr.execute(f"""
+                    CREATE INDEX IF NOT EXISTS {index_name} ON {table}
+                    USING ivfflat(({column}::vector{dim_spec}) vector_cosine_ops)
+                    WHERE {column} IS NOT NULL
+                """)
+        _logger.info(f"Created vector index {index_name} on {table}.{column}")
+
+    def drop_index(self, cr, index_name):
+        """Drop a vector index by name."""
+        cr.execute(f"DROP INDEX IF EXISTS {index_name}")
+        _logger.info(f"Dropped vector index {index_name}")

@@ -24,24 +24,32 @@ class LLMDocumentEmbedder(models.Model):
             return False
 
         # Get sample embedding to determine dimensions
-        sample_embedding = embedding_model.embedding("")
+        sample_embedding = embedding_model.embedding("")[0]
         if not sample_embedding:
             return False
 
-        # Get the table name for document chunks
+        # Get the dimensions from the sample embedding
+        dimensions = len(sample_embedding) if isinstance(sample_embedding, list) else sample_embedding.shape[0]
+
+        # Get the pgvector field
+        pgvector_field = self.env['llm.document.chunk']._fields['embedding']
+
+        # Generate a unique index name for this model
         table_name = 'llm_document_chunk'
-        column_name = 'embedding'
-        index_name = f"{table_name}_{column_name}_model_{embedding_model_id}_idx"
+        index_name = f"{table_name}_embedding_model_{embedding_model_id}_idx"
 
-        # Generate SQL to create HNSW index
-        self.env.cr.execute(f"""
-            DROP INDEX IF EXISTS {index_name};
-            CREATE INDEX {index_name} ON {table_name}
-            USING hnsw({column_name} vector_cosine_ops)
-            WHERE embedding_model_id = %s AND {column_name} IS NOT NULL
-        """, (embedding_model_id,))
+        # Create or ensure the index exists
+        pgvector_field.create_index(
+            self.env.cr,
+            table_name,
+            'embedding',
+            index_name,
+            dimensions=dimensions,
+            model_field_name='embedding_model_id',
+            model_id=embedding_model_id,
+        )
 
-        _logger.info(f"Created index {index_name} for embedding model {embedding_model_id}")
+        _logger.info(f"Created/verified index {index_name} for embedding model {embedding_model_id}")
         return True
 
     def embed(self):
@@ -88,7 +96,7 @@ class LLMDocumentEmbedder(models.Model):
                 # contents = [chunk.content for chunk in batch]
 
                 for chunk in batch:
-                    embedding = embedding_model.embedding(chunk.content)
+                    embedding = embedding_model.embedding(chunk.content)[0]
                     chunk.embedding = embedding
                     chunks_processed += 1
 

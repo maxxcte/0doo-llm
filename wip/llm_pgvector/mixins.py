@@ -56,20 +56,24 @@ class EmbeddingMixin(models.AbstractModel):
 
         # Build the domain clause
         domain_clause = ""
-        params = [vector_str, min_similarity, limit]
+        params = [min_similarity, limit]
 
         if domain:
             domain_sql, domain_params = self.env['ir.rule']._where_calc(domain, self._name).query.to_sql()
             if domain_sql:
                 domain_clause = f"AND {domain_sql}"
-                params = [vector_str, min_similarity] + domain_params + [limit]
+                params = [min_similarity] + domain_params + [limit]
 
         # Execute the search query with selected operator
+        # Modify the query to use the vector only once (storing it in a CTE)
         query = f"""
-            SELECT id, 1 - ({embedding_column} {operator} %s::vector) as similarity
-            FROM {model_table}
+            WITH query_vector AS (
+                SELECT '{vector_str}'::vector AS vec
+            )
+            SELECT id, 1 - ({embedding_column} {operator} query_vector.vec) as similarity
+            FROM {model_table}, query_vector
             WHERE {embedding_column} IS NOT NULL
-            AND (1 - ({embedding_column} {operator} %s::vector)) >= %s
+            AND (1 - ({embedding_column} {operator} query_vector.vec)) >= %s
             {domain_clause}
             ORDER BY similarity DESC
             LIMIT %s

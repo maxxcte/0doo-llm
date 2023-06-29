@@ -151,7 +151,8 @@ class RAGSearchWizard(models.TransientModel):
 
         # Get embedding and vector
         embedding_model = self._get_embedding_model()
-        query_vector = embedding_model.embedding(self.query.strip())
+        query_vector = embedding_model.embedding(self.query.strip())[0]
+        print(query_vector)
 
         # Get all chunks or filter by documents if active_ids is provided
         chunk_model = self.env["llm.document.chunk"]
