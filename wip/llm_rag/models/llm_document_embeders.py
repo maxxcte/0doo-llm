@@ -66,82 +66,51 @@ class LLMDocumentEmbedder(models.Model):
         if not documents:
             return False
 
-        try:
-            # Process each document
-            for document in documents:
-                try:
-                    # Check if embedding model exists and is configured
-                    if not document.embedding_model_id:
-                        raise UserError(_("Embedding model not specified"))
+        for document in documents:
+            if not document.embedding_model_id:
+                raise UserError(_("Embedding model not specified"))
 
-                    embedding_model = document.embedding_model_id
+            embedding_model = document.embedding_model_id
 
-                    # Process chunks in batches for efficiency
-                    chunks_to_process = document.chunk_ids.filtered(lambda c: not c.embedding)
-                    batch_size = 10  # Adjust based on embedding model capabilities
+            # Process chunks in batches for efficiency
+            chunks_to_process = document.chunk_ids.filtered(lambda c: not c.embedding)
+            batch_size = 10  # Adjust based on embedding model capabilities
 
-                    chunks_processed = 0
-                    for i in range(0, len(chunks_to_process), batch_size):
-                        batch = chunks_to_process[i:i + batch_size]
+            chunks_processed = 0
+            for i in range(0, len(chunks_to_process), batch_size):
+                batch = chunks_to_process[i:i + batch_size]
 
-                        # Skip empty batch
-                        if not batch:
-                            continue
+                # Skip empty batch
+                if not batch:
+                    continue
 
-                        # Get content for all chunks in batch
-                        contents = [chunk.content for chunk in batch]
+                # Get content for all chunks in batch
+                # contents = [chunk.content for chunk in batch]
 
-                        try:
-                            # Generate embeddings in batch if model supports it
-                            try:
-                                # Try batch embedding first
-                                embeddings = embedding_model.batch_embedding(contents)
+                for chunk in batch:
+                    embedding = embedding_model.embedding(chunk.content)
+                    chunk.embedding = embedding
+                    chunks_processed += 1
 
-                                # Update each chunk with its embedding
-                                for chunk, embedding in zip(batch, embeddings):
-                                    chunk.embedding = embedding
-                                    chunks_processed += 1
+            # Update document state if at least one chunk was processed
+            if chunks_processed > 0:
+                document.write({"state": "ready"})
+                document._post_message(
+                    f"Embedded {chunks_processed} chunks using {embedding_model.name}",
+                    "success",
+                )
 
-                            except (AttributeError, NotImplementedError):
-                                # Fallback to individual embeddings
-                                for chunk in batch:
-                                    embedding = embedding_model.embedding(chunk.content)
-                                    chunk.embedding = embedding
-                                    chunks_processed += 1
+                # Ensure index exists for this embedding model
+                document._ensure_index_exists(embedding_model.id)
+            else:
+                document._post_message(
+                    "No chunks were successfully embedded", "warning"
+                )
 
-                        except Exception as e:
-                            document._post_message(
-                                f"Error embedding batch: {str(e)}", "warning"
-                            )
+        # Unlock all successfully processed documents
+        documents._unlock()
+        return True
 
-                    # Update document state if at least one chunk was processed
-                    if chunks_processed > 0:
-                        document.write({"state": "ready"})
-                        document._post_message(
-                            f"Embedded {chunks_processed} chunks using {embedding_model.name}",
-                            "success",
-                        )
-
-                        # Ensure index exists for this embedding model
-                        document._ensure_index_exists(embedding_model.id)
-                    else:
-                        document._post_message(
-                            "No chunks were successfully embedded", "warning"
-                        )
-
-                except Exception as e:
-                    document._post_message(
-                        f"Error embedding document: {str(e)}", "error"
-                    )
-                    document._unlock()
-
-            # Unlock all successfully processed documents
-            documents._unlock()
-            return True
-
-        except Exception as e:
-            documents._unlock()
-            raise UserError(_("Error in batch embedding: %s") % str(e)) from e
 
     def action_reindex(self):
         """

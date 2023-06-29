@@ -1,4 +1,5 @@
 from odoo import fields, tools
+import numpy as np
 from pgvector import Vector
 
 
@@ -29,7 +30,11 @@ class PgVector(fields.Field):
         if value is None:
             return None
 
-        # Use Vector._from_db method from pgvector
+        # Handle case where value is already a list or numpy array
+        if isinstance(value, (list, np.ndarray)):
+            return value
+
+        # Use Vector._from_db method from pgvector for string values
         return Vector._from_db(value)
 
     def create_column(self, cr, table, column, **kwargs):
@@ -80,3 +85,4 @@ class PgVector(fields.Field):
             CREATE INDEX {index_name} ON {table} 
             USING {algorithm} ({column} {opclass}){with_clause}
         """)
+        
