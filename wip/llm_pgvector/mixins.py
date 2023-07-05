@@ -1,17 +1,22 @@
 import logging
-from odoo import api, fields, models
+
 from pgvector import Vector
+
+from odoo import api, fields, models
+
 from .fields import PgVector
 
 _logger = logging.getLogger(__name__)
+
 
 class EmbeddingMixin(models.AbstractModel):
     """
     Mixin for models that use vector embeddings.
     Provides common functionality for vector search operations.
     """
-    _name = 'llm.embedding.mixin'
-    _description = 'Vector Embedding Mixin'
+
+    _name = "llm.embedding.mixin"
+    _description = "Vector Embedding Mixin"
 
     embedding = PgVector(
         string="Embedding",
@@ -26,7 +31,9 @@ class EmbeddingMixin(models.AbstractModel):
     )
 
     @api.model
-    def search_similar(self, query_vector, domain=None, limit=10, min_similarity=0.0, operator='<=>'):
+    def search_similar(
+        self, query_vector, domain=None, limit=10, min_similarity=0.0, operator="<=>"
+    ):
         """
         Search for similar records using vector similarity.
         This is implemented as a class method (api.model) to allow searching
@@ -52,17 +59,20 @@ class EmbeddingMixin(models.AbstractModel):
 
         # Determine the table and embedding column
         model_table = self._table
-        embedding_column = 'embedding'
+        embedding_column = "embedding"
 
         # Build the domain clause
         domain_clause = ""
         params = [min_similarity, limit]
 
         if domain:
-            domain_sql, domain_params = self.env['ir.rule']._where_calc(domain, self._name).query.to_sql()
-            if domain_sql:
-                domain_clause = f"AND {domain_sql}"
-                params = [min_similarity] + domain_params + [limit]
+            # Correctly calculate the WHERE clause using the model itself
+            query_obj = self.env[self._name].sudo()._where_calc(domain)
+            tables, where_clause, where_params = query_obj.get_sql()
+
+            if where_clause:
+                domain_clause = f"AND {where_clause}"
+                params = [min_similarity] + where_params + [limit]
 
         # Execute the search query with selected operator
         # Modify the query to use the vector only once (storing it in a CTE)

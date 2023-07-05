@@ -1,9 +1,10 @@
 import logging
 
 import numpy as np
-from odoo import fields, tools
 from pgvector import Vector
 from pgvector.psycopg2 import register_vector
+
+from odoo import fields, tools
 
 _logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ class PgVector(fields.Field):
             return None
 
         # Handle case where value is already a list or numpy array
-        if isinstance(value, (list, np.ndarray)):
+        if isinstance(value, list) or isinstance(value, np.ndarray):
             return value
 
         # Use Vector._from_db method from pgvector for string values
@@ -46,6 +47,7 @@ class PgVector(fields.Field):
         """Create a vector column in the database."""
         # Register vector with this cursor
         from pgvector.psycopg2 import register_vector
+
         register_vector(cr)
 
         # Specify dimensions if provided
@@ -59,7 +61,17 @@ class PgVector(fields.Field):
         # Update the column format to match the dimensions
         tools.set_column_type(cr, table, column, f"vector{dim_spec}")
 
-    def create_index(self, cr, table, column, index_name, dimensions, model_field_name=None, model_id=None, force=False):
+    def create_index(
+        self,
+        cr,
+        table,
+        column,
+        index_name,
+        dimensions,
+        model_field_name=None,
+        model_id=None,
+        force=False,
+    ):
         """
         Create a vector index for the specified column if it doesn't already exist.
 
@@ -82,10 +94,13 @@ class PgVector(fields.Field):
             cr.execute(f"DROP INDEX IF EXISTS {index_name}")
         else:
             # Check if index exists
-            cr.execute("""
-                    SELECT 1 FROM pg_indexes 
+            cr.execute(
+                """
+                    SELECT 1 FROM pg_indexes
                     WHERE indexname = %s
-                """, (index_name,))
+                """,
+                (index_name,),
+            )
 
             # If index already exists, return early
             if cr.fetchone():
@@ -98,11 +113,14 @@ class PgVector(fields.Field):
         # Create the appropriate index with or without model filtering
         if model_field_name and model_id:
             # Create model-specific index
-            cr.execute(f"""
+            cr.execute(
+                f"""
                     CREATE INDEX {index_name} ON {table}
                     USING ivfflat(({column}::vector{dim_spec}) vector_cosine_ops)
                     WHERE {model_field_name} = %s AND {column} IS NOT NULL
-                """, (model_id,))
+                """,
+                (model_id,),
+            )
         else:
             # Create general index
             cr.execute(f"""

@@ -1,7 +1,9 @@
 import logging
+
 from odoo import _, api, fields, models
 
 _logger = logging.getLogger(__name__)
+
 
 class RAGSearchWizard(models.TransientModel):
     _name = "llm.rag.search.wizard"
@@ -37,6 +39,13 @@ class RAGSearchWizard(models.TransientModel):
         default="semantic",
         help="Method to use for searching documents",
     )
+    embedding_model_id = fields.Many2one(
+        "llm.model",
+        string="Embedding Model",
+        domain="[('model_use', '=', 'embedding')]",
+        required=True,
+        help="Embedding model to use for vector search (will only search documents using this model)",
+    )
     state = fields.Selection(
         [("search", "Search"), ("results", "Results")],
         default="search",
@@ -66,14 +75,20 @@ class RAGSearchWizard(models.TransientModel):
         for wizard in self:
             wizard.result_count = len(wizard.result_ids)
 
-    def _get_embedding_model(self):
-        """Retrieve an embedding model or raise an error."""
-        model = self.env["llm.model"].search([("model_use", "=", "embedding")], limit=1)
-        if not model:
-            self._raise_error(
-                "No Embedding Model", "Please configure an embedding model."
+    @api.model
+    def default_get(self, fields_list):
+        """Set default embedding model if available"""
+        res = super().default_get(fields_list)
+
+        # Set default embedding model
+        if "embedding_model_id" in fields_list and "embedding_model_id" not in res:
+            model = self.env["llm.model"].search(
+                [("model_use", "=", "embedding")], limit=1
             )
-        return model
+            if model:
+                res["embedding_model_id"] = model.id
+
+        return res
 
     def _raise_error(self, title, message, message_type="warning"):
         """Raise a user-friendly error notification."""
@@ -136,7 +151,7 @@ class RAGSearchWizard(models.TransientModel):
 
             # Stop if we have enough documents with enough chunks each
             if len(processed_docs) >= self.top_n and all(
-                    c >= self.top_k for c in doc_chunk_count.values()
+                c >= self.top_k for c in doc_chunk_count.values()
             ):
                 break
 
@@ -146,17 +161,26 @@ class RAGSearchWizard(models.TransientModel):
         """Execute vector search with the query."""
         self.ensure_one()
 
+        # Make sure embedding model is selected
+        if not self.embedding_model_id:
+            return self._raise_error(
+                "No Embedding Model",
+                "Please select an embedding model to use for searching.",
+            )
+
         # Get domain from context
         active_ids = self.env.context.get("active_ids", [])
 
         # Get embedding and vector
-        embedding_model = self._get_embedding_model()
+        embedding_model = self.embedding_model_id
         query_vector = embedding_model.embedding(self.query.strip())[0]
-        print(query_vector)
 
         # Get all chunks or filter by documents if active_ids is provided
         chunk_model = self.env["llm.document.chunk"]
-        domain = []
+        domain = [
+            # Only search chunks that use the same embedding model
+            ("embedding_model_id", "=", embedding_model.id)
+        ]
 
         # If active_ids contains document IDs, filter chunks by those documents
         if active_ids:
@@ -174,6 +198,9 @@ class RAGSearchWizard(models.TransientModel):
                     "result_lines": [],
                 }
             )
+            _logger.info(
+                f"No chunks found for model {embedding_model.name} with domain {domain}"
+            )
             return self._return_wizard()
 
         # Execute semantic search using vector similarity
@@ -186,9 +213,9 @@ class RAGSearchWizard(models.TransientModel):
                 query_vector=query_vector,
                 domain=domain,
                 limit=search_limit,
-                min_similarity=self.similarity_cutoff
+                min_similarity=self.similarity_cutoff,
             )
-            chunks_with_similarity = list(zip(chunks, similarities))
+            chunks_with_similarity = list(zip(chunks, similarities, strict=False))
         else:  # hybrid search
             # For hybrid search, combine vector search with keyword search
             # This is a simplified implementation
@@ -196,19 +223,21 @@ class RAGSearchWizard(models.TransientModel):
                 query_vector=query_vector,
                 domain=domain,
                 limit=search_limit // 2,  # Half from semantic
-                min_similarity=self.similarity_cutoff / 2  # Lower threshold for hybrid
+                min_similarity=self.similarity_cutoff / 2,  # Lower threshold for hybrid
             )
 
             # Simple keyword search
             keywords = self.query.strip().split()
             keyword_domain = domain.copy()
             for keyword in keywords:
-                keyword_domain.append(('content', 'ilike', keyword))
+                keyword_domain.append(("content", "ilike", keyword))
 
             keyword_chunks = chunk_model.search(keyword_domain, limit=search_limit // 2)
 
             # Combine results (with dummy similarity for keyword results)
-            chunks_with_similarity = list(zip(semantic_chunks, semantic_similarities))
+            chunks_with_similarity = list(
+                zip(semantic_chunks, semantic_similarities, strict=False)
+            )
             for chunk in keyword_chunks:
                 if chunk not in semantic_chunks:
                     chunks_with_similarity.append((chunk, 0.5))  # Default similarity
@@ -250,6 +279,11 @@ class RAGSearchResultLine(models.TransientModel):
     document_name = fields.Char(related="document_id.name", readonly=True)
     chunk_name = fields.Char(related="chunk_id.name", readonly=True)
     content = fields.Text(related="chunk_id.content", readonly=True)
+    embedding_model_name = fields.Char(
+        related="chunk_id.embedding_model_id.name",
+        string="Embedding Model",
+        readonly=True,
+    )
     similarity = fields.Float(digits=(5, 4), readonly=True)
     similarity_percentage = fields.Char(compute="_compute_similarity_percentage")
 

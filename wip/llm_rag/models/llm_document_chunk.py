@@ -1,7 +1,9 @@
 import logging
-from odoo import _, api, fields, models
+
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
+
 
 class LLMDocumentChunk(models.Model):
     _name = "llm.document.chunk"

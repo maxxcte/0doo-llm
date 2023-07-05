@@ -47,7 +47,7 @@ from llm_pgvector import PgVector
 
 class MyModel(models.Model):
     _name = 'my.model'
-    
+
     name = fields.Char()
     description = fields.Text()
     embedding = PgVector(string="Vector Embedding")
@@ -62,11 +62,11 @@ from llm_pgvector import EmbeddingMixin, PgVector
 class VectorSearchableModel(models.Model):
     _name = 'my.searchable.model'
     _inherit = ['llm.embedding.mixin']
-    
+
     name = fields.Char()
     content = fields.Text()
     embedding = PgVector()
-    
+
     def find_matches(self, query_vector, limit=5):
         records, similarities = self.search_similar(
             query_vector=query_vector,
@@ -109,7 +109,7 @@ matching_records, similarity_scores = record.search_similar(query_vector)
 # With domain filtering
 domain = [('is_published', '=', True)]
 matching_records, similarity_scores = record.search_similar(
-    query_vector, 
+    query_vector,
     domain=domain,
     limit=10,
     min_similarity=0.8
@@ -135,10 +135,10 @@ def create_embeddings(self):
     for record in self:
         if not record.content:
             continue
-            
+
         # Get embedding from your model
         embedding = your_embedding_model.embed_text(record.content)
-        
+
         # Store in the PgVector field
         record.embedding = embedding
 ```
