@@ -9,7 +9,8 @@ _logger = logging.getLogger(__name__)
 
 
 class LLMToolKnowledgeRetriever(models.Model):
-    _inherit = "llm.tool"
+    _name = "llm.tool"
+    _inherit = ["llm.tool", "llm.document.search.mixin"]
 
     @api.model
     def _get_available_implementations(self):
@@ -124,40 +125,15 @@ class LLMToolKnowledgeRetriever(models.Model):
             # Calculate search limit
             search_limit = top_n * top_k
 
-            # Perform search based on method
-            if search_method == "semantic":
-                # Use the search_similar method from EmbeddingMixin
-                chunks, similarities = chunk_model.search_similar(
-                    query_vector=query_embedding,
-                    domain=domain,
-                    limit=search_limit,
-                    min_similarity=similarity_cutoff,
-                )
-                chunks_with_similarity = list(zip(chunks, similarities))
-            else:  # hybrid search
-                # For hybrid search, combine vector search with keyword search
-                semantic_chunks, semantic_similarities = chunk_model.search_similar(
-                    query_vector=query_embedding,
-                    domain=domain,
-                    limit=search_limit // 2,  # Half from semantic
-                    min_similarity=similarity_cutoff / 2,  # Lower threshold for hybrid
-                )
-
-                # Simple keyword search
-                keywords = query.strip().split()
-                keyword_domain = domain.copy()
-                for keyword in keywords:
-                    keyword_domain.append(("content", "ilike", keyword))
-
-                keyword_chunks = chunk_model.search(keyword_domain, limit=search_limit // 2)
-
-                # Combine results (with dummy similarity for keyword results)
-                chunks_with_similarity = list(
-                    zip(semantic_chunks, semantic_similarities)
-                )
-                for chunk in keyword_chunks:
-                    if chunk not in semantic_chunks:
-                        chunks_with_similarity.append((chunk, 0.5))  # Default similarity
+            # Use the inherited mixin methods directly
+            chunks_with_similarity = self.search_documents(
+                query=query,
+                query_vector=query_embedding,
+                domain=domain,
+                search_method=search_method,
+                limit=search_limit,
+                min_similarity=similarity_cutoff
+            )
 
             # Process results to get top chunks per document
             result_data = self._process_search_results(chunks_with_similarity, top_k, top_n)
@@ -185,43 +161,22 @@ class LLMToolKnowledgeRetriever(models.Model):
         Returns:
             List of dictionaries with chunk data
         """
-        # Group chunks by document
-        chunks_by_doc = {}
-        for chunk, similarity in chunks_with_similarity:
-            doc_id = chunk.document_id.id
-            if doc_id not in chunks_by_doc:
-                chunks_by_doc[doc_id] = []
-            chunks_by_doc[doc_id].append((chunk, similarity))
+        # Use the base implementation from the search service
+        _, _, selected_chunks = self.process_search_results_base(
+            chunks_with_similarity, top_k, top_n
+        )
         
-        # Sort chunks within each document by similarity
-        for doc_id in chunks_by_doc:
-            chunks_by_doc[doc_id].sort(key=lambda x: x[1], reverse=True)
-            # Limit to top_k chunks per document
-            chunks_by_doc[doc_id] = chunks_by_doc[doc_id][:top_k]
-        
-        # Get top_n documents based on their highest similarity chunk
-        doc_max_similarity = {
-            doc_id: max(chunk_sim[1] for chunk_sim in chunks)
-            for doc_id, chunks in chunks_by_doc.items()
-        }
-        top_docs = sorted(
-            doc_max_similarity.keys(),
-            key=lambda doc_id: doc_max_similarity[doc_id],
-            reverse=True,
-        )[:top_n]
-        
-        # Prepare result data
+        # Convert to the format needed for the tool response
         result_data = []
-        for doc_id in top_docs:
-            for chunk, similarity in chunks_by_doc[doc_id]:
-                result_data.append({
-                    "content": chunk.content,
-                    "document_name": chunk.document_id.name,
-                    "document_id": chunk.document_id.id,
-                    "chunk_id": chunk.id,
-                    "chunk_name": chunk.name,
-                    "similarity": round(similarity, 4),
-                    "similarity_percentage": f"{int(similarity * 100)}%",
-                })
+        for chunk, similarity in selected_chunks:
+            result_data.append({
+                "content": chunk.content,
+                "document_name": chunk.document_id.name,
+                "document_id": chunk.document_id.id,
+                "chunk_id": chunk.id,
+                "chunk_name": chunk.name,
+                "similarity": round(similarity, 4),
+                "similarity_percentage": f"{int(similarity * 100)}%",
+            })
         
         return result_data
