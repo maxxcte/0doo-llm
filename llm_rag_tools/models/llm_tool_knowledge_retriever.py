@@ -38,7 +38,7 @@ class LLMToolKnowledgeRetriever(models.Model):
             )
             embedding_model_id: int = Field(
                 None, 
-                description="ID of the embedding model (llm.model) to use for vector search. Must be a llm.model's id where model_use = 'embedding'. If not provided, the system will use the default embedding model."
+                description="ID of the embedding model (llm.model) to use for vector search. Must be a llm.model's id where model_use = 'embedding'. You can search for different embedding models via record_retriever tool if available. If embedding_model_id is not provided, the system will use the default embedding model."
             )
             top_k: int = Field(
                 5, 
