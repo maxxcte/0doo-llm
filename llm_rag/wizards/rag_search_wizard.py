@@ -129,17 +129,17 @@ class RAGSearchWizard(models.TransientModel):
         _, _, selected_chunks = self.process_search_results_base(
             chunks_with_similarity, self.top_k, self.top_n
         )
-        
+
         # Convert to the format needed for the wizard
         chunk_ids = []
         result_lines = []
-        
+
         for chunk, similarity in selected_chunks:
             chunk_ids.append(chunk.id)
             result_lines.append(
                 (0, 0, {"chunk_id": chunk.id, "similarity": similarity})
             )
-            
+
         return chunk_ids, result_lines
 
     def action_search(self):
@@ -198,7 +198,7 @@ class RAGSearchWizard(models.TransientModel):
             domain=domain,
             search_method=self.search_method,
             limit=search_limit,
-            min_similarity=self.similarity_cutoff
+            min_similarity=self.similarity_cutoff,
         )
 
         # Process results to get top chunks per document
