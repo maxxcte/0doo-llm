@@ -22,12 +22,14 @@ LLM RAG Tools provides a set of AI-powered tools that enable Large Language Mode
 ## Technical Details
 
 The module is built on Odoo's model system and extends the following models:
+
 - `llm.tool` - Base model for all LLM tools
 - `llm.document.search.mixin` - Mixin for document search functionality
 
 ## Security
 
 The module follows Odoo's standard security model:
+
 - Regular users (base.group_user) have read-only access
 - LLM Managers (llm.group_llm_manager) have full CRUD access
 
