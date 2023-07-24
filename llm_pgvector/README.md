@@ -25,8 +25,8 @@ This module provides the foundation for vector-based operations in Odoo, enablin
 
 - PostgreSQL 12+ with pgvector extension installed (or installable by superuser)
 - Python dependencies:
-  - pgvector>=0.4.0
-  - numpy
+    - pgvector>=0.4.0
+    - numpy
 
 ## Installation
 
@@ -103,10 +103,10 @@ def update_embedding(self):
     for record in self:
         # Get the model to use for embeddings
         embedding_model = record.embedding_model_id
-
+        
         # Generate embedding
         embedding = embedding_model.generate_embedding(record.content)
-
+        
         # Store the embedding
         record.embedding = embedding
 ```
@@ -119,7 +119,7 @@ When working with multiple embedding models, it's important to search only withi
 def find_similar_chunks(self, query_text, limit=5):
     """
     Find chunks similar to the query text.
-
+    
     This implementation specifically filters by embedding model to ensure
     we're only comparing vectors within the same embedding space.
     """
@@ -128,13 +128,13 @@ def find_similar_chunks(self, query_text, limit=5):
         ('model_use', '=', 'embedding'),
         ('name', '=', 'openai-text-embedding-3-small')  # Be specific about which model to use
     ], limit=1)
-
+    
     if not embedding_model:
         raise ValueError("Required embedding model not found")
-
+    
     # Generate embedding for query using the same model that created our stored embeddings
     query_embedding = embedding_model.generate_embedding(query_text)
-
+    
     # Search for similar chunks using the embedding
     # CRITICAL: Filter by embedding_model_id to ensure we only compare compatible vectors
     chunks, similarities = self.env['document.chunk'].search_similar(
@@ -144,7 +144,7 @@ def find_similar_chunks(self, query_text, limit=5):
         min_similarity=0.7,  # Minimum similarity threshold
         operator="<=>"  # Cosine distance operator
     )
-
+    
     return chunks, similarities
 ```
 
@@ -172,36 +172,36 @@ A key feature of this module is its ability to maintain separate indices for dif
 def ensure_index_exists(self, embedding_model_id):
     """
     Ensure a vector index exists for the specified embedding model.
-
-    This is crucial when working with multiple embedding models that
+    
+    This is crucial when working with multiple embedding models that 
     produce vectors of different dimensions (e.g., OpenAI vs. local models).
     Each model gets its own optimized index.
     """
     if not embedding_model_id:
         return False
-
+    
     # Get the embedding model to determine dimensions
     embedding_model = self.env['llm.model'].browse(embedding_model_id)
     if not embedding_model.exists():
         return False
-
+    
     # Get sample embedding to determine dimensions
     sample_embedding = embedding_model.generate_embedding("")
-
+    
     # Get the dimensions from the sample embedding
     dimensions = (
-        len(sample_embedding)
-        if isinstance(sample_embedding, list)
+        len(sample_embedding) 
+        if isinstance(sample_embedding, list) 
         else sample_embedding.shape[0]
     )
-
+    
     # Get the pgvector field
     pgvector_field = self.env['document.chunk']._fields['embedding']
-
+    
     # Generate a unique index name for this model
     table_name = "document_chunk"
     index_name = f"{table_name}_emb_model_{embedding_model_id}_idx"
-
+    
     # Create or ensure the index exists - this is model-specific!
     pgvector_field.create_index(
         self.env.cr,
@@ -212,7 +212,7 @@ def ensure_index_exists(self, embedding_model_id):
         model_field_name="embedding_model_id",  # Field that stores which model created the embedding
         model_id=embedding_model_id             # The specific model ID to filter by
     )
-
+    
     return True
 ```
 
@@ -233,18 +233,18 @@ The module supports embedding models with different vector dimensions. You can u
 class DocumentChunk(models.Model):
     _name = 'document.chunk'
     _inherit = ['llm.embedding.mixin']
-
+    
     # Fields to track which model created the embedding
     embedding_model_id = fields.Many2one(
-        'llm.model',
+        'llm.model', 
         string="Embedding Model",
         domain="[('model_use', '=', 'embedding')]"
     )
-
+    
     def update_embeddings_for_model(self, model_id):
         """Update embeddings for a specific model"""
         model = self.env['llm.model'].browse(model_id)
-
+        
         # Process chunks in batches
         for chunk in self:
             embedding = model.generate_embedding(chunk.content)
@@ -252,20 +252,20 @@ class DocumentChunk(models.Model):
                 'embedding': embedding,
                 'embedding_model_id': model_id
             })
-
+        
         # Ensure index exists for this model
         self._ensure_index_exists(model_id)
-
+        
         return True
-
+    
     def migrate_to_new_model(self, old_model_id, new_model_id):
         """Migrate chunks from one embedding model to another"""
         # Find chunks using the old model
         chunks = self.search([('embedding_model_id', '=', old_model_id)])
-
+        
         # Update embeddings with the new model
         chunks.update_embeddings_for_model(new_model_id)
-
+        
         return True
 ```
 
@@ -277,14 +277,14 @@ For more control over the search process, you can execute raw SQL queries:
 def custom_vector_search(self, query_vector, domain, limit=10):
     """Custom vector search implementation"""
     from pgvector import Vector
-
+    
     # Format the query vector
     vector_str = Vector._to_db(query_vector)
-
+    
     # Convert domain to SQL WHERE clause
     query_obj = self.env['document.chunk'].sudo()._where_calc(domain)
     tables, where_clause, where_params = query_obj.get_sql()
-
+    
     # Customize the query as needed
     query = f"""
         WITH query_vector AS (
@@ -297,13 +297,13 @@ def custom_vector_search(self, query_vector, domain, limit=10):
         ORDER BY similarity DESC
         LIMIT %s
     """
-
+    
     self.env.cr.execute(query, where_params + [limit])
     results = self.env.cr.fetchall()
-
+    
     record_ids = [row[0] for row in results]
     similarities = [row[1] for row in results]
-
+    
     return self.env['document.chunk'].browse(record_ids), similarities
 ```
 
@@ -314,22 +314,22 @@ def hybrid_search(self, query_text, keywords, limit=10):
     """Combined vector and keyword search"""
     embedding_model = self.embedding_model_id
     query_vector = embedding_model.generate_embedding(query_text)
-
+    
     # First find candidates with keyword search
     keyword_domain = [('content', 'ilike', keywords)]
     candidates = self.search(keyword_domain, limit=limit*2)
     candidate_ids = candidates.ids
-
+    
     # Then refine with vector search
     if candidate_ids:
         domain = [('id', 'in', candidate_ids)]
         results, similarities = self.search_similar(
-            query_vector,
+            query_vector, 
             domain=domain,
             limit=limit
         )
         return results, similarities
-
+    
     # Fallback to pure vector search if no keyword matches
     return self.search_similar(query_vector, limit=limit)
 ```
