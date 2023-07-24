@@ -1,6 +1,6 @@
 {
     "name": "LLM RAG Tools",
-    "version": "1.0",
+    "version": "16.0.1.0.0",
     "category": "Productivity/Tools",
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
@@ -14,14 +14,19 @@ Retrieval-Augmented Generation (RAG) functionality.
 Features:
 - Document retriever tool for semantic search
 - Integration with LLM tools framework
+- Reusable document search functionality
+- Semantic and hybrid search capabilities
     """,
     "depends": ["llm_rag", "llm_tool"],
     "data": [
-        "security/ir.model.access.csv",
         "data/llm_tool_data.xml",
+    ],
+    "images": [
+        "static/description/banner.jpeg",
     ],
     "installable": True,
     "application": False,
     "auto_install": False,
     "license": "LGPL-3",
+    "maintainer": "Apexive Solutions LLC",
 }
