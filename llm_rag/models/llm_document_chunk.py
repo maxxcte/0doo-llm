@@ -33,11 +33,6 @@ class LLMDocumentChunk(models.Model):
         required=True,
         help="Chunk text content",
     )
-    embedding_model_id = fields.Many2one(
-        related="document_id.embedding_model_id",
-        store=True,
-        readonly=True,
-    )
     metadata = fields.Json(
         string="Metadata",
         default={},
@@ -51,12 +46,3 @@ class LLMDocumentChunk(models.Model):
                 chunk.name = f"{chunk.document_id.name} - Chunk {chunk.sequence}"
             else:
                 chunk.name = f"Chunk {chunk.sequence}"
-
-    def update_embedding(self):
-        """Update embedding for the chunk using the related embedding model."""
-        for chunk in self:
-            if not chunk.embedding_model_id:
-                continue
-
-            embedding = chunk.embedding_model_id.embedding(chunk.content)
-            chunk.embedding = embedding

@@ -19,7 +19,7 @@
               required="1"
             />
                         <field
-              name="embedding_model_id"
+              name="collection_id"
               options="{'no_create': True}"
               required="1"
             />
@@ -65,14 +65,14 @@
                             <tree>
                                 <field name="document_name" />
                                 <field name="chunk_name" />
-                                <field name="embedding_model_name" />
+                                <field name="collection_id" />
                                 <field name="similarity_percentage" />
                             </tree>
                             <form>
                                 <group>
                                     <field name="document_name" />
                                     <field name="chunk_name" />
-                                    <field name="embedding_model_name" />
+                                    <field name="collection_id" />
                                     <field name="similarity_percentage" />
                                 </group>
                                 <notebook>

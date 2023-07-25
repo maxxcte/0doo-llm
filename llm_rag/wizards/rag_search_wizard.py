@@ -8,6 +8,7 @@ _logger = logging.getLogger(__name__)
 class RAGSearchWizard(models.TransientModel):
     _name = "llm.rag.search.wizard"
     _description = "RAG Search Wizard"
+    _inherit = ["llm.document.search.mixin"]
 
     # Search Fields
     query = fields.Text(
@@ -39,12 +40,11 @@ class RAGSearchWizard(models.TransientModel):
         default="semantic",
         help="Method to use for searching documents",
     )
-    embedding_model_id = fields.Many2one(
-        "llm.model",
-        string="Embedding Model",
-        domain="[('model_use', '=', 'embedding')]",
+    collection_id = fields.Many2one(
+        "llm.document.collection",
+        string="Collection",
         required=True,
-        help="Embedding model to use for vector search (will only search documents using this model)",
+        help="Collection to search within",
     )
     state = fields.Selection(
         [("search", "Search"), ("results", "Results")],
@@ -77,16 +77,16 @@ class RAGSearchWizard(models.TransientModel):
 
     @api.model
     def default_get(self, fields_list):
-        """Set default embedding model if available"""
+        """Set default collection if available"""
         res = super().default_get(fields_list)
 
-        # Set default embedding model
-        if "embedding_model_id" in fields_list and "embedding_model_id" not in res:
-            model = self.env["llm.model"].search(
-                [("model_use", "=", "embedding")], limit=1
+        # Set default collection if there's only one
+        if "collection_id" in fields_list and "collection_id" not in res:
+            collection = self.env["llm.document.collection"].search(
+                [("active", "=", True)], limit=1
             )
-            if model:
-                res["embedding_model_id"] = model.id
+            if collection:
+                res["collection_id"] = collection.id
 
         return res
 
@@ -124,36 +124,20 @@ class RAGSearchWizard(models.TransientModel):
         Returns:
             tuple: (chunk_ids, result_lines) for wizard update
         """
-        chunk_ids, result_lines = [], []
-        doc_chunk_count, processed_docs = {}, set()
+        # Use the inherited mixin methods directly
+        _, _, selected_chunks = self.process_search_results_base(
+            chunks_with_similarity, self.top_k, self.top_n
+        )
 
-        # Sort results by similarity score (descending)
-        chunks_with_similarity.sort(key=lambda x: x[1], reverse=True)
+        # Convert to the format needed for the wizard
+        chunk_ids = []
+        result_lines = []
 
-        for chunk, similarity in chunks_with_similarity:
-            doc_id = chunk.document_id.id
-            doc_chunk_count.setdefault(doc_id, 0)
-
-            # Skip if we already have enough chunks for this document
-            if doc_id in processed_docs and doc_chunk_count[doc_id] >= self.top_k:
-                continue
-
-            # Add this chunk to results
+        for chunk, similarity in selected_chunks:
             chunk_ids.append(chunk.id)
-            doc_chunk_count[doc_id] += 1
             result_lines.append(
                 (0, 0, {"chunk_id": chunk.id, "similarity": similarity})
             )
-
-            # Mark document as processed if we have enough chunks
-            if doc_chunk_count[doc_id] >= self.top_k:
-                processed_docs.add(doc_id)
-
-            # Stop if we have enough documents with enough chunks each
-            if len(processed_docs) >= self.top_n and all(
-                c >= self.top_k for c in doc_chunk_count.values()
-            ):
-                break
 
         return chunk_ids, result_lines
 
@@ -161,28 +145,32 @@ class RAGSearchWizard(models.TransientModel):
         """Execute vector search with the query."""
         self.ensure_one()
 
-        # Make sure embedding model is selected
-        if not self.embedding_model_id:
+        # Make sure collection is selected
+        if not self.collection_id:
             return self._raise_error(
-                "No Embedding Model",
-                "Please select an embedding model to use for searching.",
+                "No Collection Selected",
+                "Please select a collection to search within.",
             )
 
-        # Get domain from context
-        active_ids = self.env.context.get("active_ids", [])
+        # Get the collection's embedding model
+        embedding_model = self.collection_id.embedding_model_id
+        if not embedding_model:
+            return self._raise_error(
+                "No Embedding Model",
+                "The selected collection has no embedding model configured.",
+            )
 
-        # Get embedding and vector
-        embedding_model = self.embedding_model_id
+        # Get embedding vector for query
         query_vector = embedding_model.embedding(self.query.strip())[0]
 
-        # Get all chunks or filter by documents if active_ids is provided
+        # Set up domain to search only within the selected collection
         chunk_model = self.env["llm.document.chunk"]
         domain = [
-            # Only search chunks that use the same embedding model
-            ("embedding_model_id", "=", embedding_model.id)
+            ("document_id", "in", self.collection_id.document_ids.ids),
         ]
 
-        # If active_ids contains document IDs, filter chunks by those documents
+        # If active_ids contains document IDs, further filter chunks by those documents
+        active_ids = self.env.context.get("active_ids", [])
         if active_ids:
             domain.append(("document_id", "in", active_ids))
 
@@ -199,48 +187,22 @@ class RAGSearchWizard(models.TransientModel):
                 }
             )
             _logger.info(
-                f"No chunks found for model {embedding_model.name} with domain {domain}"
+                f"No chunks found for collection {self.collection_id.name} with domain {domain}"
             )
             return self._return_wizard()
 
         # Execute semantic search using vector similarity
         search_limit = self.top_n * self.top_k
 
-        # Decide which search method to use
-        if self.search_method == "semantic":
-            # Use the search_similar method from EmbeddingMixin
-            chunks, similarities = chunk_model.search_similar(
-                query_vector=query_vector,
-                domain=domain,
-                limit=search_limit,
-                min_similarity=self.similarity_cutoff,
-            )
-            chunks_with_similarity = list(zip(chunks, similarities, strict=False))
-        else:  # hybrid search
-            # For hybrid search, combine vector search with keyword search
-            # This is a simplified implementation
-            semantic_chunks, semantic_similarities = chunk_model.search_similar(
-                query_vector=query_vector,
-                domain=domain,
-                limit=search_limit // 2,  # Half from semantic
-                min_similarity=self.similarity_cutoff / 2,  # Lower threshold for hybrid
-            )
-
-            # Simple keyword search
-            keywords = self.query.strip().split()
-            keyword_domain = domain.copy()
-            for keyword in keywords:
-                keyword_domain.append(("content", "ilike", keyword))
-
-            keyword_chunks = chunk_model.search(keyword_domain, limit=search_limit // 2)
-
-            # Combine results (with dummy similarity for keyword results)
-            chunks_with_similarity = list(
-                zip(semantic_chunks, semantic_similarities, strict=False)
-            )
-            for chunk in keyword_chunks:
-                if chunk not in semantic_chunks:
-                    chunks_with_similarity.append((chunk, 0.5))  # Default similarity
+        # Use the inherited mixin methods directly
+        chunks_with_similarity = self.search_documents(
+            query=self.query.strip(),
+            query_vector=query_vector,
+            domain=domain,
+            search_method=self.search_method,
+            limit=search_limit,
+            min_similarity=self.similarity_cutoff,
+        )
 
         # Process results to get top chunks per document
         chunk_ids, result_lines = self._process_search_results(chunks_with_similarity)
@@ -279,9 +241,9 @@ class RAGSearchResultLine(models.TransientModel):
     document_name = fields.Char(related="document_id.name", readonly=True)
     chunk_name = fields.Char(related="chunk_id.name", readonly=True)
     content = fields.Text(related="chunk_id.content", readonly=True)
-    embedding_model_name = fields.Char(
-        related="chunk_id.embedding_model_id.name",
-        string="Embedding Model",
+    collection_id = fields.Many2one(
+        related="wizard_id.collection_id",
+        string="Collection",
         readonly=True,
     )
     similarity = fields.Float(digits=(5, 4), readonly=True)

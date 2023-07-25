@@ -8,37 +8,36 @@
         <field name="binding_view_types">list,form</field>
         <field name="state">code</field>
         <field name="code">
-if records:
-    action = {
-        "type": "ir.actions.act_window",
-        "name": "Create RAG Documents",
-        "res_model": "llm.create.rag.document.wizard",
-        "view_mode": "form",
-        "target": "new",
-        "context": {"active_model": records._name, "active_ids": records.ids},
-    }
+            if records:
+            action = {
+            "type": "ir.actions.act_window",
+            "name": "Create RAG Documents",
+            "res_model": "llm.create.rag.document.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"active_model": records._name, "active_ids": records.ids},
+            }
         </field>
     </record>
 
     <!-- Server Action for RAG Search -->
     <record id="action_rag_search" model="ir.actions.server">
         <field name="name">RAG Search</field>
-        <field name="model_id" ref="model_llm_document" />
-        <field name="binding_model_id" ref="model_llm_document" />
+        <field name="model_id" ref="model_llm_document_collection" />
+        <field name="binding_model_id" ref="model_llm_document_collection" />
         <field name="binding_view_types">list,form,kanban</field>
         <field name="state">code</field>
         <field name="code">
-action = {
-    "type": "ir.actions.act_window",
-    "name": "RAG Search",
-    "res_model": "llm.rag.search.wizard",
-    "view_mode": "form",
-    "target": "new",
-    "context": {
-        "active_model": model._name,
-        "active_ids": records.ids if records else [],
-    },
-}
+            action = {
+            "type": "ir.actions.act_window",
+            "name": "RAG Search",
+            "res_model": "llm.rag.search.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+            "default_collection_id": record.id if record else False,
+            },
+            }
         </field>
     </record>
 
@@ -66,6 +65,7 @@ action = {
         <field name="view_id" ref="view_llm_rag_search_wizard_form" />
         <field name="context">{"default_state": "search"}</field>
     </record>
+
     <!-- Server Action for Re-indexing RAG Documents -->
     <record id="action_reindex_rag_documents" model="ir.actions.server">
         <field name="name">Re-index RAG Documents</field>
@@ -77,4 +77,5 @@ action = {
             action = records.action_mass_reindex()
         </field>
     </record>
+
 </odoo>

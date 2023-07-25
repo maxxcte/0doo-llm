@@ -22,4 +22,13 @@
     action="menu_action_rag_search"
     sequence="20"
   />
+  <!-- Menu Item -->
+  <menuitem
+    id="menu_llm_document_collection"
+    name="Collections"
+    parent="menu_llm_rag"
+    action="action_llm_document_collection"
+    sequence="5"
+  />
+
 </odoo>

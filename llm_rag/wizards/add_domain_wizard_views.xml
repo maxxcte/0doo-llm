@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_llm_add_domain_wizard_form" model="ir.ui.view">
+        <field name="name">llm.add.domain.wizard.form</field>
+        <field name="model">llm.add.domain.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Add Domain to Collection">
+                <sheet>
+                    <group>
+                        <field name="collection_id" invisible="1"/>
+                        <field name="model_id" options="{'no_create': True}" required="1"/>
+                        <field name="domain" widget="domain" options="{'model': 'model_id'}" required="1"/>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        <p>This will add (or update) the domain for the selected model to the collection's source domains.</p>
+                        <p>Records matching this domain will be used to create RAG documents when you click 'Add Documents from Domain' in the collection.</p>
+                    </div>
+                </sheet>
+                <footer>
+                    <button name="action_add_domain" string="Add Domain" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

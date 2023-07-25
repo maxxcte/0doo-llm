@@ -7,7 +7,7 @@ from odoo.exceptions import UserError
 _logger = logging.getLogger(__name__)
 
 
-class LLMDocumentChunk(models.Model):
+class LLMDocumentChunker(models.Model):
     _inherit = "llm.document"
 
     # Chunking configuration fields

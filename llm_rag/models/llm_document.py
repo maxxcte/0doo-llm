@@ -69,12 +69,12 @@ class LLMDocument(models.Model):
         compute="_compute_chunk_count",
         store=True,
     )
-    embedding_model_id = fields.Many2one(
-        "llm.model",
-        string="Embedding Model",
-        domain="[('model_use', '=', 'embedding')]",
-        tracking=True,
-        help="The model used to create embeddings for this document",
+    collection_ids = fields.Many2many(
+        "llm.document.collection",
+        relation="llm_document_collection_rel",
+        column1="document_id",
+        column2="collection_id",
+        string="Collections",
     )
 
     @api.depends("chunk_ids")
@@ -150,7 +150,53 @@ class LLMDocument(models.Model):
             if document.state == "parsed":
                 document.chunk()
 
+            # Embedding is now handled at the collection level
+            # We don't call embed() here anymore
             if document.state == "chunked":
-                document.embed()
+                # Check if this document belongs to any collections
+                # If so, we can notify the user that they should embed via the collection
+                collections = document.collection_ids
+                if collections:
+                    document._post_message(
+                        f"Document is ready to be embedded through its collections "
+                        f"({', '.join(collections.mapped('name'))}). "
+                        f"Please use the 'Embed Documents' function in the collection.",
+                        "info",
+                    )
+                else:
+                    document._post_message(
+                        "Document is chunked but not part of any collection. "
+                        "Add it to a collection and use 'Embed Documents' to complete processing.",
+                        "warning",
+                    )
 
         return True
+
+    def action_mass_reindex(self):
+        """Reindex multiple documents at once"""
+        collections = self.env["llm.document.collection"]
+        for document in self:
+            # Add to collections set
+            collections |= document.collection_ids
+
+        # Reindex each affected collection
+        for collection in collections:
+            collection.reindex_collection()
+
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Reindexing"),
+                "message": _(
+                    f"Reindexing request submitted for {len(collections)} collections."
+                ),
+                "type": "success",
+                "sticky": False,
+            },
+        }
+
+    def action_reindex(self):
+        """Reindex a single document"""
+        self.ensure_one()
+        return self.action_mass_reindex()
