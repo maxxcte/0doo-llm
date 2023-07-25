@@ -8,7 +8,6 @@ _logger = logging.getLogger(__name__)
 class RAGSearchWizard(models.TransientModel):
     _name = "llm.rag.search.wizard"
     _description = "RAG Search Wizard"
-    _inherit = ["llm.document.search.mixin"]
 
     # Search Fields
     query = fields.Text(
@@ -125,20 +124,36 @@ class RAGSearchWizard(models.TransientModel):
         Returns:
             tuple: (chunk_ids, result_lines) for wizard update
         """
-        # Use the inherited mixin methods directly
-        _, _, selected_chunks = self.process_search_results_base(
-            chunks_with_similarity, self.top_k, self.top_n
-        )
+        chunk_ids, result_lines = [], []
+        doc_chunk_count, processed_docs = {}, set()
 
-        # Convert to the format needed for the wizard
-        chunk_ids = []
-        result_lines = []
+        # Sort results by similarity score (descending)
+        chunks_with_similarity.sort(key=lambda x: x[1], reverse=True)
 
-        for chunk, similarity in selected_chunks:
+        for chunk, similarity in chunks_with_similarity:
+            doc_id = chunk.document_id.id
+            doc_chunk_count.setdefault(doc_id, 0)
+
+            # Skip if we already have enough chunks for this document
+            if doc_id in processed_docs and doc_chunk_count[doc_id] >= self.top_k:
+                continue
+
+            # Add this chunk to results
             chunk_ids.append(chunk.id)
+            doc_chunk_count[doc_id] += 1
             result_lines.append(
                 (0, 0, {"chunk_id": chunk.id, "similarity": similarity})
             )
+
+            # Mark document as processed if we have enough chunks
+            if doc_chunk_count[doc_id] >= self.top_k:
+                processed_docs.add(doc_id)
+
+            # Stop if we have enough documents with enough chunks each
+            if len(processed_docs) >= self.top_n and all(
+                c >= self.top_k for c in doc_chunk_count.values()
+            ):
+                break
 
         return chunk_ids, result_lines
 
@@ -191,15 +206,41 @@ class RAGSearchWizard(models.TransientModel):
         # Execute semantic search using vector similarity
         search_limit = self.top_n * self.top_k
 
-        # Use the inherited mixin methods directly
-        chunks_with_similarity = self.search_documents(
-            query=self.query.strip(),
-            query_vector=query_vector,
-            domain=domain,
-            search_method=self.search_method,
-            limit=search_limit,
-            min_similarity=self.similarity_cutoff,
-        )
+        # Decide which search method to use
+        if self.search_method == "semantic":
+            # Use the search_similar method from EmbeddingMixin
+            chunks, similarities = chunk_model.search_similar(
+                query_vector=query_vector,
+                domain=domain,
+                limit=search_limit,
+                min_similarity=self.similarity_cutoff,
+            )
+            chunks_with_similarity = list(zip(chunks, similarities, strict=False))
+        else:  # hybrid search
+            # For hybrid search, combine vector search with keyword search
+            # This is a simplified implementation
+            semantic_chunks, semantic_similarities = chunk_model.search_similar(
+                query_vector=query_vector,
+                domain=domain,
+                limit=search_limit // 2,  # Half from semantic
+                min_similarity=self.similarity_cutoff / 2,  # Lower threshold for hybrid
+            )
+
+            # Simple keyword search
+            keywords = self.query.strip().split()
+            keyword_domain = domain.copy()
+            for keyword in keywords:
+                keyword_domain.append(("content", "ilike", keyword))
+
+            keyword_chunks = chunk_model.search(keyword_domain, limit=search_limit // 2)
+
+            # Combine results (with dummy similarity for keyword results)
+            chunks_with_similarity = list(
+                zip(semantic_chunks, semantic_similarities, strict=False)
+            )
+            for chunk in keyword_chunks:
+                if chunk not in semantic_chunks:
+                    chunks_with_similarity.append((chunk, 0.5))  # Default similarity
 
         # Process results to get top chunks per document
         chunk_ids, result_lines = self._process_search_results(chunks_with_similarity)

@@ -41,7 +41,6 @@ The module is designed to be highly extensible:
 ### Dependencies
 
 The module has the following dependencies:
-
 - `llm`: Base LLM module
 - `llm_pgvector`: PostgreSQL vector extension integration
 

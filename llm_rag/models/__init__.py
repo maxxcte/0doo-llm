@@ -5,4 +5,3 @@ from . import llm_document_chunkers
 from . import llm_document_embeders
 from . import llm_document_chunk
 from . import ir_attachment
-from . import llm_document_search_mixin
