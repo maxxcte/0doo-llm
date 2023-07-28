@@ -16,8 +16,22 @@ class LLMToolKnowledgeRetriever(models.Model):
         implementations = super()._get_available_implementations()
         return implementations + [("knowledge_retriever", "Knowledge Retriever")]
 
+    @api.model
+    def _get_available_collections(self):
+        """Retrieve a list of available document collections.
+
+        Returns:
+            list: List of tuples with collection_id and name
+        """
+        Collection = self.env['llm.document.collection'].sudo()
+        collections = Collection.search([('active', '=', True)])
+        return [(str(collection.id), collection.name) for collection in collections]
+
     def knowledge_retriever_get_pydantic_model(self):
         """Define the Pydantic model for knowledge retriever parameters"""
+
+        # Get available collections for the dropdown field
+        available_collections = self._get_available_collections()
 
         class KnowledgeRetrieverParams(BaseModel):
             """This tool retrieves relevant knowledge from the document database using semantic search.
@@ -38,9 +52,10 @@ class LLMToolKnowledgeRetriever(models.Model):
                 ...,
                 description="The search query text used to find relevant information. Be specific and focused in your query to get the most relevant results.",
             )
-            embedding_model_id: int = Field(
-                None,
-                description="ID of the embedding model (llm.model) to use for vector search. Must be a llm.model's id where model_use = 'embedding'. You can search for different embedding models via record_retriever tool if available. If embedding_model_id is not provided, the system will use the default embedding model.",
+            collection_id: str = Field(
+                ...,
+                description="ID of the document collection to search. This determines which set of documents will be searched.",
+                enum=[collection_id for collection_id, _ in available_collections],
             )
             top_k: int = Field(
                 5,
@@ -57,10 +72,7 @@ class LLMToolKnowledgeRetriever(models.Model):
             search_method: str = Field(
                 "semantic",
                 description="Search method to use: 'semantic' (vector similarity only) or 'hybrid' (combines vector search with keyword matching). Use 'hybrid' when looking for specific terms or when semantic search alone doesn't yield good results.",
-            )
-            filter_domain: list = Field(
-                [],
-                description="Additional Odoo domain filters to narrow down document search. Format as a list of tuples, e.g., [('document_type', '=', 'manual')]. Leave empty to search all documents.",
+                enum=["semantic", "hybrid"],
             )
 
         return KnowledgeRetrieverParams
@@ -71,17 +83,25 @@ class LLMToolKnowledgeRetriever(models.Model):
 
         # Extract parameters
         query = parameters.get("query")
+        collection_id = parameters.get("collection_id")
         embedding_model_id = parameters.get("embedding_model_id")
         top_k = parameters.get("top_k", 5)
         top_n = parameters.get("top_n", 3)
         similarity_cutoff = parameters.get("similarity_cutoff", 0.5)
         search_method = parameters.get("search_method", "semantic")
-        filter_domain = parameters.get("filter_domain", [])
 
         if not query:
             return {"error": "Query is required"}
 
+        if not collection_id:
+            return {"error": "Collection ID is required"}
+
         try:
+            # Validate collection exists
+            collection = self.env['llm.document.collection'].browse(int(collection_id))
+            if not collection.exists():
+                return {"error": f"Collection with ID {collection_id} not found"}
+
             # Get the embedding model
             model_obj = self.env["llm.model"]
 
@@ -120,11 +140,8 @@ class LLMToolKnowledgeRetriever(models.Model):
             domain = [
                 ("embedding_model_id", "=", embedding_model.id),
                 ("embedding", "!=", False),
+                ("document_id.collection_id", "=", int(collection_id)),
             ]
-
-            # Add any additional filters from parameters
-            if filter_domain:
-                domain.extend(filter_domain)
 
             # Calculate search limit
             search_limit = top_n * top_k
@@ -146,6 +163,7 @@ class LLMToolKnowledgeRetriever(models.Model):
 
             return {
                 "query": query,
+                "collection": collection.name,
                 "results": result_data,
                 "total_chunks": len(result_data),
                 "embedding_model": embedding_model.name,
