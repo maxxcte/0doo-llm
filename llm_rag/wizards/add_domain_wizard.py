@@ -1,4 +1,5 @@
 import json
+
 from odoo import api, fields, models
 
 
@@ -48,9 +49,7 @@ class AddDomainWizard(models.TransientModel):
         current_domains[model_name] = self.domain
 
         # Update the collection
-        collection.write({
-            "source_domains": json.dumps(current_domains)
-        })
+        collection.write({"source_domains": json.dumps(current_domains)})
 
         # Return action to reload the form view
         return {

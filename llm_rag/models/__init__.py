@@ -1,4 +1,5 @@
 from . import llm_document
+from . import llm_document_collection
 from . import llm_document_retrievers
 from . import llm_document_parsers
 from . import llm_document_chunkers

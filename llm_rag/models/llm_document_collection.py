@@ -1,5 +1,6 @@
-import logging
 import json
+import logging
+
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.safe_eval import safe_eval
@@ -64,9 +65,9 @@ class LLMDocumentCollection(models.Model):
 
     def _compute_chunk_count(self):
         for record in self:
-            chunks = self.env["llm.document.chunk"].search([
-                ("document_id", "in", record.document_ids.ids)
-            ])
+            chunks = self.env["llm.document.chunk"].search(
+                [("document_id", "in", record.document_ids.ids)]
+            )
             record.chunk_count = len(chunks)
 
     def action_view_documents(self):
@@ -103,8 +104,8 @@ class LLMDocumentCollection(models.Model):
             # Parse the JSON structure
             domains_dict = json.loads(self.source_domains)
             return domains_dict
-        except json.JSONDecodeError:
-            raise UserError(_("Invalid JSON format in source domains"))
+        except json.JSONDecodeError as e:
+            raise UserError(_("Invalid JSON format in source domains")) from e
 
     def add_documents_from_domain(self):
         """
@@ -116,7 +117,7 @@ class LLMDocumentCollection(models.Model):
             if not collection.source_domains:
                 collection.message_post(
                     body=_("Please define source domains before adding documents."),
-                    message_type="notification"
+                    message_type="notification",
                 )
                 continue
 
@@ -133,7 +134,7 @@ class LLMDocumentCollection(models.Model):
                 if model_name not in self.env:
                     collection.message_post(
                         body=_(f"Model '{model_name}' not found. Skipping."),
-                        message_type="notification"
+                        message_type="notification",
                     )
                     continue
 
@@ -146,58 +147,63 @@ class LLMDocumentCollection(models.Model):
 
                 if not records:
                     collection.message_post(
-                        body=_(f"No records found for model '{model_name}' with given domain."),
-                        message_type="notification"
+                        body=_(
+                            f"No records found for model '{model_name}' with given domain."
+                        ),
+                        message_type="notification",
                     )
                     continue
 
                 # Create or link llm.document for each record
                 for record in records:
                     # Check if document already exists for this record
-                    existing_doc = self.env["llm.document"].search([
-                        ("res_model", "=", model_name),
-                        ("res_id", "=", record.id),
-                    ], limit=1)
+                    existing_doc = self.env["llm.document"].search(
+                        [
+                            ("res_model", "=", model_name),
+                            ("res_id", "=", record.id),
+                        ],
+                        limit=1,
+                    )
 
                     if existing_doc:
                         # Link existing document to this collection if not already linked
                         if existing_doc.id not in collection.document_ids.ids:
-                            collection.write({
-                                "document_ids": [(4, existing_doc.id)]
-                            })
+                            collection.write({"document_ids": [(4, existing_doc.id)]})
                             linked_count += 1
                     else:
                         # Create new document and link to collection
                         # Try to get a meaningful name from the record
-                        if hasattr(record, 'display_name') and record.display_name:
+                        if hasattr(record, "display_name") and record.display_name:
                             name = record.display_name
-                        elif hasattr(record, 'name') and record.name:
+                        elif hasattr(record, "name") and record.name:
                             name = record.name
                         else:
-                            model_display = self.env['ir.model']._get(model_name).name
+                            model_display = self.env["ir.model"]._get(model_name).name
                             name = f"{model_display} #{record.id}"
 
-                        new_doc = self.env["llm.document"].create({
-                            "name": name,
-                            "res_model": model_name,
-                            "res_id": record.id,
-                        })
+                        new_doc = self.env["llm.document"].create(
+                            {
+                                "name": name,
+                                "res_model": model_name,
+                                "res_id": record.id,
+                            }
+                        )
 
-                        collection.write({
-                            "document_ids": [(4, new_doc.id)]
-                        })
+                        collection.write({"document_ids": [(4, new_doc.id)]})
                         created_count += 1
 
             # Post summary message
             if created_count > 0 or linked_count > 0:
                 collection.message_post(
-                    body=_(f"Processing complete: Created {created_count} new documents, linked {linked_count} existing documents."),
-                    message_type="notification"
+                    body=_(
+                        f"Processing complete: Created {created_count} new documents, linked {linked_count} existing documents."
+                    ),
+                    message_type="notification",
                 )
             elif created_count == 0 and linked_count == 0:
                 collection.message_post(
                     body=_("No new documents were created or linked."),
-                    message_type="notification"
+                    message_type="notification",
                 )
 
     def action_open_add_domain_wizard(self):
@@ -218,8 +224,12 @@ class LLMDocumentCollection(models.Model):
         """Process documents through retrieval, parsing, and chunking (up to chunked state)"""
         for collection in self:
             draft_docs = collection.document_ids.filtered(lambda d: d.state == "draft")
-            retrieved_docs = collection.document_ids.filtered(lambda d: d.state == "retrieved")
-            parsed_docs = collection.document_ids.filtered(lambda d: d.state == "parsed")
+            retrieved_docs = collection.document_ids.filtered(
+                lambda d: d.state == "retrieved"
+            )
+            parsed_docs = collection.document_ids.filtered(
+                lambda d: d.state == "parsed"
+            )
 
             # Process documents through the pipeline stages
             if draft_docs:
@@ -236,40 +246,46 @@ class LLMDocumentCollection(models.Model):
 
             if processed > 0:
                 collection.message_post(
-                    body=_(f"Processed {processed} documents through the RAG pipeline."),
-                    message_type="notification"
+                    body=_(
+                        f"Processed {processed} documents through the RAG pipeline."
+                    ),
+                    message_type="notification",
                 )
             else:
                 collection.message_post(
                     body=_("No documents needed processing."),
-                    message_type="notification"
+                    message_type="notification",
                 )
 
     def embed_documents(self):
         """Embed all chunked documents using the collection's embedding model"""
         for collection in self:
             if not collection.embedding_model_id:
-                raise UserError(_("Embedding model must be specified for the collection"))
+                raise UserError(
+                    _("Embedding model must be specified for the collection")
+                )
 
             # Get all documents in chunked state
-            chunked_docs = collection.document_ids.filtered(lambda d: d.state == "chunked")
+            chunked_docs = collection.document_ids.filtered(
+                lambda d: d.state == "chunked"
+            )
 
             if not chunked_docs:
                 collection.message_post(
                     body=_("No documents in chunked state to embed."),
-                    message_type="notification"
+                    message_type="notification",
                 )
                 continue
 
             # Get all chunks from these documents
-            chunks = self.env["llm.document.chunk"].search([
-                ("document_id", "in", chunked_docs.ids)
-            ])
+            chunks = self.env["llm.document.chunk"].search(
+                [("document_id", "in", chunked_docs.ids)]
+            )
 
             if not chunks:
                 collection.message_post(
                     body=_("No chunks found for documents in chunked state."),
-                    message_type="notification"
+                    message_type="notification",
                 )
                 continue
 
@@ -281,7 +297,7 @@ class LLMDocumentCollection(models.Model):
             processed_chunks = 0
 
             for i in range(0, len(chunks), batch_size):
-                batch = chunks[i:i + batch_size]
+                batch = chunks[i : i + batch_size]
 
                 for chunk in batch:
                     # Apply embedding
@@ -293,8 +309,10 @@ class LLMDocumentCollection(models.Model):
             chunked_docs.write({"state": "ready"})
 
             collection.message_post(
-                body=_(f"Embedded {processed_chunks} chunks using {embedding_model.name}"),
-                message_type="notification"
+                body=_(
+                    f"Embedded {processed_chunks} chunks using {embedding_model.name}"
+                ),
+                message_type="notification",
             )
 
             # Ensure index exists for this embedding model
@@ -352,20 +370,18 @@ class LLMDocumentCollection(models.Model):
         """Reindex all documents in the collection"""
         for collection in self:
             # Only process documents in "ready" state
-            ready_docs = collection.document_ids.filtered(
-                lambda d: d.state == "ready"
-            )
+            ready_docs = collection.document_ids.filtered(lambda d: d.state == "ready")
             if ready_docs:
                 # Mass reindex
                 ready_docs.action_mass_reindex()
                 collection.message_post(
                     body=_(f"Reindexed {len(ready_docs)} documents."),
-                    message_type="notification"
+                    message_type="notification",
                 )
             else:
                 collection.message_post(
                     body=_("No documents in ready state to reindex."),
-                    message_type="notification"
+                    message_type="notification",
                 )
 
     def action_process_and_embed(self):
