@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Tool RAG - AI-Powered Tools for Retrieval Augmented Generation</title>
+    <meta name="description" content="Enhance your Odoo RAG capabilities with AI-powered tools for knowledge retrieval, document search, and more. Seamlessly integrate with LLMs to provide context-aware responses based on your knowledge base.">
+    <meta name="keywords" content="Odoo RAG tools, knowledge retriever, document search, LLM tools, AI-powered ERP, retrieval augmented generation, semantic search, vector search, Odoo AI integration, context-aware AI, knowledge base integration">
+    <meta name="author" content="Apexive Solutions LLC">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <!-- Header Section with Banner -->
+    <header class="text-center py-4 mb-4">
+        <img src="banner.jpeg" alt="LLM Tool RAG Banner" class="img-fluid rounded mb-3">
+        <h1 class="display-4">LLM Tool RAG</h1>
+        <p class="lead">AI-Powered Tools for Retrieval Augmented Generation in Odoo</p>
+    </header>
+
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Description Section -->
+        <div class="col-lg-8">
+            <section class="mb-4">
+                <h2>About This Module</h2>
+                <p>The <strong>LLM Tool RAG</strong> module extends the core RAG functionality in Odoo with specialized tools for <em>knowledge retrieval</em>, <em>document search</em>, and more. These tools enable AI agents to access and utilize your organization's knowledge base for more accurate and context-aware responses.</p>
+
+                <div class="alert alert-primary">
+                    <strong>What are LLM Tools?</strong> LLM Tools allow Large Language Models to perform specific actions in Odoo, such as retrieving relevant documents, searching knowledge bases, and executing functions based on user requests.
+                </div>
+            </section>
+
+            <!-- Features Section -->
+            <section class="mb-5">
+                <h2>Key Features</h2>
+                <div class="row g-4 mt-3">
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <h3 class="card-title h5">Knowledge Retriever</h3>
+                                <p class="card-text">Retrieve relevant information from your document database using semantic search:</p>
+                                <ul>
+                                    <li>Vector similarity matching</li>
+                                    <li>Hybrid search capabilities</li>
+                                    <li>Configurable similarity thresholds</li>
+                                    <li>Document ranking and prioritization</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <h3 class="card-title h5">Document Search</h3>
+                                <p class="card-text">Advanced search capabilities for document chunks:</p>
+                                <ul>
+                                    <li>Semantic search with vector embeddings</li>
+                                    <li>Keyword-based filtering</li>
+                                    <li>Customizable search parameters</li>
+                                    <li>Result grouping by document</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mt-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <h3 class="card-title h5">Function Calling</h3>
+                                <p class="card-text">Enable AI models to execute specific functions:</p>
+                                <ul>
+                                    <li>Schema-based function definitions</li>
+                                    <li>Parameter validation</li>
+                                    <li>Structured response formatting</li>
+                                    <li>Error handling and reporting</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mt-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <h3 class="card-title h5">Integration with RAG</h3>
+                                <p class="card-text">Seamless integration with the core RAG module:</p>
+                                <ul>
+                                    <li>Access to document chunks</li>
+                                    <li>Embedding model compatibility</li>
+                                    <li>Shared search functionality</li>
+                                    <li>Consistent result processing</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Implementation Section -->
+            <section class="mb-5">
+                <h2>Implementation Details</h2>
+                <div class="mt-4">
+                    <div class="card mb-3 border-start border-primary border-4">
+                        <div class="card-body">
+                            <h3 class="h5">Tool Definition</h3>
+                            <p class="mb-0">Tools are defined as Odoo models that extend the base <code>llm.tool</code> model, with specific implementations for different functions.</p>
+                        </div>
+                    </div>
+                    <div class="card mb-3 border-start border-primary border-4">
+                        <div class="card-body">
+                            <h3 class="h5">Parameter Handling</h3>
+                            <p class="mb-0">Tool parameters are defined using Pydantic models, which provide automatic validation and schema generation.</p>
+                        </div>
+                    </div>
+                    <div class="card mb-3 border-start border-primary border-4">
+                        <div class="card-body">
+                            <h3 class="h5">Execution</h3>
+                            <p class="mb-0">When a tool is called, its implementation method processes the parameters and executes the requested function.</p>
+                        </div>
+                    </div>
+                    <div class="card mb-3 border-start border-primary border-4">
+                        <div class="card-body">
+                            <h3 class="h5">Result Processing</h3>
+                            <p class="mb-0">Results are formatted according to the tool's specification and returned to the calling agent or interface.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Extensibility Section -->
+            <section class="mb-5">
+                <h2>Extensibility</h2>
+                <p>The module is designed to be highly extensible, allowing developers to create custom tools:</p>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Component</th>
+                            <th>Purpose</th>
+                            <th>How to Extend</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td><strong>Tool Implementations</strong></td>
+                            <td>Define new tool functionality</td>
+                            <td>Extend <code>llm.tool</code> and implement the required methods</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Parameter Models</strong></td>
+                            <td>Define input parameters for tools</td>
+                            <td>Create Pydantic models with appropriate field definitions</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Search Functionality</strong></td>
+                            <td>Customize document search behavior</td>
+                            <td>Inherit from <code>llm.document.search.mixin</code> and override methods</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Sidebar with Module Info -->
+        <div class="col-lg-4">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title">Module Information</h3>
+                    <ul class="list-unstyled">
+                        <li><strong>Name:</strong> LLM Tool RAG</li>
+                        <li><strong>Version:</strong> 16.0.1.0.0</li>
+                        <li><strong>Category:</strong> AI</li>
+                        <li><strong>Author:</strong> Apexive Solutions LLC</li>
+                        <li><strong>Website:</strong> <a href="https://github.com/apexive/odoo-llm" target="_blank">GitHub</a></li>
+                        <li><strong>License:</strong> LGPL-3</li>
+                        <li><strong>Dependencies:</strong> base, mail, llm, llm_rag</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title">Installation</h3>
+                    <ol class="list-group list-group-numbered">
+                        <li class="list-group-item">Install the base <code>llm</code> and <code>llm_rag</code> modules</li>
+                        <li class="list-group-item">Install this module (<code>llm_tool_rag</code>)</li>
+                        <li class="list-group-item">Configure your tools in the LLM settings</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title">Get Started</h3>
+                    <p>Ready to enhance your Odoo with AI-powered tools? Install now and start leveraging your knowledge base with AI.</p>
+                    <a href="https://github.com/apexive/odoo-llm" class="btn btn-primary" target="_blank">Download from GitHub</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center mt-5 py-3 border-top">
+        <p class="text-muted">&copy; 2025 Apexive Solutions LLC. All rights reserved.</p>
+    </footer>
+</div>
+</body>
+</html>

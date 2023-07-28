@@ -1,12 +1,12 @@
 {
-    "name": "LLM RAG Tools",
+    "name": "LLM Tool RAG",
     "version": "16.0.1.0.0",
     "category": "Productivity/Tools",
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
     "summary": "Tools for LLMs to interact with RAG functionality",
     "description": """
-LLM RAG Tools
+LLM Tool RAG
 =============
 This module provides tools for Large Language Models to interact with
 Retrieval-Augmented Generation (RAG) functionality.

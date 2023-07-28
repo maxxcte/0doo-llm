@@ -1,10 +1,10 @@
-# LLM RAG Tools
+# LLM Tool RAG
 
 This module extends the core RAG (Retrieval Augmented Generation) functionality in Odoo with specialized tools for knowledge retrieval, document search, and more.
 
 ## Overview
 
-LLM RAG Tools provides a set of AI-powered tools that enable Large Language Models to access and utilize your organization's knowledge base for more accurate and context-aware responses.
+LLM Tool RAG provides a set of AI-powered tools that enable Large Language Models to access and utilize your organization's knowledge base for more accurate and context-aware responses.
 
 ## Features
 
@@ -16,7 +16,7 @@ LLM RAG Tools provides a set of AI-powered tools that enable Large Language Mode
 ## Installation
 
 1. Install the base `llm` and `llm_rag` modules
-2. Install this module (`llm_rag_tools`)
+2. Install this module (`llm_tool_rag`)
 3. Configure your tools in the LLM settings
 
 ## Technical Details
