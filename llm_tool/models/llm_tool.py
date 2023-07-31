@@ -26,7 +26,7 @@ class LLMTool(models.Model):
         help="The implementation that provides this tool's functionality",
     )
     active = fields.Boolean(default=True)
-    schema = fields.Text(compute="_compute_schema", store=True, readonly=True)
+    schema = fields.Text(compute="_compute_schema", store=False, readonly=True)
     default = fields.Boolean(
         default=False,
         help="Set to true if this is a default tool to be included in all LLM requests",

@@ -32,6 +32,7 @@ class LLMToolKnowledgeRetriever(models.Model):
 
         # Get available collections for the dropdown field
         available_collections = self._get_available_collections()
+        collections_description = ", ".join([f"'{name}' (ID: {collection_id})" for collection_id, name in available_collections])
 
         class KnowledgeRetrieverParams(BaseModel):
             """This tool retrieves relevant knowledge from the document database using semantic search.
@@ -52,9 +53,10 @@ class LLMToolKnowledgeRetriever(models.Model):
                 ...,
                 description="The search query text used to find relevant information. Be specific and focused in your query to get the most relevant results.",
             )
+
             collection_id: str = Field(
                 ...,
-                description="ID of the document collection to search. This determines which set of documents will be searched.",
+                description=f"ID of the document collection to search. Available collections: {collections_description}. This determines which set of documents will be searched.",
                 enum=[collection_id for collection_id, _ in available_collections],
             )
             top_k: int = Field(
@@ -140,7 +142,7 @@ class LLMToolKnowledgeRetriever(models.Model):
             domain = [
                 ("embedding_model_id", "=", embedding_model.id),
                 ("embedding", "!=", False),
-                ("document_id.collection_id", "=", int(collection_id)),
+                ("document_id.collection_ids", "=", int(collection_id)),
             ]
 
             # Calculate search limit

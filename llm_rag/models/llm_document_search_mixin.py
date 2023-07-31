@@ -64,7 +64,7 @@ class LLMDocumentSearchMixin(models.AbstractModel):
 
         # Combine results
         chunks_with_similarity = list(
-            zip(semantic_chunks, semantic_similarities, strict=False)
+            zip(semantic_chunks, semantic_similarities)
         )
         for chunk in keyword_chunks:
             if chunk not in semantic_chunks:
@@ -92,7 +92,7 @@ class LLMDocumentSearchMixin(models.AbstractModel):
             chunks, similarities = self.perform_semantic_search(
                 query_vector, domain, limit, min_similarity
             )
-            return list(zip(chunks, similarities, strict=False))
+            return list(zip(chunks, similarities))
         else:  # hybrid search
             return self.perform_hybrid_search(
                 query, query_vector, domain, limit, min_similarity
