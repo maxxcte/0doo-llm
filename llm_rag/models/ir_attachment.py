@@ -41,16 +41,16 @@ class IrAttachment(models.Model):
 
             # Post success message if successful
             if success:
-                llm_document.message_post(
-                    body=f"Successfully parsed attachment: {self.name} ({mimetype})",
+                llm_document._post_message(
+                    f"Successfully parsed attachment: {self.name} ({mimetype})",
                     message_type="success",
                 )
 
             return success
 
         except Exception as e:
-            llm_document.message_post(
-                body=f"Error parsing attachment: {str(e)}",
+            llm_document._post_message(
+                f"Error parsing attachment: {str(e)}",
                 message_type="error",
             )
             return False
