@@ -177,6 +177,7 @@
             name="state"
             widget="statusbar"
             statusbar_visible="draft,retrieved,parsed,chunked,ready"
+            options="{'clickable':1}"
           />
                 </header>
                 <sheet>

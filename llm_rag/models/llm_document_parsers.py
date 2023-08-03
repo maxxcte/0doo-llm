@@ -1,6 +1,6 @@
 import base64
-import logging
 import json
+import logging
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
@@ -136,11 +136,23 @@ class LLMDocumentParser(models.Model):
         self.ensure_one()
 
         # Start with the record name/display_name if available
-        record_name = record.display_name if hasattr(record, "display_name") else f"{record._name} #{record.id}"
+        record_name = (
+            record.display_name
+            if hasattr(record, "display_name")
+            else f"{record._name} #{record.id}"
+        )
         content = [f"# {record_name}"]
 
         # Try to include description or common text fields
-        common_text_fields = ["description", "note", "comment", "message", "content", "body", "text"]
+        common_text_fields = [
+            "description",
+            "note",
+            "comment",
+            "message",
+            "content",
+            "body",
+            "text",
+        ]
         for field_name in common_text_fields:
             if hasattr(record, field_name) and record[field_name]:
                 content.append(f"\n## {field_name.capitalize()}\n")
@@ -150,12 +162,21 @@ class LLMDocumentParser(models.Model):
         info_items = []
         for field_name, field in record._fields.items():
             # Skip binary fields, one2many, many2many, and already included text fields
-            if field.type in ["binary", "one2many", "many2many"] or field_name in common_text_fields:
+            if (
+                field.type in ["binary", "one2many", "many2many"]
+                or field_name in common_text_fields
+            ):
                 continue
 
             # Skip technical and internal fields
-            if field_name.startswith("_") or field_name in ["id", "display_name", "create_date",
-                                                            "create_uid", "write_date", "write_uid"]:
+            if field_name.startswith("_") or field_name in [
+                "id",
+                "display_name",
+                "create_date",
+                "create_uid",
+                "write_date",
+                "write_uid",
+            ]:
                 continue
 
             # Get value if it exists and is not empty
@@ -174,8 +195,7 @@ class LLMDocumentParser(models.Model):
 
         # Post success message
         self._post_message(
-            f"Document parsed using default parser for {record._name}",
-            "success"
+            f"Document parsed using default parser for {record._name}", "success"
         )
 
         return True
@@ -187,7 +207,11 @@ class LLMDocumentParser(models.Model):
         self.ensure_one()
 
         # Get record name or default to model name and ID
-        record_name = record.display_name if hasattr(record, "display_name") else f"{record._name} #{record.id}"
+        record_name = (
+            record.display_name
+            if hasattr(record, "display_name")
+            else f"{record._name} #{record.id}"
+        )
 
         # Create a dictionary with record data
         record_data = {}
@@ -200,14 +224,13 @@ class LLMDocumentParser(models.Model):
             if field.type == "many2one" and record[field_name]:
                 record_data[field_name] = {
                     "id": record[field_name].id,
-                    "name": record[field_name].display_name
+                    "name": record[field_name].display_name,
                 }
             # Handle many2many and one2many fields
             elif field.type in ["many2many", "one2many"]:
-                record_data[field_name] = [{
-                    "id": r.id,
-                    "name": r.display_name
-                } for r in record[field_name]]
+                record_data[field_name] = [
+                    {"id": r.id, "name": r.display_name} for r in record[field_name]
+                ]
             # Handle other fields
             else:
                 record_data[field_name] = record[field_name]
@@ -224,8 +247,7 @@ class LLMDocumentParser(models.Model):
 
         # Post success message
         self._post_message(
-            f"Document parsed using JSON parser for {record._name}",
-            "success"
+            f"Document parsed using JSON parser for {record._name}", "success"
         )
 
         return True

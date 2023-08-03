@@ -23,8 +23,8 @@ class LLMToolKnowledgeRetriever(models.Model):
         Returns:
             list: List of tuples with collection_id and name
         """
-        Collection = self.env['llm.document.collection'].sudo()
-        collections = Collection.search([('active', '=', True)])
+        Collection = self.env["llm.document.collection"].sudo()
+        collections = Collection.search([("active", "=", True)])
         return [(str(collection.id), collection.name) for collection in collections]
 
     def knowledge_retriever_get_pydantic_model(self):
@@ -32,7 +32,12 @@ class LLMToolKnowledgeRetriever(models.Model):
 
         # Get available collections for the dropdown field
         available_collections = self._get_available_collections()
-        collections_description = ", ".join([f"'{name}' (ID: {collection_id})" for collection_id, name in available_collections])
+        collections_description = ", ".join(
+            [
+                f"'{name}' (ID: {collection_id})"
+                for collection_id, name in available_collections
+            ]
+        )
 
         class KnowledgeRetrieverParams(BaseModel):
             """This tool retrieves relevant knowledge from the document database using semantic search.
@@ -100,7 +105,7 @@ class LLMToolKnowledgeRetriever(models.Model):
 
         try:
             # Validate collection exists
-            collection = self.env['llm.document.collection'].browse(int(collection_id))
+            collection = self.env["llm.document.collection"].browse(int(collection_id))
             if not collection.exists():
                 return {"error": f"Collection with ID {collection_id} not found"}
 

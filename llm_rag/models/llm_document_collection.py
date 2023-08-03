@@ -257,67 +257,6 @@ class LLMDocumentCollection(models.Model):
                     message_type="notification",
                 )
 
-    def embed_documents(self):
-        """Embed all chunked documents using the collection's embedding model"""
-        for collection in self:
-            if not collection.embedding_model_id:
-                raise UserError(
-                    _("Embedding model must be specified for the collection")
-                )
-
-            # Get all documents in chunked state
-            chunked_docs = collection.document_ids.filtered(
-                lambda d: d.state == "chunked"
-            )
-
-            if not chunked_docs:
-                collection.message_post(
-                    body=_("No documents in chunked state to embed."),
-                    message_type="notification",
-                )
-                continue
-
-            # Get all chunks from these documents
-            chunks = self.env["llm.document.chunk"].search(
-                [("document_id", "in", chunked_docs.ids)]
-            )
-
-            if not chunks:
-                collection.message_post(
-                    body=_("No chunks found for documents in chunked state."),
-                    message_type="notification",
-                )
-                continue
-
-            # Apply the collection's embedding model
-            embedding_model = collection.embedding_model_id
-
-            # Process chunks in batches for efficiency
-            batch_size = 10  # Adjust based on embedding model capabilities
-            processed_chunks = 0
-
-            for i in range(0, len(chunks), batch_size):
-                batch = chunks[i : i + batch_size]
-
-                for chunk in batch:
-                    # Apply embedding
-                    embedding = embedding_model.embedding(chunk.content)[0]
-                    chunk.embedding = embedding
-                    processed_chunks += 1
-
-            # Update document states to ready
-            chunked_docs.write({"state": "ready"})
-
-            collection.message_post(
-                body=_(
-                    f"Embedded {processed_chunks} chunks using {embedding_model.name}"
-                ),
-                message_type="notification",
-            )
-
-            # Ensure index exists for this embedding model
-            self._ensure_index_exists(embedding_model.id)
-
     def _ensure_index_exists(self, embedding_model_id):
         """
         Ensure a vector index exists for the specified embedding model.
@@ -400,3 +339,82 @@ class LLMDocumentCollection(models.Model):
                 "type": "success",
             },
         }
+
+    def embed_documents(self):
+        """Embed all chunked documents using the collection's embedding model"""
+        for collection in self:
+            if not collection.embedding_model_id:
+                raise UserError(
+                    _("Embedding model must be specified for the collection")
+                )
+
+            # Get all documents in chunked state
+            chunked_docs = collection.document_ids.filtered(
+                lambda d: d.state == "chunked"
+            )
+
+            if not chunked_docs:
+                collection.message_post(
+                    body=_("No documents in chunked state to embed."),
+                    message_type="notification",
+                )
+                continue
+
+            # Get all chunks from these documents
+            chunks = self.env["llm.document.chunk"].search(
+                [("document_id", "in", chunked_docs.ids)]
+            )
+
+            if not chunks:
+                collection.message_post(
+                    body=_("No chunks found for documents in chunked state."),
+                    message_type="notification",
+                )
+                continue
+
+            # Apply the collection's embedding model
+            embedding_model = collection.embedding_model_id
+
+            # Process chunks in batches for efficiency
+            batch_size = 20
+            total_chunks = len(chunks)
+            processed_chunks = 0
+
+            # Process in batches
+            for i in range(0, total_chunks, batch_size):
+                batch = chunks[i : i + batch_size]
+                batch_contents = [chunk.content for chunk in batch]
+
+                # Generate embeddings for all content in the batch at once
+                batch_embeddings = embedding_model.embedding(batch_contents)
+                print(batch_embeddings)
+                # Apply embeddings to each chunk in the batch
+                for j, chunk in enumerate(batch):
+                    # Update with a single write operation per chunk
+                    chunk.write({"embedding": batch_embeddings[j]})
+
+                processed_chunks += len(batch)
+                _logger.info(f"Processed {processed_chunks}/{total_chunks} chunks")
+
+                # Commit transaction after each batch to avoid timeout issues
+                self.env.cr.commit()
+
+            # Update document states to ready
+            if processed_chunks > 0:
+                chunked_docs.write({"state": "ready"})
+                self.env.cr.commit()
+
+                collection.message_post(
+                    body=_(
+                        f"Embedded {processed_chunks} chunks using {embedding_model.name}"
+                    ),
+                    message_type="notification",
+                )
+
+                # Ensure index exists for this embedding model
+                self._ensure_index_exists(embedding_model.id)
+            else:
+                collection.message_post(
+                    body=_("No chunks were successfully embedded"),
+                    message_type="warning",
+                )
