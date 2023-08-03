@@ -62,3 +62,4 @@ def pre_init_hook(cr):
                 "Vector extension is not available. Please ensure pgvector is installed "
                 "on your PostgreSQL server before installing this module."
             ) from e
+        
