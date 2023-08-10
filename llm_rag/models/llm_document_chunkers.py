@@ -133,12 +133,14 @@ class LLMDocumentChunker(models.Model):
                 chunk_text = " ".join(current_chunk)
                 chunk_seq = len(chunks) + 1
 
-                # Create chunk record - metadata is now computed automatically
+                # Create chunk record
                 chunk = self.env["llm.document.chunk"].create(
                     {
                         "document_id": self.id,
                         "sequence": chunk_seq,
                         "content": chunk_text,
+                        # Note: We don't set collection_ids here - this is handled
+                        # later during embedding at the collection level
                     }
                 )
                 chunks.append(chunk)
@@ -169,7 +171,7 @@ class LLMDocumentChunker(models.Model):
             chunk_text = " ".join(current_chunk)
             chunk_seq = len(chunks) + 1
 
-            # Create chunk record - metadata is now computed automatically
+            # Create chunk record
             chunk = self.env["llm.document.chunk"].create(
                 {
                     "document_id": self.id,

@@ -38,6 +38,11 @@ class LLMDocumentChunk(models.Model):
         default={},
         help="Additional metadata for this chunk",
     )
+    # Simple collection_ids field as shown in the README
+    collection_ids = fields.Many2many(
+        "llm.document.collection",
+        string="Collections",
+    )
 
     @api.depends("document_id.name", "sequence")
     def _compute_name(self):

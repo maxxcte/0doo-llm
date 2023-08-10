@@ -6,110 +6,147 @@
         <field name="arch" type="xml">
             <form string="RAG Search">
                 <field name="state" invisible="1" />
+                <field name="result_similarity_scores" invisible="1" />
                 <sheet>
                     <!-- Search State -->
-                    <group attrs="{'invisible': [('state', '=', 'results')]}">
-                        <div class="alert alert-info" role="alert">
-                            <p><strong>Search RAG Documents</strong></p>
-                            <p>Enter a query to find relevant chunks.</p>
+                    <div attrs="{'invisible': [('state', '=', 'results')]}">
+                        <div class="alert alert-info mb-3" role="alert">
+                            <p><i class="fa fa-info-circle" title="Information"/> <strong>Search RAG Documents</strong></p>
+                            <p>Enter your query to search for relevant information across documents in the collection.</p>
                         </div>
-                        <field
-              name="query"
-              placeholder="e.g., What are the key features?"
-              required="1"
-            />
-                        <field
-              name="collection_id"
-              options="{'no_create': True}"
-              required="1"
-            />
                         <group>
-                            <field name="search_method" widget="radio" />
-                            <field name="top_k" />
-                            <field name="top_n" />
                             <field
-                name="similarity_cutoff"
-                widget="percentage"
-              />
+                                    name="query"
+                                    placeholder="e.g., What are the key features of the product?"
+                                    required="1"
+                            />
+                            <field
+                                    name="collection_id"
+                                    options="{'no_create': True}"
+                                    required="1"
+                            />
                         </group>
-                    </group>
+                        <group>
+                            <group string="Search Options">
+                                <field name="search_method" widget="radio"/>
+                                <field name="similarity_cutoff" widget="percentage"/>
+                            </group>
+                            <group string="Result Options">
+                                <field name="top_k" string="Max Chunks per Document"/>
+                                <field name="top_n" string="Max Documents"/>
+                            </group>
+                        </group>
+                    </div>
 
                     <!-- Results State -->
-                    <group attrs="{'invisible': [('state', '=', 'search')]}">
-                        <div
-              class="alert alert-success"
-              attrs="{'invisible': [('result_count', '=', 0)]}"
-              role="alert"
-            >
-                            <i class="fa fa-check-circle" /> Found <field
-                name="result_count"
-              /> chunks
+                    <div attrs="{'invisible': [('state', '=', 'search')]}">
+                        <div class="alert alert-success mb-3" attrs="{'invisible': [('result_count', '=', 0)]}" role="alert">
+                            <i class="fa fa-check-circle" title="Success"/> <strong>Success!</strong> Found <field name="result_count"/> relevant chunks matching your query.
                         </div>
-                        <div
-              class="alert alert-warning"
-              attrs="{'invisible': [('result_count', '>', 0)]}"
-              role="alert"
-            >
-                            <i
-                class="fa fa-exclamation-triangle"
-              /> No results found. Adjust your query or parameters.
+                        <div class="alert alert-warning mb-3" attrs="{'invisible': [('result_count', '>', 0)]}" role="alert">
+                            <i class="fa fa-exclamation-triangle" title="Warning"/> <strong>No results found.</strong> Try adjusting your query or search parameters.
                         </div>
-                        <group
-              attrs="{'invisible': [('result_count', '=', 0)]}"
-            >
-                        </group>
-                        <field
-              name="result_lines"
-              attrs="{'invisible': [('result_count', '=', 0)]}"
-            >
+
+                        <field name="result_chunk_ids" attrs="{'invisible': [('result_count', '=', 0)]}">
                             <tree>
-                                <field name="document_name" />
-                                <field name="chunk_name" />
-                                <field name="collection_id" />
-                                <field name="similarity_percentage" />
+                                <field name="document_id"/>
+                                <field name="name"/>
+                                <field name="content" string="Preview" widget="text_preview"/>
+                                <button
+                                        name="open_chunk_detail"
+                                        type="object"
+                                        string="View"
+                                        class="btn btn-sm btn-secondary"
+                                        icon="fa-eye"
+                                />
                             </tree>
                             <form>
-                                <group>
-                                    <field name="document_name" />
-                                    <field name="chunk_name" />
-                                    <field name="collection_id" />
-                                    <field name="similarity_percentage" />
-                                </group>
-                                <notebook>
-                                    <page string="Content">
-                                        <field
-                      name="content"
-                      widget="text"
-                      readonly="1"
-                    />
-                                    </page>
-                                </notebook>
+                                <sheet>
+                                    <group>
+                                        <group>
+                                            <field name="document_id"/>
+                                            <field name="name"/>
+                                        </group>
+                                        <group>
+                                            <field name="collection_ids" widget="many2many_tags"/>
+                                            <field name="sequence"/>
+                                        </group>
+                                    </group>
+                                    <notebook>
+                                        <page string="Content">
+                                            <field name="content" widget="text" readonly="1"/>
+                                        </page>
+                                        <page string="Metadata" attrs="{'invisible': [('metadata', '=', False)]}">
+                                            <field name="metadata" widget="json"/>
+                                        </page>
+                                    </notebook>
+                                </sheet>
                             </form>
                         </field>
-                    </group>
+                    </div>
                 </sheet>
                 <footer>
                     <button
-            name="action_search"
-            string="Search"
-            type="object"
-            class="btn-primary"
-            attrs="{'invisible': [('state', '=', 'results')]}"
-          />
+                            name="action_search"
+                            string="Search"
+                            type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('state', '=', 'results')]}"
+                            data-hotkey="q"
+                    />
                     <button
-            name="action_back_to_search"
-            string="New Search"
-            type="object"
-            class="btn-secondary"
-            attrs="{'invisible': [('state', '=', 'search')]}"
-          />
+                            name="action_back_to_search"
+                            string="New Search"
+                            type="object"
+                            class="btn-secondary"
+                            attrs="{'invisible': [('state', '=', 'search')]}"
+                            data-hotkey="b"
+                    />
                     <button
-            string="Close"
-            special="cancel"
-            class="btn-secondary"
-          />
+                            string="Close"
+                            special="cancel"
+                            class="btn-secondary"
+                            data-hotkey="z"
+                    />
                 </footer>
             </form>
         </field>
     </record>
+
+    <!-- Form view for llm.document.chunk that will be referred to -->
+    <record id="view_llm_document_chunk_form" model="ir.ui.view">
+        <field name="name">llm.document.chunk.form</field>
+        <field name="model">llm.document.chunk</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="document_id"/>
+                        <field name="sequence"/>
+                        <field name="collection_ids" widget="many2many_tags"/>
+                    </group>
+                    <notebook>
+                        <page string="Content">
+                            <field name="content" widget="text"/>
+                        </page>
+                        <page string="Metadata" attrs="{'invisible': [('metadata', '=', False)]}">
+                            <field name="metadata" widget="json"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Method to open a detailed chunk view from the results -->
+    <function model="ir.model" name="add_method">
+        <value model="llm.document.chunk" name="open_chunk_detail" eval="lambda self: {
+            'type': 'ir.actions.act_window',
+            'res_model': 'llm.document.chunk',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'target': 'new'
+        }"/>
+    </function>
 </odoo>

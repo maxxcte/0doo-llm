@@ -66,7 +66,7 @@ class LLMDocumentCollection(models.Model):
     def _compute_chunk_count(self):
         for record in self:
             chunks = self.env["llm.document.chunk"].search(
-                [("document_id", "in", record.document_ids.ids)]
+                [("collection_ids", "=", record.id)]
             )
             record.chunk_count = len(chunks)
 
@@ -90,7 +90,7 @@ class LLMDocumentCollection(models.Model):
             "name": _("Collection Chunks"),
             "view_mode": "tree,form",
             "res_model": "llm.document.chunk",
-            "domain": [("document_id", "in", self.document_ids.ids)],
+            "domain": [("collection_ids", "=", self.id)],
             "type": "ir.actions.act_window",
         }
 
@@ -257,69 +257,37 @@ class LLMDocumentCollection(models.Model):
                     message_type="notification",
                 )
 
-    def _ensure_index_exists(self, embedding_model_id):
-        """
-        Ensure a vector index exists for the specified embedding model.
-        Copied from llm_document_embeders.py for now.
-        """
-        if not embedding_model_id:
-            return False
-
-        # Get the embedding model to determine dimensions
-        embedding_model = self.env["llm.model"].browse(embedding_model_id)
-        if not embedding_model.exists():
-            return False
-
-        # Get sample embedding to determine dimensions
-        sample_embedding = embedding_model.embedding("")[0]
-        if not sample_embedding:
-            return False
-
-        # Get the dimensions from the sample embedding
-        dimensions = (
-            len(sample_embedding)
-            if isinstance(sample_embedding, list)
-            else sample_embedding.shape[0]
-        )
-
-        # Get the pgvector field
-        pgvector_field = self.env["llm.document.chunk"]._fields["embedding"]
-
-        # Generate a unique index name for this model
-        table_name = "llm_document_chunk"
-        index_name = f"{table_name}_embedding_model_{embedding_model_id}_idx"
-
-        # Create or ensure the index exists
-        pgvector_field.create_index(
-            self.env.cr,
-            table_name,
-            "embedding",
-            index_name,
-            dimensions=dimensions,
-            model_field_name="embedding_model_id",
-            model_id=embedding_model_id,
-        )
-
-        _logger.info(
-            f"Created/verified index {index_name} for embedding model {embedding_model_id}"
-        )
-        return True
-
     def reindex_collection(self):
         """Reindex all documents in the collection"""
         for collection in self:
-            # Only process documents in "ready" state
-            ready_docs = collection.document_ids.filtered(lambda d: d.state == "ready")
-            if ready_docs:
-                # Mass reindex
-                ready_docs.action_mass_reindex()
+            # Get all chunks from this collection
+            chunks = self.env["llm.document.chunk"].search([
+                ("collection_ids", "=", collection.id)
+            ])
+
+            if chunks:
+                # Create collection-specific index
+                dimensions = None
+                if collection.embedding_model_id:
+                    # Get sample embedding to determine dimensions
+                    sample_embedding = collection.embedding_model_id.embedding("")[0]
+                    if sample_embedding:
+                        dimensions = len(sample_embedding)
+
+                # Use the create_embedding_index method from EmbeddingMixin
+                chunks.create_embedding_index(
+                    collection_id=collection.id,
+                    dimensions=dimensions,
+                    force=True  # Force recreate
+                )
+
                 collection.message_post(
-                    body=_(f"Reindexed {len(ready_docs)} documents."),
+                    body=_(f"Reindexed {len(chunks)} chunks."),
                     message_type="notification",
                 )
             else:
                 collection.message_post(
-                    body=_("No documents in ready state to reindex."),
+                    body=_("No chunks found to reindex."),
                     message_type="notification",
                 )
 
@@ -387,11 +355,15 @@ class LLMDocumentCollection(models.Model):
 
                 # Generate embeddings for all content in the batch at once
                 batch_embeddings = embedding_model.embedding(batch_contents)
-                print(batch_embeddings)
-                # Apply embeddings to each chunk in the batch
+
+                # Apply embeddings to each chunk in the batch and add to collection
                 for j, chunk in enumerate(batch):
                     # Update with a single write operation per chunk
-                    chunk.write({"embedding": batch_embeddings[j]})
+                    chunk.write({
+                        "embedding": batch_embeddings[j],
+                        "embedding_model_id": embedding_model.id,
+                        "collection_ids": [(4, collection.id)]
+                    })
 
                 processed_chunks += len(batch)
                 _logger.info(f"Processed {processed_chunks}/{total_chunks} chunks")
@@ -411,8 +383,8 @@ class LLMDocumentCollection(models.Model):
                     message_type="notification",
                 )
 
-                # Ensure index exists for this embedding model
-                self._ensure_index_exists(embedding_model.id)
+                # Create a collection-specific index for better performance
+                chunks.create_embedding_index(collection_id=collection.id)
             else:
                 collection.message_post(
                     body=_("No chunks were successfully embedded"),

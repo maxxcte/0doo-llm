@@ -150,13 +150,11 @@ class LLMDocument(models.Model):
             if document.state == "parsed":
                 document.chunk()
 
-            # Embedding is now handled at the collection level
-            # We don't call embed() here anymore
+            # After chunking, check if document belongs to collections
             if document.state == "chunked":
-                # Check if this document belongs to any collections
-                # If so, we can notify the user that they should embed via the collection
                 collections = document.collection_ids
                 if collections:
+                    # Notify user about embedding through collections
                     document._post_message(
                         f"Document is ready to be embedded through its collections "
                         f"({', '.join(collections.mapped('name'))}). "
@@ -171,6 +169,44 @@ class LLMDocument(models.Model):
                     )
 
         return True
+
+    def action_reindex(self):
+        """Reindex a single document's chunks"""
+        self.ensure_one()
+
+        # Get all chunks for this document
+        chunks = self.chunk_ids
+
+        if not chunks:
+            return {
+                "type": "ir.actions.client",
+                "tag": "display_notification",
+                "params": {
+                    "title": _("Reindexing"),
+                    "message": _("No chunks found for this document."),
+                    "type": "warning",
+                },
+            }
+
+        # Get all collections this document belongs to
+        collections = self.collection_ids
+
+        # Reindex for each collection
+        for collection in collections:
+            chunks.filtered(lambda c: collection.id in c.collection_ids.ids).create_embedding_index(
+                collection_id=collection.id,
+                force=True
+            )
+
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Reindexing"),
+                "message": _(f"Reindexing request submitted for {len(collections)} collections."),
+                "type": "success",
+            },
+        }
 
     def action_mass_reindex(self):
         """Reindex multiple documents at once"""
@@ -188,15 +224,8 @@ class LLMDocument(models.Model):
             "tag": "display_notification",
             "params": {
                 "title": _("Reindexing"),
-                "message": _(
-                    f"Reindexing request submitted for {len(collections)} collections."
-                ),
+                "message": _(f"Reindexing request submitted for {len(collections)} collections."),
                 "type": "success",
                 "sticky": False,
             },
         }
-
-    def action_reindex(self):
-        """Reindex a single document"""
-        self.ensure_one()
-        return self.action_mass_reindex()
