@@ -142,9 +142,9 @@ class EmbeddingMixin(models.AbstractModel):
 
         # Check if we have a collection_id in the domain
         collection_id = None
-        if domain and hasattr(self, 'collection_id'):
+        if domain and hasattr(self, 'collection_ids'):
             for cond in domain:
-                if isinstance(cond, (list, tuple)) and len(cond) == 3 and cond[0] == 'collection_id' and cond[1] == '=':
+                if isinstance(cond, (list, tuple)) and len(cond) == 3 and cond[0] == 'collection_ids' and cond[1] == '=':
                     collection_id = cond[2]
                     break
 
@@ -168,7 +168,7 @@ class EmbeddingMixin(models.AbstractModel):
 
         # Build index hint if we have a collection_id
         index_hint = ""
-        if collection_id and hasattr(self, 'collection_id'):
+        if collection_id and hasattr(self, 'collection_ids'):
             index_name = f"{model_table}_emb_collection_{collection_id}_idx"
             # Add index hint - improves performance by telling PostgreSQL which index to use
             # This is especially helpful when we have multiple collection-specific indices
@@ -208,7 +208,7 @@ class EmbeddingMixin(models.AbstractModel):
         Create a vector index for embeddings if it doesn't already exist.
 
         This method creates a vector index for more efficient similarity searches.
-        If the model has a collection_id field, it will create a collection-specific
+        If the model has a collection_ids field, it will create a collection-specific
         index; otherwise, it creates a general index for all embeddings.
 
         Args:
@@ -220,6 +220,7 @@ class EmbeddingMixin(models.AbstractModel):
         table_name = self._table
 
         # Register vector with this cursor
+        from pgvector.psycopg2 import register_vector
         register_vector(cr._cnx)
 
         # Generate appropriate index name based on collection
@@ -251,13 +252,20 @@ class EmbeddingMixin(models.AbstractModel):
         dim_spec = f"({dimensions})" if dimensions else ""
 
         # Create the appropriate index with or without collection filtering
-        if collection_id and hasattr(self, 'collection_id'):
-            # Create collection-specific index
+        if collection_id and hasattr(self, 'collection_ids'):
+            # For many2many field, we need to create an index based on records that are in the relation table
+            relation_table = self.collection_ids._fields['collection_ids'].relation
+            record_column = self.collection_ids._fields['collection_ids'].column1
+            collection_column = self.collection_ids._fields['collection_ids'].column2
+
             cr.execute(
                 f"""
                     CREATE INDEX {index_name} ON {table_name}
                     USING ivfflat((embedding::vector{dim_spec}) vector_cosine_ops)
-                    WHERE collection_id = %s AND embedding IS NOT NULL
+                    WHERE id IN (
+                        SELECT {record_column} FROM {relation_table}
+                        WHERE {collection_column} = %s
+                    ) AND embedding IS NOT NULL
                 """,
                 (collection_id,),
             )
@@ -288,4 +296,3 @@ class EmbeddingMixin(models.AbstractModel):
 
         self.env.cr.execute(f"DROP INDEX IF EXISTS {index_name}")
         _logger.info(f"Dropped vector index {index_name}")
-        
