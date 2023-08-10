@@ -161,8 +161,9 @@ class RAGSearchWizard(models.TransientModel):
 
         return self._return_wizard()
 
-    def get_chunk_similarity(self, chunk_id):
-        """Helper method to get similarity score for a chunk"""
+    def get_similarity_for_chunk(self, chunk_id):
+        """Helper method to get similarity score for a chunk from the UI"""
+        self.ensure_one()
         if not self.result_similarity_scores:
             return 0.0
         return self.result_similarity_scores.get(str(chunk_id), 0.0)
@@ -176,3 +177,25 @@ class RAGSearchWizard(models.TransientModel):
             "result_similarity_scores": {},
         })
         return self._return_wizard()
+
+
+class RAGSearchResultLine(models.TransientModel):
+    _name = "llm.rag.search.result.line"
+    _description = "RAG Search Result Line"
+    _rec_name = "chunk_id"
+
+    wizard_id = fields.Many2one(
+        "llm.rag.search.wizard",
+        string="Search Wizard",
+        required=True,
+        ondelete="cascade",
+    )
+    chunk_id = fields.Many2one(
+        "llm.document.chunk",
+        string="Chunk",
+        required=True,
+    )
+    similarity = fields.Float(
+        string="Similarity",
+        digits=(5, 4),
+    )

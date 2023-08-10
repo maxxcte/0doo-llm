@@ -139,14 +139,4 @@
         </field>
     </record>
 
-    <!-- Method to open a detailed chunk view from the results -->
-    <function model="ir.model" name="add_method">
-        <value model="llm.document.chunk" name="open_chunk_detail" eval="lambda self: {
-            'type': 'ir.actions.act_window',
-            'res_model': 'llm.document.chunk',
-            'res_id': self.id,
-            'view_mode': 'form',
-            'target': 'new'
-        }"/>
-    </function>
 </odoo>

@@ -51,3 +51,14 @@ class LLMDocumentChunk(models.Model):
                 chunk.name = f"{chunk.document_id.name} - Chunk {chunk.sequence}"
             else:
                 chunk.name = f"Chunk {chunk.sequence}"
+
+    def open_chunk_detail(self):
+        """Open a form view of the chunk for detailed viewing."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "llm.document.chunk",
+            "res_id": self.id,
+            "view_mode": "form",
+            "target": "new",
+        }
