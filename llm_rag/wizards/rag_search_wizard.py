@@ -1,4 +1,5 @@
 import logging
+import json
 
 from odoo import _, api, fields, models
 
@@ -8,7 +9,6 @@ _logger = logging.getLogger(__name__)
 class RAGSearchWizard(models.TransientModel):
     _name = "llm.rag.search.wizard"
     _description = "RAG Search Wizard"
-    _inherit = ["llm.document.search.mixin"]
 
     # Search Fields
     query = fields.Text(
@@ -96,6 +96,104 @@ class RAGSearchWizard(models.TransientModel):
             "context": self.env.context,
         }
 
+    def _perform_semantic_search(self, query_vector, domain, limit):
+        """Perform semantic search using vector similarity."""
+        chunk_model = self.env["llm.document.chunk"]
+
+        # Use the vector search from EmbeddingMixin
+        return chunk_model.search(
+            args=domain,
+            limit=limit,
+            query_vector=query_vector,
+            query_min_similarity=self.similarity_cutoff,
+            query_operator="<=>"  # Cosine similarity
+        )
+
+    def _perform_hybrid_search(self, query, query_vector, domain, limit):
+        """Perform hybrid search combining vector similarity with keyword matching."""
+        chunk_model = self.env["llm.document.chunk"]
+
+        # Semantic search with half the limit and lower threshold
+        semantic_chunks = chunk_model.search(
+            args=domain,
+            limit=limit // 2,
+            query_vector=query_vector,
+            query_min_similarity=self.similarity_cutoff / 2,
+            query_operator="<=>"  # Cosine similarity
+        )
+
+        semantic_chunk_ids = semantic_chunks.ids
+
+        # Keyword search
+        keywords = query.strip().split()
+        keyword_domain = domain.copy()
+        for keyword in keywords:
+            keyword_domain.append(("content", "ilike", keyword))
+
+        keyword_chunks = chunk_model.search(keyword_domain, limit=limit // 2)
+
+        # Combine results, prioritizing semantic results
+        combined_chunks = semantic_chunks
+
+        # Add keyword results that weren't in semantic results
+        for chunk in keyword_chunks:
+            if chunk.id not in semantic_chunk_ids:
+                combined_chunks |= chunk
+
+        return combined_chunks
+
+    def _group_chunks_by_document(self, chunks):
+        """Group chunks by their parent document."""
+        chunks_by_doc = {}
+        for chunk in chunks:
+            doc_id = chunk.document_id.id
+            if doc_id not in chunks_by_doc:
+                chunks_by_doc[doc_id] = []
+            chunks_by_doc[doc_id].append(chunk)
+
+        return chunks_by_doc
+
+    def _get_top_documents(self, chunks_by_doc, top_n):
+        """Get the top N documents based on their highest similarity chunk."""
+        # Get max similarity for each document
+        doc_max_similarity = {}
+        for doc_id, doc_chunks in chunks_by_doc.items():
+            max_similarity = max(chunk.similarity for chunk in doc_chunks)
+            doc_max_similarity[doc_id] = max_similarity
+
+        # Sort documents by max similarity
+        return sorted(
+            doc_max_similarity.keys(),
+            key=lambda doc_id: doc_max_similarity[doc_id],
+            reverse=True,
+        )[:top_n]
+
+    def _process_search_results(self, chunks, top_k, top_n):
+        """Process search results into format needed by the UI."""
+        # Group chunks by document
+        chunks_by_doc = self._group_chunks_by_document(chunks)
+
+        # Sort chunks within each document by similarity
+        for doc_id in chunks_by_doc:
+            chunks_by_doc[doc_id].sort(key=lambda chunk: chunk.similarity, reverse=True)
+            # Limit to top_k chunks per document
+            chunks_by_doc[doc_id] = chunks_by_doc[doc_id][:top_k]
+
+        # Get top_n documents based on their highest similarity chunk
+        top_docs = self._get_top_documents(chunks_by_doc, top_n)
+
+        # Collect selected chunks from top documents
+        selected_chunks = self.env["llm.document.chunk"]
+        for doc_id in top_docs:
+            selected_chunks |= self.env["llm.document.chunk"].browse([c.id for c in chunks_by_doc[doc_id]])
+
+        # Extract similarity scores for UI display
+        similarity_scores = {}
+        for chunk in selected_chunks:
+            similarity_scores[str(chunk.id)] = chunk.similarity
+
+        return selected_chunks, similarity_scores
+
     def action_search(self):
         """Execute vector search with the query."""
         self.ensure_one()
@@ -127,30 +225,20 @@ class RAGSearchWizard(models.TransientModel):
         if active_model == "llm.document" and active_ids:
             domain.append(("document_id", "in", active_ids))
 
-        # Perform the search using the search mixin
-        chunks_with_similarity = self.search_documents(
-            query=self.query,
-            query_vector=query_vector,
-            domain=domain,
-            search_method=self.search_method,
-            limit=self.top_k * self.top_n,  # Get enough results for processing
-            min_similarity=self.similarity_cutoff,
-        )
+        # Perform the search based on selected method
+        search_limit = self.top_k * self.top_n * 2  # Get more results for better filtering
+
+        if self.search_method == 'semantic':
+            chunks = self._perform_semantic_search(query_vector, domain, search_limit)
+        else:  # hybrid search
+            chunks = self._perform_hybrid_search(self.query, query_vector, domain, search_limit)
 
         # Process search results to get top_k chunks from top_n documents
-        _, _, selected_chunks = self.process_search_results_base(
-            chunks_with_similarity=chunks_with_similarity,
+        result_chunks, similarity_scores = self._process_search_results(
+            chunks=chunks,
             top_k=self.top_k,
             top_n=self.top_n,
         )
-
-        # Extract chunk records and similarity scores
-        result_chunks = self.env["llm.document.chunk"]
-        similarity_scores = {}
-
-        for chunk, similarity in selected_chunks:
-            result_chunks |= chunk
-            similarity_scores[str(chunk.id)] = similarity
 
         # Update wizard with results
         self.write({
