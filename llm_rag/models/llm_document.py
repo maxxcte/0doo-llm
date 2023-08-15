@@ -193,10 +193,15 @@ class LLMDocument(models.Model):
 
         # Reindex for each collection
         for collection in collections:
-            chunks.filtered(lambda c: collection.id in c.collection_ids.ids).create_embedding_index(
-                collection_id=collection.id,
-                force=True
-            )
+            # Get chunks that belong to this collection
+            collection_chunks = chunks.filtered(lambda c: collection.id in c.collection_ids.ids)
+            if collection_chunks:
+                # Use embedding_model_id instead of collection_id
+                embedding_model_id = collection.embedding_model_id.id
+                collection_chunks.create_embedding_index(
+                    embedding_model_id=embedding_model_id,
+                    force=True
+                )
 
         return {
             "type": "ir.actions.client",

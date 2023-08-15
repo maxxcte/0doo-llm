@@ -257,40 +257,6 @@ class LLMDocumentCollection(models.Model):
                     message_type="notification",
                 )
 
-    def reindex_collection(self):
-        """Reindex all documents in the collection"""
-        for collection in self:
-            # Get all chunks from this collection
-            chunks = self.env["llm.document.chunk"].search([
-                ("collection_ids", "=", collection.id)
-            ])
-
-            if chunks:
-                # Create collection-specific index
-                dimensions = None
-                if collection.embedding_model_id:
-                    # Get sample embedding to determine dimensions
-                    sample_embedding = collection.embedding_model_id.embedding("")[0]
-                    if sample_embedding:
-                        dimensions = len(sample_embedding)
-
-                # Use the create_embedding_index method from EmbeddingMixin
-                chunks.create_embedding_index(
-                    collection_id=collection.id,
-                    dimensions=dimensions,
-                    force=True  # Force recreate
-                )
-
-                collection.message_post(
-                    body=_(f"Reindexed {len(chunks)} chunks."),
-                    message_type="notification",
-                )
-            else:
-                collection.message_post(
-                    body=_("No chunks found to reindex."),
-                    message_type="notification",
-                )
-
     def action_process_and_embed(self):
         """Process and embed documents in one action"""
         for collection in self:
@@ -307,6 +273,44 @@ class LLMDocumentCollection(models.Model):
                 "type": "success",
             },
         }
+
+    def reindex_collection(self):
+        """Reindex all documents in the collection"""
+        for collection in self:
+            # Get all chunks from this collection
+            chunks = self.env["llm.document.chunk"].search([
+                ("collection_ids", "=", collection.id)
+            ])
+
+            if chunks:
+                # Use embedding_model_id instead of collection_id
+                if collection.embedding_model_id:
+                    embedding_model_id = collection.embedding_model_id.id
+                    # Get sample embedding to determine dimensions
+                    sample_embedding = collection.embedding_model_id.embedding("")[0]
+                    dimensions = len(sample_embedding) if sample_embedding else None
+
+                    # Use the create_embedding_index method with embedding_model_id parameter
+                    chunks.create_embedding_index(
+                        embedding_model_id=embedding_model_id,
+                        dimensions=dimensions,
+                        force=True  # Force recreate
+                    )
+
+                    collection.message_post(
+                        body=_(f"Reindexed {len(chunks)} chunks with model {collection.embedding_model_id.name}."),
+                        message_type="notification",
+                    )
+                else:
+                    collection.message_post(
+                        body=_("Cannot reindex: No embedding model configured for this collection."),
+                        message_type="warning",
+                    )
+            else:
+                collection.message_post(
+                    body=_("No chunks found to reindex."),
+                    message_type="notification",
+                )
 
     def embed_documents(self):
         """Embed all chunked documents using the collection's embedding model"""
@@ -383,11 +387,11 @@ class LLMDocumentCollection(models.Model):
                     message_type="notification",
                 )
 
-                # Create a collection-specific index for better performance
-                # Call the model-level method, not on the recordset
+                # Create a model-specific index for better performance
+                # Use embedding_model_id instead of collection_id
                 dimensions = len(batch_embeddings[0]) if batch_embeddings else None
                 self.env["llm.document.chunk"].create_embedding_index(
-                    collection_id=collection.id,
+                    embedding_model_id=embedding_model.id,
                     dimensions=dimensions
                 )
             else:

@@ -14,6 +14,7 @@ class EmbeddingMixin(models.AbstractModel):
     Mixin for models that use vector embeddings.
 
     This mixin provides functionality for vector search operations and index management.
+    Models using this mixin can create model-specific indices for better performance.
     """
     _name = "llm.embedding.mixin"
     _description = "Vector Embedding Mixin"
@@ -141,12 +142,12 @@ class EmbeddingMixin(models.AbstractModel):
         model_table = self._table
         embedding_column = "embedding"
 
-        # Check if we have a collection_id in the domain
-        collection_id = None
-        if domain and hasattr(self, 'collection_ids'):
+        # Check if we have an embedding_model_id in the domain
+        embedding_model_id = None
+        if domain:
             for cond in domain:
-                if isinstance(cond, (list, tuple)) and len(cond) == 3 and cond[0] == 'collection_ids' and cond[1] == '=':
-                    collection_id = cond[2]
+                if isinstance(cond, (list, tuple)) and len(cond) == 3 and cond[0] == 'embedding_model_id' and cond[1] == '=':
+                    embedding_model_id = cond[2]
                     break
 
         # Build the domain clause
@@ -158,8 +159,7 @@ class EmbeddingMixin(models.AbstractModel):
             query_obj = self.sudo()._where_calc(domain)
             tables, where_clause, where_params = query_obj.get_sql()
 
-            # Remove the special vector comparison from where_clause if present
-            # (it will be handled specially in the CTE query)
+            # Add domain filters
             if where_clause:
                 domain_clause = f"AND {where_clause}"
                 params = [min_similarity] + where_params
@@ -167,12 +167,11 @@ class EmbeddingMixin(models.AbstractModel):
         limit_clause = f"LIMIT {int(limit)}" if limit else ""
         offset_clause = f"OFFSET {int(offset)}" if offset else ""
 
-        # Build index hint if we have a collection_id
+        # Build index hint if we have an embedding_model_id
         index_hint = ""
-        if collection_id and hasattr(self, 'collection_ids'):
-            index_name = f"{model_table}_emb_collection_{collection_id}_idx"
+        if embedding_model_id:
+            index_name = f"{model_table}_emb_model_{embedding_model_id}_idx"
             # Add index hint - improves performance by telling PostgreSQL which index to use
-            # This is especially helpful when we have multiple collection-specific indices
             index_hint = f"/*+ IndexScan({model_table} {index_name}) */"
 
         # Execute the search query with selected operator and relevance score
@@ -205,16 +204,16 @@ class EmbeddingMixin(models.AbstractModel):
         return self.browse(record_ids), similarities
 
     @api.model
-    def create_embedding_index(self, collection_id=None, dimensions=None, force=False):
+    def create_embedding_index(self, embedding_model_id=None, dimensions=None, force=False):
         """
         Create a vector index for embeddings if it doesn't already exist.
 
         This method creates a vector index for more efficient similarity searches.
-        If the model has a collection_ids field, it will create a collection-specific
-        index; otherwise, it creates a general index for all embeddings.
+        If embedding_model_id is provided, it will create a model-specific index;
+        otherwise, it creates a general index for all embeddings.
 
         Args:
-            collection_id: Collection identifier to filter the index (optional)
+            embedding_model_id: Embedding model ID to filter the index (optional)
             dimensions: Vector dimensions (optional)
             force: If True, drop existing index and recreate it (default: False)
         """
@@ -224,9 +223,9 @@ class EmbeddingMixin(models.AbstractModel):
         # Register vector with this cursor
         register_vector(cr._cnx)
 
-        # Generate appropriate index name based on collection
-        if collection_id:
-            index_name = f"{table_name}_emb_collection_{collection_id}_idx"
+        # Generate appropriate index name based on embedding model
+        if embedding_model_id:
+            index_name = f"{table_name}_emb_model_{embedding_model_id}_idx"
         else:
             index_name = f"{table_name}_embedding_idx"
 
@@ -252,60 +251,41 @@ class EmbeddingMixin(models.AbstractModel):
         # Determine the dimension specification
         dim_spec = f"({dimensions})" if dimensions else ""
 
-        # Determine if we have a collection_id and need to create a collection-specific index
-        if collection_id and hasattr(self, 'collection_ids'):
-            # Get the relation information
-            relation_field = self._fields.get('collection_ids')
-            if not relation_field:
-                _logger.warning(f"Collection_ids field not found on {self._name}, creating general index instead")
-                # Create general index as fallback
-                cr.execute(f"""
-                        CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}
-                        USING ivfflat((embedding::vector{dim_spec}) vector_cosine_ops)
-                        WHERE embedding IS NOT NULL
-                    """)
-            else:
-                # Get the relation table and column names
-                relation_table = relation_field.relation
-                record_column = relation_field.column1
-                collection_column = relation_field.column2
-
-                # Create collection-specific index using a subquery
-                cr.execute(
-                    f"""
-                        CREATE INDEX {index_name} ON {table_name}
-                        USING ivfflat((embedding::vector{dim_spec}) vector_cosine_ops)
-                        WHERE id IN (
-                            SELECT {record_column} FROM {relation_table}
-                            WHERE {collection_column} = %s
-                        ) AND embedding IS NOT NULL
-                    """,
-                    (collection_id,),
-                )
+        # Create index based on embedding_model_id if provided
+        if embedding_model_id:
+            # Create model-specific index
+            cr.execute(
+                f"""
+                    CREATE INDEX {index_name} ON {table_name}
+                    USING ivfflat((embedding::vector{dim_spec}) vector_cosine_ops)
+                    WHERE embedding_model_id = %s AND embedding IS NOT NULL
+                """,
+                (embedding_model_id,),
+            )
         else:
             # Create general index
             cr.execute(f"""
-                    CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}
-                    USING ivfflat((embedding::vector{dim_spec}) vector_cosine_ops)
-                    WHERE embedding IS NOT NULL
-                """)
+                CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}
+                USING ivfflat((embedding::vector{dim_spec}) vector_cosine_ops)
+                WHERE embedding IS NOT NULL
+            """)
 
         _logger.info(f"Created vector index {index_name} on {table_name}.embedding")
 
     @api.model
-    def drop_embedding_index(self, collection_id=None):
+    def drop_embedding_index(self, embedding_model_id=None):
         """
         Drop a vector index associated with this model.
 
         Args:
-            collection_id: Collection identifier to determine which index to drop.
-                          If None, drops the general index for the model.
+            embedding_model_id: Embedding model ID to determine which index to drop.
+                         If None, drops the general index for the model.
         """
         table_name = self._table
         cr = self.env.cr
 
-        if collection_id:
-            index_name = f"{table_name}_emb_collection_{collection_id}_idx"
+        if embedding_model_id:
+            index_name = f"{table_name}_emb_model_{embedding_model_id}_idx"
         else:
             index_name = f"{table_name}_embedding_idx"
 
