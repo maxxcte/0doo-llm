@@ -1,5 +1,6 @@
 import logging
 from pgvector import Vector
+from pgvector.psycopg2 import register_vector
 
 from odoo import api, fields, models
 
@@ -203,6 +204,7 @@ class EmbeddingMixin(models.AbstractModel):
         # Return the matching records and their similarity scores
         return self.browse(record_ids), similarities
 
+    @api.model
     def create_embedding_index(self, collection_id=None, dimensions=None, force=False):
         """
         Create a vector index for embeddings if it doesn't already exist.
@@ -220,7 +222,6 @@ class EmbeddingMixin(models.AbstractModel):
         table_name = self._table
 
         # Register vector with this cursor
-        from pgvector.psycopg2 import register_vector
         register_vector(cr._cnx)
 
         # Generate appropriate index name based on collection
@@ -251,24 +252,36 @@ class EmbeddingMixin(models.AbstractModel):
         # Determine the dimension specification
         dim_spec = f"({dimensions})" if dimensions else ""
 
-        # Create the appropriate index with or without collection filtering
+        # Determine if we have a collection_id and need to create a collection-specific index
         if collection_id and hasattr(self, 'collection_ids'):
-            # For many2many field, we need to create an index based on records that are in the relation table
-            relation_table = self.collection_ids._fields['collection_ids'].relation
-            record_column = self.collection_ids._fields['collection_ids'].column1
-            collection_column = self.collection_ids._fields['collection_ids'].column2
+            # Get the relation information
+            relation_field = self._fields.get('collection_ids')
+            if not relation_field:
+                _logger.warning(f"Collection_ids field not found on {self._name}, creating general index instead")
+                # Create general index as fallback
+                cr.execute(f"""
+                        CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}
+                        USING ivfflat((embedding::vector{dim_spec}) vector_cosine_ops)
+                        WHERE embedding IS NOT NULL
+                    """)
+            else:
+                # Get the relation table and column names
+                relation_table = relation_field.relation
+                record_column = relation_field.column1
+                collection_column = relation_field.column2
 
-            cr.execute(
-                f"""
-                    CREATE INDEX {index_name} ON {table_name}
-                    USING ivfflat((embedding::vector{dim_spec}) vector_cosine_ops)
-                    WHERE id IN (
-                        SELECT {record_column} FROM {relation_table}
-                        WHERE {collection_column} = %s
-                    ) AND embedding IS NOT NULL
-                """,
-                (collection_id,),
-            )
+                # Create collection-specific index using a subquery
+                cr.execute(
+                    f"""
+                        CREATE INDEX {index_name} ON {table_name}
+                        USING ivfflat((embedding::vector{dim_spec}) vector_cosine_ops)
+                        WHERE id IN (
+                            SELECT {record_column} FROM {relation_table}
+                            WHERE {collection_column} = %s
+                        ) AND embedding IS NOT NULL
+                    """,
+                    (collection_id,),
+                )
         else:
             # Create general index
             cr.execute(f"""
@@ -279,6 +292,7 @@ class EmbeddingMixin(models.AbstractModel):
 
         _logger.info(f"Created vector index {index_name} on {table_name}.embedding")
 
+    @api.model
     def drop_embedding_index(self, collection_id=None):
         """
         Drop a vector index associated with this model.
@@ -288,11 +302,12 @@ class EmbeddingMixin(models.AbstractModel):
                           If None, drops the general index for the model.
         """
         table_name = self._table
+        cr = self.env.cr
 
         if collection_id:
             index_name = f"{table_name}_emb_collection_{collection_id}_idx"
         else:
             index_name = f"{table_name}_embedding_idx"
 
-        self.env.cr.execute(f"DROP INDEX IF EXISTS {index_name}")
+        cr.execute(f"DROP INDEX IF EXISTS {index_name}")
         _logger.info(f"Dropped vector index {index_name}")

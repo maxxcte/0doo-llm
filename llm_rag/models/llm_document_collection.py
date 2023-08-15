@@ -384,7 +384,12 @@ class LLMDocumentCollection(models.Model):
                 )
 
                 # Create a collection-specific index for better performance
-                chunks.create_embedding_index(collection_id=collection.id)
+                # Call the model-level method, not on the recordset
+                dimensions = len(batch_embeddings[0]) if batch_embeddings else None
+                self.env["llm.document.chunk"].create_embedding_index(
+                    collection_id=collection.id,
+                    dimensions=dimensions
+                )
             else:
                 collection.message_post(
                     body=_("No chunks were successfully embedded"),
