@@ -34,13 +34,11 @@ class EmbeddingMixin(models.AbstractModel):
     # Virtual field to store similarity score in search results
     similarity = fields.Float(string="Similarity Score", store=False, compute="_compute_similarity")
 
-    # Field to store temporary similarity scores
-    _similarity_scores = {}
-
     def _compute_similarity(self):
         """Compute method for the similarity field."""
         for record in self:
-            record.similarity = self._similarity_scores.get(record.id, 0.0)
+            # Get the similarity score from the context
+            record.similarity = self.env.context.get('similarity_scores', {}).get(record.id, 0.0)
 
     @api.model
     def _name_search(self, name, args=None, operator='ilike', limit=100, name_get_uid=None):
@@ -87,13 +85,15 @@ class EmbeddingMixin(models.AbstractModel):
                 operator=query_operator
             )
 
-            # Store similarity scores for access through the similarity field
-            self._similarity_scores = dict(zip([r.id for r in results], similarities))
+            # Store similarity scores in the context for access through the similarity field
+            similarity_scores = dict(zip([r.id for r in results], similarities))
 
+            # Return results with similarity scores in context
             if count:
                 return len(results)
 
-            return results
+            # Create a new environment with similarity scores in the context
+            return results.with_context(similarity_scores=similarity_scores)
 
         # Fall back to standard search
         return super().search(args, offset=offset, limit=limit, order=order, count=count)
