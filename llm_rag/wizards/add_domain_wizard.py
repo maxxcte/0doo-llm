@@ -19,12 +19,24 @@ class AddDomainWizard(models.TransientModel):
         required=True,
         help="Select the model to which the domain will be applied",
     )
+    model_name = fields.Char(
+        string="Model Name",
+        compute="_compute_model_name",
+        store=True,
+        help="Technical name of the selected model",
+    )
     domain = fields.Char(
         string="Domain",
         default="[]",
         required=True,
         help="Domain filter to select records",
     )
+
+    @api.depends("model_id")
+    def _compute_model_name(self):
+        """Compute the technical name of the model for the domain widget"""
+        for wizard in self:
+            wizard.model_name = wizard.model_id.model if wizard.model_id else False
 
     @api.onchange("model_id")
     def _onchange_model_id(self):
