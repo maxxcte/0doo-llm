@@ -22,6 +22,7 @@
         "security/ir.model.access.csv",
         "views/llm_document_views.xml",
         "views/llm_document_collection_views.xml",
+        "views/llm_document_chunk_views.xml",
         "wizards/rag_search_wizard_views.xml",
         "wizards/create_rag_document_wizard_views.xml",
         "wizards/add_domain_wizard_views.xml",
