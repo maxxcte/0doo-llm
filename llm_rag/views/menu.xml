@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
     <menuitem
-    id="menu_llm_knowledge"
-    name="Knowledge"
+    id="menu_llm_rag"
+    name="RAG"
     parent="llm.menu_llm_root"
     sequence="30"
   />
@@ -10,7 +10,7 @@
     <menuitem
     id="menu_llm_document"
     name="Documents"
-    parent="menu_llm_knowledge"
+    parent="menu_llm_rag"
     action="action_llm_document"
     sequence="10"
   />
@@ -18,7 +18,7 @@
     <menuitem
     id="menu_llm_rag_search"
     name="RAG Search"
-    parent="menu_llm_knowledge"
+    parent="menu_llm_rag"
     action="menu_action_rag_search"
     sequence="20"
   />
@@ -26,9 +26,16 @@
   <menuitem
     id="menu_llm_document_collection"
     name="Collections"
-    parent="menu_llm_knowledge"
+    parent="menu_llm_rag"
     action="action_llm_document_collection"
     sequence="5"
+  />
+   <menuitem 
+    id="menu_llm_document_chunk"
+    name="Document Chunks"
+    parent="menu_llm_rag"
+    action="action_llm_document_chunk"
+    sequence="30"
   />
 
 </odoo>
