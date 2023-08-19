@@ -33,7 +33,7 @@
    <menuitem 
     id="menu_llm_document_chunk"
     name="Document Chunks"
-    parent="menu_llm_rag"
+    parent="menu_llm_knowledge"
     action="action_llm_document_chunk"
     sequence="30"
   />
