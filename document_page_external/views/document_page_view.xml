@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Extend document.page form view -->
+    <record id="view_wiki_form_inherit_external" model="ir.ui.view">
+        <field name="name">document.page.form.inherit.external</field>
+        <field name="model">document.page</field>
+        <field name="inherit_id" ref="document_page.view_wiki_form"/>
+        <field name="arch" type="xml">
+            <!-- Add button in header -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_open_retrieve_wizard"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-download"
+                        attrs="{'invisible': [('external_url', '=', False)]}"
+                        string="Retrieve Content"/>
+            </xpath>
+
+            <!-- Add external URL field -->
+            <xpath expr="//notebook/page[@name='info']/group/group[1]" position="inside">
+                <field name="external_url" placeholder="https://example.com/content"/>
+                <field name="last_external_update" readonly="1" attrs="{'invisible': [('last_external_update', '=', False)]}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Add external URL to search view -->
+    <record id="view_wiki_filter_inherit_external" model="ir.ui.view">
+        <field name="name">document.page.search.inherit.external</field>
+        <field name="model">document.page</field>
+        <field name="inherit_id" ref="document_page.view_wiki_filter"/>
+        <field name="arch" type="xml">
+            <field name="parent_id" position="after">
+                <field name="external_url"/>
+                <filter string="With External URL"
+                        name="has_external_url"
+                        domain="[('external_url', '!=', False)]"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Add external URL to tree view -->
+    <record id="view_wiki_tree_inherit_external" model="ir.ui.view">
+        <field name="name">document.page.tree.inherit.external</field>
+        <field name="model">document.page</field>
+        <field name="inherit_id" ref="document_page.view_wiki_tree"/>
+        <field name="arch" type="xml">
+            <field name="parent_id" position="after">
+                <field name="external_url" optional="show"/>
+                <field name="last_external_update" optional="hide"/>
+            </field>
+        </field>
+    </record>
+</odoo>
