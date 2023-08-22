@@ -14,19 +14,21 @@
     action="action_llm_document"
     sequence="10"
   />
+    <!-- Menu item for RAG Search -->
+    <menuitem
+    id="menu_llm_rag_search"
+    name="RAG Search"
+    parent="menu_llm_knowledge"
+    action="menu_action_rag_search"
+    sequence="20"
+  />
+  <!-- Menu Item -->
   <menuitem
     id="menu_llm_document_collection"
     name="Collections"
     parent="menu_llm_knowledge"
     action="action_llm_document_collection"
     sequence="5"
-  />
-   <menuitem 
-    id="menu_llm_document_chunk"
-    name="Document Chunks"
-    parent="menu_llm_knowledge"
-    action="action_llm_document_chunk"
-    sequence="30"
   />
 
 </odoo>

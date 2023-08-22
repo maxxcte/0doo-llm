@@ -17,7 +17,7 @@ Features:
 - Reusable document search functionality
 - Semantic and hybrid search capabilities
     """,
-    "depends": ["llm_knowledge", "llm_tool"],
+    "depends": ["llm_rag", "llm_tool"],
     "data": [
         "data/llm_tool_data.xml",
     ],

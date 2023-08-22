@@ -20,6 +20,27 @@
         </field>
     </record>
 
+    <!-- Server Action for RAG Search -->
+    <record id="action_rag_search" model="ir.actions.server">
+        <field name="name">RAG Search</field>
+        <field name="model_id" ref="model_llm_document_collection" />
+        <field name="binding_model_id" ref="model_llm_document_collection" />
+        <field name="binding_view_types">list,form,kanban</field>
+        <field name="state">code</field>
+        <field name="code">
+            action = {
+            "type": "ir.actions.act_window",
+            "name": "RAG Search",
+            "res_model": "llm.rag.search.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+            "default_collection_id": record.id if record else False,
+            },
+            }
+        </field>
+    </record>
+
     <!-- Main Document Action -->
     <record id="action_llm_document" model="ir.actions.act_window">
         <field name="name">RAG Documents</field>
@@ -33,6 +54,16 @@
             <p
       >Documents can be linked to any record in Odoo for RAG processing.</p>
         </field>
+    </record>
+
+    <!-- Direct RAG Search Menu Action -->
+    <record id="menu_action_rag_search" model="ir.actions.act_window">
+        <field name="name">RAG Search</field>
+        <field name="res_model">llm.rag.search.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="view_id" ref="view_llm_rag_search_wizard_form" />
+        <field name="context">{"default_state": "search"}</field>
     </record>
 
     <!-- Server Action for Re-indexing RAG Documents -->
