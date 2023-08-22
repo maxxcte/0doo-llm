@@ -4,6 +4,8 @@ access_llm_document_manager,llm.document.manager,model_llm_document,llm.group_ll
 access_llm_document_chunk_user,llm.document.chunk.user,model_llm_document_chunk,base.group_user,1,0,0,0
 access_llm_document_chunk_manager,llm.document.chunk.manager,model_llm_document_chunk,llm.group_llm_manager,1,1,1,1
 access_llm_create_rag_document_wizard_manager,llm.create.rag.document.wizard.manager,model_llm_create_rag_document_wizard,llm.group_llm_manager,1,1,1,1
+access_llm_rag_search_wizard_user,llm.rag.search.wizard.user,model_llm_rag_search_wizard,base.group_user,1,1,1,1
+access_llm_rag_search_result_line_user,llm.rag.search.result.line.user,model_llm_rag_search_result_line,base.group_user,1,1,1,1
 access_llm_document_collection_user,llm.document.collection.user,model_llm_document_collection,base.group_user,1,0,0,0
 access_llm_document_collection_manager,llm.document.collection.manager,model_llm_document_collection,llm.group_llm_manager,1,1,1,1
 access_llm_add_domain_wizard_manager,llm.add.domain.wizard.manager,model_llm_add_domain_wizard,llm.group_llm_manager,1,1,1,1

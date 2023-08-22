@@ -62,36 +62,3 @@ class LLMDocumentChunk(models.Model):
             "view_mode": "form",
             "target": "new",
         }
-
-    @api.model
-    def search(self, args, offset=0, limit=None, order=None, count=False, **kwargs):
-        if self.env.context.get('search_view_vector_search') and args:
-            # Find the search term in the domain
-            search_term = None
-            for arg in args:
-                if isinstance(arg, list) and len(arg) >= 3 and arg[0] in ['name', 'content'] and arg[1] in ['ilike', 'like']:
-                    search_term = arg[2]
-                    break
-                    
-            if search_term:
-                # Get a default collection to use its embedding model
-                collection = self.env['llm.document.collection'].search([], limit=1)
-                if collection and collection.embedding_model_id:
-                    # Get the embedding model from the collection
-                    embedding_model = collection.embedding_model_id
-                    
-                    # Generate embedding for the search term
-                    vector = embedding_model.embedding(search_term.strip())[0]
-                    
-                    # # Add collection filter to the domain
-                    # collection_domain = [('collection_ids', '=', collection.id)]
-                    
-                    # Use the vector search
-                    kwargs['query_vector'] = vector
-                    kwargs['query_min_similarity'] = 0.5
-                    kwargs['query_operator'] = '<=>'
-                    
-                    # Use the modified domain
-                    return super().search([], offset=offset, limit=limit, order=order, count=count, **kwargs)
-        
-        return super().search(args, offset=offset, limit=limit, order=order, count=count, **kwargs)

@@ -9,7 +9,7 @@ _logger = logging.getLogger(__name__)
 
 class LLMToolKnowledgeRetriever(models.Model):
     _name = "llm.tool"
-    _inherit = ["llm.tool"]
+    _inherit = ["llm.tool", "llm.document.search.mixin"]
 
     @api.model
     def _get_available_implementations(self):
@@ -76,73 +76,13 @@ class LLMToolKnowledgeRetriever(models.Model):
                 0.5,
                 description="Minimum semantic similarity threshold (0.0-1.0) for including results. Higher values (e.g., 0.7) return only highly relevant results, while lower values (e.g., 0.3) return more results but may include less relevant ones.",
             )
+            search_method: str = Field(
+                "semantic",
+                description="Search method to use: 'semantic' (vector similarity only) or 'hybrid' (combines vector search with keyword matching). Use 'hybrid' when looking for specific terms or when semantic search alone doesn't yield good results.",
+                enum=["semantic", "hybrid"],
+            )
 
         return KnowledgeRetrieverParams
-
-    def _group_chunks_by_document(self, chunks):
-        """Group chunks by their parent document."""
-        chunks_by_doc = {}
-        for chunk in chunks:
-            doc_id = chunk.document_id.id
-            if doc_id not in chunks_by_doc:
-                chunks_by_doc[doc_id] = []
-            chunks_by_doc[doc_id].append(chunk)
-
-        return chunks_by_doc
-
-    def _get_top_documents(self, chunks_by_doc, top_n):
-        """Get the top N documents based on their highest similarity chunk."""
-        # Get max similarity for each document
-        doc_max_similarity = {}
-        for doc_id, doc_chunks in chunks_by_doc.items():
-            max_similarity = max(chunk.similarity for chunk in doc_chunks)
-            doc_max_similarity[doc_id] = max_similarity
-
-        # Sort documents by max similarity
-        return sorted(
-            doc_max_similarity.keys(),
-            key=lambda doc_id: doc_max_similarity[doc_id],
-            reverse=True,
-        )[:top_n]
-
-    def _process_search_results(self, chunks, top_k, top_n):
-        """Process search results to get the top chunks per document.
-
-        Args:
-            chunks: Recordset of document chunks with similarity scores in context
-            top_k: Number of chunks to retrieve per document
-            top_n: Total number of documents to retrieve
-
-        Returns:
-            List of dictionaries with chunk data
-        """
-        # Group chunks by document
-        chunks_by_doc = self._group_chunks_by_document(chunks)
-
-        # Sort chunks within each document by similarity
-        for doc_id in chunks_by_doc:
-            chunks_by_doc[doc_id].sort(key=lambda chunk: chunk.similarity, reverse=True)
-            # Limit to top_k chunks per document
-            chunks_by_doc[doc_id] = chunks_by_doc[doc_id][:top_k]
-
-        # Get top_n documents based on their highest similarity chunk
-        top_docs = self._get_top_documents(chunks_by_doc, top_n)
-
-        # Collect selected chunks from top documents
-        result_data = []
-        for doc_id in top_docs:
-            for chunk in chunks_by_doc[doc_id]:
-                result_data.append({
-                    "content": chunk.content,
-                    "document_name": chunk.document_id.name,
-                    "document_id": chunk.document_id.id,
-                    "chunk_id": chunk.id,
-                    "chunk_name": chunk.name,
-                    "similarity": round(chunk.similarity, 4),
-                    "similarity_percentage": f"{int(chunk.similarity * 100)}%",
-                })
-
-        return result_data
 
     def knowledge_retriever_execute(self, parameters):
         """Execute the knowledge retriever tool"""
@@ -151,39 +91,39 @@ class LLMToolKnowledgeRetriever(models.Model):
         # Extract parameters
         query = parameters.get("query")
         collection_id = parameters.get("collection_id")
+        embedding_model_id = parameters.get("embedding_model_id")
         top_k = parameters.get("top_k", 5)
         top_n = parameters.get("top_n", 3)
         similarity_cutoff = parameters.get("similarity_cutoff", 0.5)
+        search_method = parameters.get("search_method", "semantic")
 
         if not query:
             return {"error": "Query is required"}
 
+        if not collection_id:
+            return {"error": "Collection ID is required"}
+
         try:
             # Validate collection exists
-            collection = None
-            if collection_id:
-                collection = self.env["llm.document.collection"].browse(int(collection_id))
-                if not collection.exists():
-                    _logger.warning(f"Collection with ID {collection_id} not found, falling back to default")
-                    collection = None
-            
-            # If no valid collection_id was provided or found, get the default collection
-            if not collection:
-                # Try to find a default collection (the first active one)
-                collection = self.env["llm.document.collection"].search(
-                    [("active", "=", True)], limit=1
-                )
-                
-                if not collection:
-                    return {"error": "No valid collection found. Please provide a valid collection ID or set up a default collection."}
-                
-                _logger.info(f"Using default collection: {collection.name} (ID: {collection.id})")
+            collection = self.env["llm.document.collection"].browse(int(collection_id))
+            if not collection.exists():
+                return {"error": f"Collection with ID {collection_id} not found"}
 
-            # Get the embedding model from the collection
-            embedding_model = collection.embedding_model_id
-            if not embedding_model:
-                # Fallback to default embedding model if collection doesn't have one
-                model_obj = self.env["llm.model"]
+            # Get the embedding model
+            model_obj = self.env["llm.model"]
+
+            if embedding_model_id:
+                embedding_model = model_obj.browse(embedding_model_id)
+                if not embedding_model.exists():
+                    return {
+                        "error": f"Embedding model with ID {embedding_model_id} not found"
+                    }
+                if embedding_model.model_use != "embedding":
+                    return {
+                        "error": f"Model {embedding_model.name} (ID: {embedding_model_id}) is not an embedding model. Selected model must have model_use = 'embedding'."
+                    }
+            else:
+                # Get default embedding model
                 embedding_model = model_obj.search(
                     [("model_use", "=", "embedding"), ("default", "=", True)], limit=1
                 )
@@ -193,7 +133,7 @@ class LLMToolKnowledgeRetriever(models.Model):
                     )
 
             if not embedding_model:
-                return {"error": "No embedding model found for this collection"}
+                return {"error": "No embedding model found"}
 
             # Get the provider for the embedding model
             provider = embedding_model.provider_id
@@ -205,38 +145,71 @@ class LLMToolKnowledgeRetriever(models.Model):
 
             # Prepare domain for document chunks
             domain = [
-                ("collection_ids", "=", collection.id),
+                ("embedding_model_id", "=", embedding_model.id),
+                ("embedding", "!=", False),
+                ("document_id.collection_ids", "=", int(collection_id)),
             ]
 
-            # Calculate search limit - get more results for better filtering
-            search_limit = top_n * top_k * 2
+            # Calculate search limit
+            search_limit = top_n * top_k
 
-            # Use the direct search method with vector search parameters
-            chunk_model = self.env["llm.document.chunk"]
-            chunks = chunk_model.search(
-                args=domain,
-                limit=search_limit,
+            # Use the inherited mixin methods directly
+            chunks_with_similarity = self.search_documents(
+                query=query,
                 query_vector=query_embedding,
-                query_min_similarity=similarity_cutoff,
-                query_operator="<=>"  # Cosine similarity
+                domain=domain,
+                search_method=search_method,
+                limit=search_limit,
+                min_similarity=similarity_cutoff,
             )
 
             # Process results to get top chunks per document
             result_data = self._process_search_results(
-                chunks=chunks,
-                top_k=top_k,
-                top_n=top_n,
+                chunks_with_similarity, top_k, top_n
             )
 
             return {
                 "query": query,
                 "collection": collection.name,
-                "collection_id": collection.id,
                 "results": result_data,
                 "total_chunks": len(result_data),
                 "embedding_model": embedding_model.name,
+                "search_method": search_method,
             }
 
         except Exception as e:
             _logger.exception(f"Error executing Knowledge Retriever: {str(e)}")
             return {"error": str(e)}
+
+    def _process_search_results(self, chunks_with_similarity, top_k, top_n):
+        """Process search results to get the top chunks per document.
+
+        Args:
+            chunks_with_similarity: List of (chunk, similarity) tuples
+            top_k: Number of chunks to retrieve per document
+            top_n: Total number of documents to retrieve
+
+        Returns:
+            List of dictionaries with chunk data
+        """
+        # Use the base implementation from the search service
+        _, _, selected_chunks = self.process_search_results_base(
+            chunks_with_similarity, top_k, top_n
+        )
+
+        # Convert to the format needed for the tool response
+        result_data = []
+        for chunk, similarity in selected_chunks:
+            result_data.append(
+                {
+                    "content": chunk.content,
+                    "document_name": chunk.document_id.name,
+                    "document_id": chunk.document_id.id,
+                    "chunk_id": chunk.id,
+                    "chunk_name": chunk.name,
+                    "similarity": round(similarity, 4),
+                    "similarity_percentage": f"{int(similarity * 100)}%",
+                }
+            )
+
+        return result_data
