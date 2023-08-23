@@ -43,26 +43,4 @@
         <field name="active" eval="True" />
         <field name="requires_user_consent" eval="True" />
     </record>
-    
-    <record id="llm_tool_odoo_model_inspector" model="llm.tool">
-        <field name="name">odoo_model_inspector</field>
-        <field name="implementation">odoo_model_inspector</field>
-        <field
-      name="description"
-    >Retrieve basic information about any Odoo model. This tool allows you to get metadata about a model by specifying the model name. It returns the model's display name, technical name, and description.</field>
-        <field name="default" eval="True" />
-        <field name="active" eval="True" />
-        <field name="requires_user_consent" eval="False" />
-    </record>
-    
-    <record id="llm_tool_odoo_fields_inspector" model="llm.tool">
-        <field name="name">odoo_fields_inspector</field>
-        <field name="implementation">odoo_fields_inspector</field>
-        <field
-      name="description"
-    >Retrieve detailed field information for any Odoo model. This tool allows you to discover all available fields and their properties by specifying the model name. Optionally, you can filter to specific field names. It returns field types, labels, help text, and relation information.</field>
-        <field name="default" eval="True" />
-        <field name="active" eval="True" />
-        <field name="requires_user_consent" eval="False" />
-    </record>
 </odoo>
