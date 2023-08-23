@@ -6,7 +6,6 @@
         <field name="model">document.page</field>
         <field name="inherit_id" ref="document_page.view_wiki_form" />
         <field name="arch" type="xml">
-            <!-- Remove button from button box -->
             <!-- Add external URL field with button next to it -->
             <xpath
                     expr="//notebook/page[@name='info']/group/group[1]"

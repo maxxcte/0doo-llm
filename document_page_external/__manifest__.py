@@ -10,7 +10,6 @@
     "license": "AGPL-3",
     "depends": ["document_page"],
     "data": [
-        "security/ir.model.access.csv",
         "views/document_page_view.xml",
     ],
     "demo": [],
