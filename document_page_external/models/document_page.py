@@ -42,7 +42,8 @@ class DocumentPage(models.Model):
             if not self.name:
                 # Extract title from content if possible (simple HTML title extraction)
                 import re
-                title_match = re.search(r'<title>(.*?)</title>', content, re.IGNORECASE)
+
+                title_match = re.search(r"<title>(.*?)</title>", content, re.IGNORECASE)
                 if title_match:
                     self.name = title_match.group(1)
                 else:
@@ -53,7 +54,7 @@ class DocumentPage(models.Model):
                 "page_id": self.id,
                 "name": self.draft_name or "1.0",
                 "summary": summary
-                           or _("Retrieved from external URL: %s") % self.external_url,
+                or _("Retrieved from external URL: %s") % self.external_url,
                 "content": content,
             }
             self._create_history(history_vals)

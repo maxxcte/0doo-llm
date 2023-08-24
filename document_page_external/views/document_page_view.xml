@@ -8,18 +8,21 @@
         <field name="arch" type="xml">
             <!-- Add external URL field with button next to it -->
             <xpath
-                    expr="//notebook/page[@name='info']/group/group[1]"
-                    position="inside"
-            >
-                <field name="external_url" placeholder="https://example.com/content"/>
+        expr="//notebook/page[@name='info']/group/group[1]"
+        position="inside"
+      >
+                <field
+          name="external_url"
+          placeholder="https://example.com/content"
+        />
                 <button
-                        name="action_retrieve_content"
-                        type="object"
-                        string="Retrieve Content"
-                        class="oe_highlight btn-sm"
-                        attrs="{'invisible': [('external_url', '=', False)]}"
-                        icon="fa-download"
-                />
+          name="action_retrieve_content"
+          type="object"
+          string="Retrieve Content"
+          class="oe_highlight btn-sm"
+          attrs="{'invisible': [('external_url', '=', False)]}"
+          icon="fa-download"
+        />
             </xpath>
         </field>
     </record>
@@ -33,10 +36,10 @@
             <field name="parent_id" position="after">
                 <field name="external_url" />
                 <filter
-                        string="With External URL"
-                        name="has_external_url"
-                        domain="[('external_url', '!=', False)]"
-                />
+          string="With External URL"
+          name="has_external_url"
+          domain="[('external_url', '!=', False)]"
+        />
             </field>
         </field>
     </record>
