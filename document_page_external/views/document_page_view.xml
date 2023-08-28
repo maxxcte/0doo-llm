@@ -7,22 +7,48 @@
         <field name="inherit_id" ref="document_page.view_wiki_form" />
         <field name="arch" type="xml">
             <!-- Add external URL field with button next to it -->
-            <xpath
-        expr="//notebook/page[@name='info']/group/group[1]"
-        position="inside"
-      >
-                <field
-          name="external_url"
-          placeholder="https://example.com/content"
-        />
+            <xpath expr="//notebook/page[@name='info']/group/group[1]" position="inside">
+                <field name="external_url" placeholder="https://example.com/content" />
                 <button
-          name="action_retrieve_content"
-          type="object"
-          string="Retrieve Content"
-          class="oe_highlight btn-sm"
-          attrs="{'invisible': [('external_url', '=', False)]}"
-          icon="fa-download"
-        />
+                        name="action_retrieve_content"
+                        type="object"
+                        string="Retrieve Content"
+                        class="oe_highlight btn-sm"
+                        attrs="{'invisible': [('external_url', '=', False)]}"
+                        icon="fa-download"
+                />
+            </xpath>
+
+            <!-- Add links count to the button box -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button
+                        name="action_view_links"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-link">
+                    <field name="link_count" string="Links" widget="statinfo"/>
+                </button>
+            </xpath>
+
+            <!-- Add Links tab to the notebook -->
+            <xpath expr="//notebook" position="inside">
+                <page name="links" string="Links">
+                    <field name="link_ids">
+                        <tree editable="bottom">
+                            <field name="name"/>
+                            <field name="url"/>
+                            <field name="link_type"/>
+                            <field name="mime_type"/>
+                            <field name="content_size" widget="float_time"/>
+                            <button
+                                    name="open_link"
+                                    type="object"
+                                    string="Open"
+                                    icon="fa-external-link"
+                                    class="btn btn-sm btn-link"/>
+                        </tree>
+                    </field>
+                </page>
             </xpath>
         </field>
     </record>
@@ -36,10 +62,15 @@
             <field name="parent_id" position="after">
                 <field name="external_url" />
                 <filter
-          string="With External URL"
-          name="has_external_url"
-          domain="[('external_url', '!=', False)]"
-        />
+                        string="With External URL"
+                        name="has_external_url"
+                        domain="[('external_url', '!=', False)]"
+                />
+                <filter
+                        string="With Links"
+                        name="has_links"
+                        domain="[('link_ids', '!=', False)]"
+                />
             </field>
         </field>
     </record>
@@ -52,6 +83,7 @@
         <field name="arch" type="xml">
             <field name="parent_id" position="after">
                 <field name="external_url" optional="show" />
+                <field name="link_count" optional="show" />
             </field>
         </field>
     </record>

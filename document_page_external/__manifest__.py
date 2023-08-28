@@ -10,7 +10,9 @@
     "license": "AGPL-3",
     "depends": ["document_page"],
     "data": [
+        "security/ir.model.access.csv",
         "views/document_page_view.xml",
+        "views/document_page_link_view.xml",
     ],
     "demo": [],
     "external_dependencies": {
@@ -28,5 +30,8 @@ This module extends document_page to add:
 * External URL field to document pages
 * Ability to retrieve content from the external URL
 * History tracking of content retrieved from external URLs
+* Automatic extraction and tracking of links from page content
+* "Links" tab to view and manage links associated with a page
+* Automatic detection of MIME types and file sizes using HEAD requests
     """,
 }
