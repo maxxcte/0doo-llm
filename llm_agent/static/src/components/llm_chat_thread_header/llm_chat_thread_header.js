@@ -8,6 +8,12 @@ patch(LLMChatThreadHeader.prototype, "llm_agent.llm_agent_dropdown_patch", {
    * Get all available agents
    */
   get llmAgents() {
+    // Make sure we have a valid llmChat reference
+    if (!this.llmChat) {
+      return [];
+    }
+
+    // Return the agents array
     return this.llmChat.llmAgents || [];
   },
 
