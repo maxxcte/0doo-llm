@@ -82,11 +82,6 @@ class EmbeddingMixin(models.AbstractModel):
         query_min_similarity = kwargs.get("query_min_similarity", 0.0)
 
         if query_vector is not None:
-            # This is a vector similarity search
-            vector_domain = self._vector_domain(
-                query_vector, query_min_similarity, query_operator, args
-            )
-
             # Get results and similarity scores
             results, similarities = self._run_vector_search(
                 query_vector,

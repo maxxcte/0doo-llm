@@ -195,7 +195,8 @@ class LLMDocument(models.Model):
         for collection in collections:
             # Get chunks that belong to this collection
             collection_chunks = chunks.filtered(
-                lambda c: collection.id in c.collection_ids.ids
+                lambda c, collection_id=collection.id: collection_id
+                in c.collection_ids.ids
             )
             if collection_chunks:
                 # Use embedding_model_id instead of collection_id
