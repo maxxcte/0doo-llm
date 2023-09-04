@@ -22,7 +22,10 @@ class LLMToolModelInspector(models.Model):
             model_config = ConfigDict(
                 title=self.name or "odoo_model_inspector",
             )
-            model: str = Field(..., description="The Odoo model name to get information about (example: res.partner)")
+            model: str = Field(
+                ...,
+                description="The Odoo model name to get information about (example: res.partner)",
+            )
 
         return ModelInfoParams
 
@@ -37,11 +40,9 @@ class LLMToolModelInspector(models.Model):
 
         try:
             # Search for the model in ir.model
-            IrModel = self.env['ir.model']
+            IrModel = self.env["ir.model"]
             model_info = IrModel.search_read(
-                [('model', '=', model_name)],
-                ['name', 'model', 'description'],
-                limit=1
+                [("model", "=", model_name)], ["name", "model", "description"], limit=1
             )
 
             if not model_info:
@@ -49,9 +50,9 @@ class LLMToolModelInspector(models.Model):
 
             # Get basic model information
             result = {
-                "name": model_info[0]['name'],
-                "model": model_info[0]['model'],
-                "description": model_info[0]['description'] or "",
+                "name": model_info[0]["name"],
+                "model": model_info[0]["model"],
+                "description": model_info[0]["description"] or "",
                 "message": f"Model information retrieved successfully for {model_name}",
             }
 

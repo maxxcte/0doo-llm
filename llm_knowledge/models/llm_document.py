@@ -194,13 +194,14 @@ class LLMDocument(models.Model):
         # Reindex for each collection
         for collection in collections:
             # Get chunks that belong to this collection
-            collection_chunks = chunks.filtered(lambda c: collection.id in c.collection_ids.ids)
+            collection_chunks = chunks.filtered(
+                lambda c: collection.id in c.collection_ids.ids
+            )
             if collection_chunks:
                 # Use embedding_model_id instead of collection_id
                 embedding_model_id = collection.embedding_model_id.id
                 collection_chunks.create_embedding_index(
-                    embedding_model_id=embedding_model_id,
-                    force=True
+                    embedding_model_id=embedding_model_id, force=True
                 )
 
         return {
@@ -208,7 +209,9 @@ class LLMDocument(models.Model):
             "tag": "display_notification",
             "params": {
                 "title": _("Reindexing"),
-                "message": _(f"Reindexing request submitted for {len(collections)} collections."),
+                "message": _(
+                    f"Reindexing request submitted for {len(collections)} collections."
+                ),
                 "type": "success",
             },
         }
@@ -229,7 +232,9 @@ class LLMDocument(models.Model):
             "tag": "display_notification",
             "params": {
                 "title": _("Reindexing"),
-                "message": _(f"Reindexing request submitted for {len(collections)} collections."),
+                "message": _(
+                    f"Reindexing request submitted for {len(collections)} collections."
+                ),
                 "type": "success",
                 "sticky": False,
             },
