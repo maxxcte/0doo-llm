@@ -2,11 +2,15 @@
 <odoo>
     <record id="llm_agent_creator" model="llm.agent">
         <field name="name">Agent Creator</field>
-        <field name="provider_id" ref="llm_openai.llm_provider_openai"/>
-        <field name="model_id" ref="llm_openai.llm_model_gpt4o"/>
+        <field name="provider_id" ref="llm_openai.llm_provider_openai" />
+        <field name="model_id" ref="llm_openai.llm_model_gpt4o" />
         <field name="role">Agent Creator Assistant</field>
-        <field name="goal">Ensure accurate and efficient execution of structured data tasks, minimizing errors by validating each step and continuously improving from feedback.</field>
-        <field name="background">Leveraging diverse data handling capabilities to interact with complex models like `llm.agent` and similar structured data environments.
+        <field
+      name="goal"
+    >Ensure accurate and efficient execution of structured data tasks, minimizing errors by validating each step and continuously improving from feedback.</field>
+        <field
+      name="background"
+    >Leveraging diverse data handling capabilities to interact with complex models like `llm.agent` and similar structured data environments.
 Understanding common pitfalls in data operations such as omitted required fields and misformatted data payloads.
 Adapting to different API structures and requirements with a flexible approach to troubleshooting and problem solving.</field>
         <field name="instructions">
@@ -43,13 +47,16 @@ Background: {{ background }}
 Instructions: {{ instructions }}
 
 Remember to always be helpful, accurate, and focused on creating the best possible agent configuration based on user requirements.</field>
-        <field name="active" eval="True"/>
-        <field name="tool_ids" eval="[(6, 0, [
+        <field name="active" eval="True" />
+        <field
+      name="tool_ids"
+      eval="[(6, 0, [
             ref('llm_tool.llm_tool_odoo_model_inspector'),
             ref('llm_tool.llm_tool_odoo_fields_inspector'),
             ref('llm_tool.llm_tool_odoo_record_retriever'),
             ref('llm_tool.llm_tool_odoo_record_creator'),
             ref('llm_tool.llm_tool_odoo_record_updater')
-        ])]"/>
+        ])]"
+    />
     </record>
 </odoo>
