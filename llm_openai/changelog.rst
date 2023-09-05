@@ -1,3 +1,8 @@
+16.0.1.1.1 (2025-04-03)
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* [FIX] Added default model for OpenAI, will work when user adds API key
+
 16.0.1.1.0 (2025-03-06)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
