@@ -1,3 +1,4 @@
+# models/document_page.py
 import logging
 import re
 import mimetypes
@@ -33,10 +34,26 @@ class DocumentPage(models.Model):
         store=False,
     )
 
+    pending_mime_updates = fields.Boolean(
+        string="Pending MIME Updates",
+        compute="_compute_pending_mime_updates",
+        store=False,
+        help="Indicates if any links are pending MIME type updates",
+    )
+
     def _compute_link_count(self):
         """Compute the number of links for each page."""
         for page in self:
             page.link_count = len(page.link_ids)
+
+    def _compute_pending_mime_updates(self):
+        """Check if any links are waiting for MIME type updates."""
+        for page in self:
+            page.pending_mime_updates = bool(self.env['document.page.link'].search_count([
+                ('page_id', '=', page.id),
+                ('link_type', '=', 'external'),
+                ('mime_type_updated', '=', False),
+            ]))
 
     def action_retrieve_content(self):
         """Directly retrieve content from the external URL."""
@@ -97,7 +114,7 @@ class DocumentPage(models.Model):
         # Extract new links
         links = self._extract_links_from_content(content)
 
-        # Create new document.page.link records
+        # Create new document.page.link records without fetching MIME info yet
         for link_data in links:
             self.env['document.page.link'].create({
                 'page_id': self.id,
@@ -136,6 +153,8 @@ class DocumentPage(models.Model):
                 "url": url,
                 "name": title,
                 "link_type": link_type,
+                # Don't set mime_type or content_size here
+                "mime_type_updated": False,
             }
 
             links.append(link_data)
@@ -153,3 +172,11 @@ class DocumentPage(models.Model):
             "type": "ir.actions.act_window",
             "context": {"default_page_id": self.id},
         }
+
+    def action_update_link_mime_types(self):
+        """Update MIME types for all links of this page."""
+        self.ensure_one()
+        links = self.link_ids.filtered(lambda r: r.link_type == 'external' and not r.mime_type_updated)
+        if links:
+            links.refresh_mime_info()
+        return True

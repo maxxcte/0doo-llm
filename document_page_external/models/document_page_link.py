@@ -1,3 +1,4 @@
+# models/document_page_link.py
 import logging
 import mimetypes
 import requests
@@ -52,6 +53,11 @@ class DocumentPageLink(models.Model):
         string="Size (KB)",
         help="Size of the linked resource in kilobytes",
     )
+    mime_type_updated = fields.Boolean(
+        string="MIME Type Updated",
+        default=False,
+        help="Indicates if MIME type has been updated",
+    )
     active = fields.Boolean(default=True)
 
     _sql_constraints = [
@@ -64,17 +70,18 @@ class DocumentPageLink(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        """Extend create to automatically retrieve MIME info for external links."""
-        records = super().create(vals_list)
+        """Create links without fetching MIME types immediately."""
+        # Basic MIME type guessing for file extensions
+        for vals in vals_list:
+            url = vals.get('url', '')
+            # Only try to guess MIME type for non-HTTP urls
+            if url and not url.startswith(('http://', 'https://', 'www.')):
+                mime_type, _ = mimetypes.guess_type(url)
+                if mime_type:
+                    vals['mime_type'] = mime_type
+                    vals['mime_type_updated'] = True
 
-        # Process external links to retrieve MIME info
-        external_links = records.filtered(lambda r: r.link_type == 'external' and not r.mime_type)
-        for link in external_links:
-            mime_info = self._get_link_mime_info(link.url)
-            if mime_info.get('mime_type') or mime_info.get('content_size'):
-                link.write(mime_info)
-
-        return records
+        return super().create(vals_list)
 
     @api.model
     def _get_link_mime_info(self, url):
@@ -135,5 +142,41 @@ class DocumentPageLink(models.Model):
         for link in self.filtered(lambda r: r.link_type == 'external'):
             mime_info = self._get_link_mime_info(link.url)
             if mime_info.get('mime_type') or mime_info.get('content_size'):
-                link.write(mime_info)
+                link.write({
+                    'mime_type': mime_info.get('mime_type'),
+                    'content_size': mime_info.get('content_size'),
+                    'mime_type_updated': True,
+                })
+        return True
+
+    @api.model
+    def update_pending_mime_types(self, limit=50):
+        """Update MIME types for links that haven't been processed yet.
+        This can be called from a scheduled action."""
+        links = self.search([
+            ('link_type', '=', 'external'),
+            ('mime_type_updated', '=', False)
+        ], limit=limit)
+
+        for link in links:
+            try:
+                mime_info = self._get_link_mime_info(link.url)
+                update_vals = {'mime_type_updated': True}
+
+                if mime_info.get('mime_type'):
+                    update_vals['mime_type'] = mime_info['mime_type']
+                if mime_info.get('content_size'):
+                    update_vals['content_size'] = mime_info['content_size']
+
+                link.write(update_vals)
+
+                # Small delay to avoid overwhelming external servers
+                import time
+                time.sleep(0.1)
+
+            except Exception as e:
+                _logger.error("Error updating MIME info for link %s: %s", link.id, e)
+                # Mark as updated anyway to avoid retrying forever
+                link.write({'mime_type_updated': True})
+
         return True

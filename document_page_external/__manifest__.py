@@ -12,6 +12,8 @@
     "data": [
         "security/ir.model.access.csv",
         "views/document_page_view.xml",
+        "views/document_page_link.xml",
+        "data/scheduled_actions.xml",  # New scheduled action
     ],
     "demo": [],
     "external_dependencies": {
@@ -32,5 +34,6 @@ This module extends document_page to add:
 * Automatic extraction and tracking of links from page content
 * "Links" tab to view and manage links associated with a page
 * Automatic detection of MIME types and file sizes using HEAD requests
+* Background processing of MIME type detection for better performance
     """,
 }
