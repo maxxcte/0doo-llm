@@ -278,9 +278,9 @@ class LLMDocumentCollection(models.Model):
         """Reindex all documents in the collection"""
         for collection in self:
             # Get all chunks from this collection
-            chunks = self.env["llm.document.chunk"].search(
-                [("collection_ids", "=", collection.id)]
-            )
+            chunks = self.env["llm.document.chunk"].search([
+                ("collection_ids", "=", collection.id)
+            ])
 
             if chunks:
                 # Use embedding_model_id instead of collection_id
@@ -294,20 +294,16 @@ class LLMDocumentCollection(models.Model):
                     chunks.create_embedding_index(
                         embedding_model_id=embedding_model_id,
                         dimensions=dimensions,
-                        force=True,  # Force recreate
+                        force=True  # Force recreate
                     )
 
                     collection.message_post(
-                        body=_(
-                            f"Reindexed {len(chunks)} chunks with model {collection.embedding_model_id.name}."
-                        ),
+                        body=_(f"Reindexed {len(chunks)} chunks with model {collection.embedding_model_id.name}."),
                         message_type="notification",
                     )
                 else:
                     collection.message_post(
-                        body=_(
-                            "Cannot reindex: No embedding model configured for this collection."
-                        ),
+                        body=_("Cannot reindex: No embedding model configured for this collection."),
                         message_type="warning",
                     )
             else:
@@ -367,13 +363,11 @@ class LLMDocumentCollection(models.Model):
                 # Apply embeddings to each chunk in the batch and add to collection
                 for j, chunk in enumerate(batch):
                     # Update with a single write operation per chunk
-                    chunk.write(
-                        {
-                            "embedding": batch_embeddings[j],
-                            "embedding_model_id": embedding_model.id,
-                            "collection_ids": [(4, collection.id)],
-                        }
-                    )
+                    chunk.write({
+                        "embedding": batch_embeddings[j],
+                        "embedding_model_id": embedding_model.id,
+                        "collection_ids": [(4, collection.id)]
+                    })
 
                 processed_chunks += len(batch)
                 _logger.info(f"Processed {processed_chunks}/{total_chunks} chunks")
@@ -397,7 +391,8 @@ class LLMDocumentCollection(models.Model):
                 # Use embedding_model_id instead of collection_id
                 dimensions = len(batch_embeddings[0]) if batch_embeddings else None
                 self.env["llm.document.chunk"].create_embedding_index(
-                    embedding_model_id=embedding_model.id, dimensions=dimensions
+                    embedding_model_id=embedding_model.id,
+                    dimensions=dimensions
                 )
             else:
                 collection.message_post(

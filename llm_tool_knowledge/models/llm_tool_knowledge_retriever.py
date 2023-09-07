@@ -132,17 +132,15 @@ class LLMToolKnowledgeRetriever(models.Model):
         result_data = []
         for doc_id in top_docs:
             for chunk in chunks_by_doc[doc_id]:
-                result_data.append(
-                    {
-                        "content": chunk.content,
-                        "document_name": chunk.document_id.name,
-                        "document_id": chunk.document_id.id,
-                        "chunk_id": chunk.id,
-                        "chunk_name": chunk.name,
-                        "similarity": round(chunk.similarity, 4),
-                        "similarity_percentage": f"{int(chunk.similarity * 100)}%",
-                    }
-                )
+                result_data.append({
+                    "content": chunk.content,
+                    "document_name": chunk.document_id.name,
+                    "document_id": chunk.document_id.id,
+                    "chunk_id": chunk.id,
+                    "chunk_name": chunk.name,
+                    "similarity": round(chunk.similarity, 4),
+                    "similarity_percentage": f"{int(chunk.similarity * 100)}%",
+                })
 
         return result_data
 
@@ -164,30 +162,22 @@ class LLMToolKnowledgeRetriever(models.Model):
             # Validate collection exists
             collection = None
             if collection_id:
-                collection = self.env["llm.document.collection"].browse(
-                    int(collection_id)
-                )
+                collection = self.env["llm.document.collection"].browse(int(collection_id))
                 if not collection.exists():
-                    _logger.warning(
-                        f"Collection with ID {collection_id} not found, falling back to default"
-                    )
+                    _logger.warning(f"Collection with ID {collection_id} not found, falling back to default")
                     collection = None
-
+            
             # If no valid collection_id was provided or found, get the default collection
             if not collection:
                 # Try to find a default collection (the first active one)
                 collection = self.env["llm.document.collection"].search(
                     [("active", "=", True)], limit=1
                 )
-
+                
                 if not collection:
-                    return {
-                        "error": "No valid collection found. Please provide a valid collection ID or set up a default collection."
-                    }
-
-                _logger.info(
-                    f"Using default collection: {collection.name} (ID: {collection.id})"
-                )
+                    return {"error": "No valid collection found. Please provide a valid collection ID or set up a default collection."}
+                
+                _logger.info(f"Using default collection: {collection.name} (ID: {collection.id})")
 
             # Get the embedding model from the collection
             embedding_model = collection.embedding_model_id
@@ -228,7 +218,7 @@ class LLMToolKnowledgeRetriever(models.Model):
                 limit=search_limit,
                 query_vector=query_embedding,
                 query_min_similarity=similarity_cutoff,
-                query_operator="<=>",  # Cosine similarity
+                query_operator="<=>"  # Cosine similarity
             )
 
             # Process results to get top chunks per document

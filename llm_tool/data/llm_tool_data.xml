@@ -43,7 +43,7 @@
         <field name="active" eval="True" />
         <field name="requires_user_consent" eval="True" />
     </record>
-
+    
     <record id="llm_tool_odoo_model_inspector" model="llm.tool">
         <field name="name">odoo_model_inspector</field>
         <field name="implementation">odoo_model_inspector</field>
@@ -54,7 +54,7 @@
         <field name="active" eval="True" />
         <field name="requires_user_consent" eval="False" />
     </record>
-
+    
     <record id="llm_tool_odoo_fields_inspector" model="llm.tool">
         <field name="name">odoo_fields_inspector</field>
         <field name="implementation">odoo_fields_inspector</field>

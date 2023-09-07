@@ -22,17 +22,12 @@ class LLMToolFieldsInspector(models.Model):
             model_config = ConfigDict(
                 title=self.name or "odoo_fields_inspector",
             )
-            model: str = Field(
-                ...,
-                description="The Odoo model name to get field information for (example: res.partner)",
-            )
+            model: str = Field(..., description="The Odoo model name to get field information for (example: res.partner)")
             field_names: list = Field(
-                default=None,
-                description="Optional list of specific field names to retrieve (if empty, all fields will be returned)",
+                default=None, description="Optional list of specific field names to retrieve (if empty, all fields will be returned)"
             )
             limit: int = Field(
-                default=0,
-                description="Maximum number of fields to return (0 means no limit). Can be useful as some odoo models have massive amount of fields",
+                default=0, description="Maximum number of fields to return (0 means no limit). Can be useful as some odoo models have massive amount of fields"
             )
 
         return ModelFieldsParams
@@ -54,23 +49,23 @@ class LLMToolFieldsInspector(models.Model):
                 return {"error": f"Model '{model_name}' not found"}
 
             model = self.env[model_name]
-
+            
             # Get field information using fields_get method
             if field_names:
                 fields_info = model.fields_get(field_names)
             else:
                 fields_info = model.fields_get()
-
+            
             # Process field information to make it more readable
             processed_fields = {}
             total_fields = len(fields_info)
-
+            
             # Apply limit if specified
             if limit > 0:
                 # Convert to list of items, slice, then convert back to dict
                 field_items = list(fields_info.items())[:limit]
                 fields_info = dict(field_items)
-
+            
             for field_name, field_data in fields_info.items():
                 processed_field = {
                     "name": field_name,
@@ -81,37 +76,28 @@ class LLMToolFieldsInspector(models.Model):
                     "readonly": field_data.get("readonly", False),
                     "store": field_data.get("store", True),
                 }
-
+                
                 # Add relation info if it's a relational field
                 if field_data.get("relation"):
                     processed_field["relation"] = field_data.get("relation")
-                    processed_field["relation_field"] = field_data.get(
-                        "relation_field", ""
-                    )
-
+                    processed_field["relation_field"] = field_data.get("relation_field", "")
+                
                 # Add selection values if it's a selection field
                 if field_data.get("selection"):
                     # Convert selection to dict for easier consumption
                     if isinstance(field_data.get("selection"), list):
-                        selection_dict = {
-                            key: value for key, value in field_data.get("selection", [])
-                        }
+                        selection_dict = {key: value for key, value in field_data.get("selection", [])}
                         processed_field["selection"] = selection_dict
-
+                
                 processed_fields[field_name] = processed_field
-
+            
             result = {
                 "model": model_name,
                 "fields": processed_fields,
                 "field_count": len(processed_fields),
                 "total_fields": total_fields,
                 "limited": limit > 0 and total_fields > limit,
-                "message": f"Field information retrieved successfully for {model_name}"
-                + (
-                    f" (limited to {limit} fields)"
-                    if limit > 0 and total_fields > limit
-                    else ""
-                ),
+                "message": f"Field information retrieved successfully for {model_name}" + (f" (limited to {limit} fields)" if limit > 0 and total_fields > limit else ""),
             }
 
             return result

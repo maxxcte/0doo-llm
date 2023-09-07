@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Tree View for document.page.link -->
+    <record id="view_document_page_link_tree" model="ir.ui.view">
+        <field name="name">document.page.link.tree</field>
+        <field name="model">document.page.link</field>
+        <field name="arch" type="xml">
+            <tree string="Document Page Links">
+                <field name="name"/>
+                <field name="url"/>
+                <field name="link_type"/>
+                <field name="mime_type"/>
+                <field name="content_size" widget="float_time"/>
+                <field name="page_id"/>
+                <button
+                        name="open_link"
+                        type="object"
+                        string="Open Link"
+                        icon="fa-external-link"
+                        class="btn btn-sm btn-link"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form View for document.page.link -->
+    <record id="view_document_page_link_form" model="ir.ui.view">
+        <field name="name">document.page.link.form</field>
+        <field name="model">document.page.link</field>
+        <field name="arch" type="xml">
+            <form string="Document Page Link">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button
+                                name="open_link"
+                                type="object"
+                                string="Open Link"
+                                class="oe_stat_button"
+                                icon="fa-external-link"/>
+                        <button
+                                name="refresh_mime_info"
+                                type="object"
+                                string="Refresh MIME Info"
+                                class="oe_stat_button"
+                                icon="fa-refresh"
+                                attrs="{'invisible': [('link_type', '!=', 'external')]}"/>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="url"/>
+                            <field name="link_type"/>
+                            <field name="mime_type"/>
+                            <field name="content_size" widget="float_time"/>
+                        </group>
+                        <group>
+                            <field name="page_id"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View for document.page.link -->
+    <record id="view_document_page_link_search" model="ir.ui.view">
+        <field name="name">document.page.link.search</field>
+        <field name="model">document.page.link</field>
+        <field name="arch" type="xml">
+            <search string="Search Links">
+                <field name="name"/>
+                <field name="url"/>
+                <field name="page_id"/>
+                <field name="mime_type"/>
+                <filter
+                        string="Internal Links"
+                        name="internal_links"
+                        domain="[('link_type', '=', 'internal')]"/>
+                <filter
+                        string="External Links"
+                        name="external_links"
+                        domain="[('link_type', '=', 'external')]"/>
+                <filter
+                        string="Email Links"
+                        name="email_links"
+                        domain="[('link_type', '=', 'mailto')]"/>
+                <filter
+                        string="With MIME Type"
+                        name="has_mime_type"
+                        domain="[('mime_type', '!=', False)]"/>
+                <separator/>
+                <filter
+                        string="Image Files"
+                        name="image_files"
+                        domain="[('mime_type', 'ilike', 'image')]"/>
+                <filter
+                        string="PDF Files"
+                        name="pdf_files"
+                        domain="[('mime_type', 'ilike', 'pdf')]"/>
+                <filter
+                        string="HTML Files"
+                        name="html_files"
+                        domain="[('mime_type', 'ilike', 'html')]"/>
+                <group expand="0" string="Group By">
+                    <filter
+                            string="Document Page"
+                            name="group_by_page"
+                            domain="[]"
+                            context="{'group_by': 'page_id'}"/>
+                    <filter
+                            string="Link Type"
+                            name="group_by_type"
+                            domain="[]"
+                            context="{'group_by': 'link_type'}"/>
+                    <filter
+                            string="MIME Type"
+                            name="group_by_mime"
+                            domain="[]"
+                            context="{'group_by': 'mime_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Add action for refreshing MIME info on multiple records -->
+    <record id="action_refresh_mime_info" model="ir.actions.server">
+        <field name="name">Refresh MIME Info</field>
+        <field name="model_id" ref="model_document_page_link" />
+        <field name="binding_model_id" ref="model_document_page_link" />
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">
+            records.filtered(lambda r: r.link_type == 'external').refresh_mime_info()
+        </field>
+    </record>
+</odoo>

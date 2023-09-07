@@ -18,13 +18,12 @@ Key Features:
 Use cases include creating specialized agents for customer support, data analysis, training assistance, and more.
     """,
     "category": "Productivity, Discuss",
-    "version": "16.0.1.0.1",
+    "version": "16.0.1.0.0",
     "depends": ["base", "mail", "web", "llm", "llm_thread", "llm_tool"],
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
     "data": [
         "security/ir.model.access.csv",
-        "data/llm_agent_data.xml",
         "views/llm_agent_views.xml",
         "views/llm_thread_views.xml",
         "views/llm_menu_views.xml",

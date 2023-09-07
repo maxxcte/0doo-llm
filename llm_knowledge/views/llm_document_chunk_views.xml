@@ -1,15 +1,15 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <odoo>
     <!-- Tree View -->
     <record id="view_llm_document_chunk_tree" model="ir.ui.view">
         <field name="name">llm.document.chunk.tree</field>
         <field name="model">llm.document.chunk</field>
         <field name="arch" type="xml">
-            <tree>
-                <field name="name" />
-                <field name="document_id" />
-                <field name="sequence" widget="handle" />
-                <field name="collection_ids" widget="many2many_tags" />
+            <tree string="Document Chunks">
+                <field name="name"/>
+                <field name="document_id"/>
+                <field name="sequence" widget="handle"/>
+                <field name="collection_ids" widget="many2many_tags"/>
             </tree>
         </field>
     </record>
@@ -22,11 +22,11 @@
             <form string="Document Chunk">
                 <sheet>
                     <group>
-                        <field name="document_id" />
-                        <field name="sequence" />
-                        <field name="content" />
-                        <field name="metadata" widget="json_widget" />
-                        <field name="collection_ids" widget="many2many_tags" />
+                        <field name="document_id"/>
+                        <field name="sequence"/>
+                        <field name="content"/>
+                        <field name="metadata" widget="json_widget"/>
+                        <field name="collection_ids" widget="many2many_tags"/>
                     </group>
                 </sheet>
             </form>
@@ -37,16 +37,13 @@
         <field name="model">llm.document.chunk</field>
         <field name="arch" type="xml">
             <search>
-                <field name="name" />
-                <field name="content" />
-                <field name="document_id" />
-                <field name="collection_ids" />
+                <field name="name"/>
+                <field name="content"/>
+                <field name="document_id"/>
+                <field name="collection_ids"/>
                 <!-- Special filter for vector search -->
-                <filter
-          string="Vector Search"
-          name="vector_search"
-          context="{'search_view_vector_search': True}"
-        />
+                <filter string="Vector Search" name="vector_search" 
+                        context="{'search_view_vector_search': True}"/>
             </search>
         </field>
     </record>

@@ -1,6 +1,6 @@
 {
     "name": "LLM Tool RAG",
-    "version": "16.0.1.0.1",
+    "version": "16.0.1.0.0",
     "category": "Productivity/Tools",
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
@@ -17,10 +17,9 @@ Features:
 - Reusable document search functionality
 - Semantic and hybrid search capabilities
     """,
-    "depends": ["llm_knowledge", "llm_tool", "llm_agent"],
+    "depends": ["llm_knowledge", "llm_tool"],
     "data": [
         "data/llm_tool_data.xml",
-        "data/llm_agent_data.xml",
     ],
     "images": [
         "static/description/banner.jpeg",

@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { attr } from "@mail/model/model_field";
+import { many } from "@mail/model/model_field";
 import { registerPatch } from "@mail/model/model_core";
 
 // Define agent-related fields to fetch from server
@@ -12,10 +12,7 @@ const AGENT_THREAD_FIELDS = ["agent_id"];
 registerPatch({
   name: "LLMChat",
   fields: {
-    // Use attr instead of many for direct array access
-    llmAgents: attr({
-      default: [],
-    }),
+    llmAgents: many("LLMAgent"),
   },
   recordMethods: {
     /**
@@ -26,7 +23,7 @@ registerPatch({
         model: "llm.agent",
         method: "search_read",
         kwargs: {
-          domain: [["active", "=", true]],
+          domain: [],
           fields: ["name"],
         },
       });
