@@ -11,6 +11,8 @@
     """,
     "category": "Technical",
     "version": "16.0.1.0.0",
+    "author": "Apexive Solutions LLC",
+    "website": "https://github.com/apexive/odoo-llm",
     "depends": ["base"],
     "external_dependencies": {
         "python": ["pgvector", "numpy"],

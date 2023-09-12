@@ -9,35 +9,37 @@
                     <group>
                         <field name="collection_id" invisible="1" />
                         <field
-                                name="model_id"
-                                options="{'no_create': True}"
-                                required="1"
-                        />
+              name="model_id"
+              options="{'no_create': True}"
+              required="1"
+            />
                         <field
-                                name="domain"
-                                widget="domain"
-                                options="{'model': 'model_name'}"
-                                required="1"
-                        />
+              name="domain"
+              widget="domain"
+              options="{'model': 'model_name'}"
+              required="1"
+            />
                         <field name="model_name" invisible="1" />
                     </group>
                     <div class="alert alert-info" role="alert">
-                        <p>This will add (or update) the domain for the selected model to the collection's source domains.</p>
-                        <p>Records matching this domain will be used to create RAG documents when you click 'Add Documents from Domain' in the collection.</p>
+                        <p
+            >This will add (or update) the domain for the selected model to the collection's source domains.</p>
+                        <p
+            >Records matching this domain will be used to create RAG documents when you click 'Add Documents from Domain' in the collection.</p>
                     </div>
                 </sheet>
                 <footer>
                     <button
-                            name="action_add_domain"
-                            string="Add Domain"
-                            type="object"
-                            class="btn-primary"
-                    />
+            name="action_add_domain"
+            string="Add Domain"
+            type="object"
+            class="btn-primary"
+          />
                     <button
-                            string="Cancel"
-                            class="btn-secondary"
-                            special="cancel"
-                    />
+            string="Cancel"
+            class="btn-secondary"
+            special="cancel"
+          />
                 </footer>
             </form>
         </field>

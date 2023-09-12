@@ -1,4 +1,5 @@
 import logging
+
 from pgvector import Vector
 from pgvector.psycopg2 import register_vector
 
@@ -16,6 +17,7 @@ class EmbeddingMixin(models.AbstractModel):
     This mixin provides functionality for vector search operations and index management.
     Models using this mixin can create model-specific indices for better performance.
     """
+
     _name = "llm.embedding.mixin"
     _description = "Vector Embedding Mixin"
 
@@ -32,26 +34,34 @@ class EmbeddingMixin(models.AbstractModel):
     )
 
     # Virtual field to store similarity score in search results
-    similarity = fields.Float(string="Similarity Score", store=False, compute="_compute_similarity")
+    similarity = fields.Float(
+        string="Similarity Score", store=False, compute="_compute_similarity"
+    )
 
     def _compute_similarity(self):
         """Compute method for the similarity field."""
         for record in self:
             # Get the similarity score from the context
-            record.similarity = self.env.context.get('similarity_scores', {}).get(record.id, 0.0)
+            record.similarity = self.env.context.get("similarity_scores", {}).get(
+                record.id, 0.0
+            )
 
     @api.model
-    def _name_search(self, name, args=None, operator='ilike', limit=100, name_get_uid=None):
+    def _name_search(
+        self, name, args=None, operator="ilike", limit=100, name_get_uid=None
+    ):
         """Override _name_search to support semantic search with a 'search_vector' in context."""
-        if self.env.context.get('search_vector'):
+        if self.env.context.get("search_vector"):
             vector_domain = self._vector_domain(
-                self.env.context.get('search_vector'),
-                self.env.context.get('query_min_similarity', 0.0),
-                self.env.context.get('query_operator', '<=>'),
-                args
+                self.env.context.get("search_vector"),
+                self.env.context.get("query_min_similarity", 0.0),
+                self.env.context.get("query_operator", "<=>"),
+                args,
             )
             if vector_domain:
-                return self._search(vector_domain, limit=limit, access_rights_uid=name_get_uid)
+                return self._search(
+                    vector_domain, limit=limit, access_rights_uid=name_get_uid
+                )
         return super()._name_search(name, args, operator, limit, name_get_uid)
 
     @api.model
@@ -67,14 +77,11 @@ class EmbeddingMixin(models.AbstractModel):
         :return: Recordset of matching records, ordered by similarity
         """
         # Extract vector search parameters
-        query_vector = kwargs.get('query_vector')
-        query_operator = kwargs.get('query_operator', '<=>')
-        query_min_similarity = kwargs.get('query_min_similarity', 0.0)
+        query_vector = kwargs.get("query_vector")
+        query_operator = kwargs.get("query_operator", "<=>")
+        query_min_similarity = kwargs.get("query_min_similarity", 0.0)
 
         if query_vector is not None:
-            # This is a vector similarity search
-            vector_domain = self._vector_domain(query_vector, query_min_similarity, query_operator, args)
-
             # Get results and similarity scores
             results, similarities = self._run_vector_search(
                 query_vector,
@@ -82,11 +89,13 @@ class EmbeddingMixin(models.AbstractModel):
                 limit=limit,
                 offset=offset,
                 min_similarity=query_min_similarity,
-                operator=query_operator
+                operator=query_operator,
             )
 
             # Store similarity scores in the context for access through the similarity field
-            similarity_scores = dict(zip([r.id for r in results], similarities))
+            similarity_scores = dict(
+                zip([r.id for r in results], similarities, strict=False)
+            )
 
             # Return results with similarity scores in context
             if count:
@@ -96,9 +105,13 @@ class EmbeddingMixin(models.AbstractModel):
             return results.with_context(similarity_scores=similarity_scores)
 
         # Fall back to standard search
-        return super().search(args, offset=offset, limit=limit, order=order, count=count)
+        return super().search(
+            args, offset=offset, limit=limit, order=order, count=count
+        )
 
-    def _vector_domain(self, query_vector, min_similarity=0.0, operator='<=>', base_domain=None):
+    def _vector_domain(
+        self, query_vector, min_similarity=0.0, operator="<=>", base_domain=None
+    ):
         """Helper to create a domain for vector search."""
         if not query_vector:
             return base_domain or []
@@ -107,16 +120,24 @@ class EmbeddingMixin(models.AbstractModel):
         domain = list(base_domain or [])
 
         # Add a domain item that will be handled specially by _search
-        domain.append(('embedding', operator, query_vector))
+        domain.append(("embedding", operator, query_vector))
 
         if min_similarity > 0:
             # Add similarity threshold
-            similarity_domain = ('similarity', '>=', min_similarity)
+            similarity_domain = ("similarity", ">=", min_similarity)
             domain.append(similarity_domain)
 
         return domain
 
-    def _run_vector_search(self, query_vector, domain=None, limit=None, offset=0, min_similarity=0.0, operator='<=>'):
+    def _run_vector_search(
+        self,
+        query_vector,
+        domain=None,
+        limit=None,
+        offset=0,
+        min_similarity=0.0,
+        operator="<=>",
+    ):
         """Perform a vector similarity search.
 
         :param query_vector: The query embedding vector
@@ -146,7 +167,12 @@ class EmbeddingMixin(models.AbstractModel):
         embedding_model_id = None
         if domain:
             for cond in domain:
-                if isinstance(cond, (list, tuple)) and len(cond) == 3 and cond[0] == 'embedding_model_id' and cond[1] == '=':
+                if (
+                    isinstance(cond, (list, tuple))
+                    and len(cond) == 3
+                    and cond[0] == "embedding_model_id"
+                    and cond[1] == "="
+                ):
                     embedding_model_id = cond[2]
                     break
 
@@ -204,7 +230,9 @@ class EmbeddingMixin(models.AbstractModel):
         return self.browse(record_ids), similarities
 
     @api.model
-    def create_embedding_index(self, embedding_model_id=None, dimensions=None, force=False):
+    def create_embedding_index(
+        self, embedding_model_id=None, dimensions=None, force=False
+    ):
         """
         Create a vector index for embeddings if it doesn't already exist.
 

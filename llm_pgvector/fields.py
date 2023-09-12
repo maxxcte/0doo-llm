@@ -17,6 +17,7 @@ class PgVector(fields.Field):
     :param int dimension: Optional dimension of the vector. If provided, the column
                           will be created with the specified dimension constraint.
     """
+
     type = "pgvector"
     column_type = ("vector", "vector")
 
