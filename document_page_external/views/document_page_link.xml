@@ -5,20 +5,21 @@
         <field name="name">document.page.link.tree</field>
         <field name="model">document.page.link</field>
         <field name="arch" type="xml">
-            <tree string="Document Page Links" decoration-warning="not mime_type_updated">
-                <field name="name"/>
-                <field name="url"/>
-                <field name="link_type"/>
-                <field name="mime_type"/>
-                <field name="content_size" widget="float_time"/>
-                <field name="mime_type_updated" invisible="1"/>
-                <field name="page_id"/>
+            <tree decoration-warning="not mime_type_updated">
+                <field name="name" />
+                <field name="url" />
+                <field name="link_type" />
+                <field name="mime_type" />
+                <field name="content_size" widget="float_time" />
+                <field name="mime_type_updated" invisible="1" />
+                <field name="page_id" />
                 <button
-                        name="open_link"
-                        type="object"
-                        string="Open Link"
-                        icon="fa-external-link"
-                        class="btn btn-sm btn-link"/>
+          name="open_link"
+          type="object"
+          string="Open Link"
+          icon="fa-external-link"
+          class="btn btn-sm btn-link"
+        />
             </tree>
         </field>
     </record>
@@ -31,36 +32,42 @@
             <form string="Document Page Link">
                 <header>
                     <button
-                            name="refresh_mime_info"
-                            type="object"
-                            string="Refresh MIME Info"
-                            class="btn-primary"
-                            attrs="{'invisible': ['|', ('link_type', '!=', 'external'), ('mime_type_updated', '=', True)]}"/>
+            name="refresh_mime_info"
+            type="object"
+            string="Refresh MIME Info"
+            class="btn-primary"
+            attrs="{'invisible': ['|', ('link_type', '!=', 'external'), ('mime_type_updated', '=', True)]}"
+          />
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button
-                                name="open_link"
-                                type="object"
-                                string="Open Link"
-                                class="oe_stat_button"
-                                icon="fa-external-link"/>
+              name="open_link"
+              type="object"
+              string="Open Link"
+              class="oe_stat_button"
+              icon="fa-external-link"
+            />
                     </div>
-                    <div class="alert alert-warning" attrs="{'invisible': ['|', ('link_type', '!=', 'external'), ('mime_type_updated', '=', True)]}">
-                        <p>MIME type information hasn't been updated yet. This will happen automatically or you can click "Refresh MIME Info".</p>
+                    <div
+            class="alert alert-warning"
+            attrs="{'invisible': ['|', ('link_type', '!=', 'external'), ('mime_type_updated', '=', True)]}"
+          >
+                        <p
+            >MIME type information hasn't been updated yet. This will happen automatically or you can click "Refresh MIME Info".</p>
                     </div>
                     <group>
                         <group>
-                            <field name="name"/>
-                            <field name="url"/>
-                            <field name="link_type"/>
-                            <field name="mime_type"/>
-                            <field name="content_size" widget="float_time"/>
-                            <field name="mime_type_updated"/>
+                            <field name="name" />
+                            <field name="url" />
+                            <field name="link_type" />
+                            <field name="mime_type" />
+                            <field name="content_size" widget="float_time" />
+                            <field name="mime_type_updated" />
                         </group>
                         <group>
-                            <field name="page_id"/>
-                            <field name="active"/>
+                            <field name="page_id" />
+                            <field name="active" />
                         </group>
                     </group>
                 </sheet>
@@ -74,59 +81,70 @@
         <field name="model">document.page.link</field>
         <field name="arch" type="xml">
             <search string="Search Links">
-                <field name="name"/>
-                <field name="url"/>
-                <field name="page_id"/>
-                <field name="mime_type"/>
+                <field name="name" />
+                <field name="url" />
+                <field name="page_id" />
+                <field name="mime_type" />
                 <filter
-                        string="Internal Links"
-                        name="internal_links"
-                        domain="[('link_type', '=', 'internal')]"/>
+          string="Internal Links"
+          name="internal_links"
+          domain="[('link_type', '=', 'internal')]"
+        />
                 <filter
-                        string="External Links"
-                        name="external_links"
-                        domain="[('link_type', '=', 'external')]"/>
+          string="External Links"
+          name="external_links"
+          domain="[('link_type', '=', 'external')]"
+        />
                 <filter
-                        string="Email Links"
-                        name="email_links"
-                        domain="[('link_type', '=', 'mailto')]"/>
+          string="Email Links"
+          name="email_links"
+          domain="[('link_type', '=', 'mailto')]"
+        />
                 <filter
-                        string="With MIME Type"
-                        name="has_mime_type"
-                        domain="[('mime_type', '!=', False)]"/>
+          string="With MIME Type"
+          name="has_mime_type"
+          domain="[('mime_type', '!=', False)]"
+        />
                 <filter
-                        string="Pending MIME Updates"
-                        name="pending_mime_updates"
-                        domain="[('link_type', '=', 'external'), ('mime_type_updated', '=', False)]"/>
-                <separator/>
+          string="Pending MIME Updates"
+          name="pending_mime_updates"
+          domain="[('link_type', '=', 'external'), ('mime_type_updated', '=', False)]"
+        />
+                <separator />
                 <filter
-                        string="Image Files"
-                        name="image_files"
-                        domain="[('mime_type', 'ilike', 'image')]"/>
+          string="Image Files"
+          name="image_files"
+          domain="[('mime_type', 'ilike', 'image')]"
+        />
                 <filter
-                        string="PDF Files"
-                        name="pdf_files"
-                        domain="[('mime_type', 'ilike', 'pdf')]"/>
+          string="PDF Files"
+          name="pdf_files"
+          domain="[('mime_type', 'ilike', 'pdf')]"
+        />
                 <filter
-                        string="HTML Files"
-                        name="html_files"
-                        domain="[('mime_type', 'ilike', 'html')]"/>
+          string="HTML Files"
+          name="html_files"
+          domain="[('mime_type', 'ilike', 'html')]"
+        />
                 <group expand="0" string="Group By">
                     <filter
-                            string="Document Page"
-                            name="group_by_page"
-                            domain="[]"
-                            context="{'group_by': 'page_id'}"/>
+            string="Document Page"
+            name="group_by_page"
+            domain="[]"
+            context="{'group_by': 'page_id'}"
+          />
                     <filter
-                            string="Link Type"
-                            name="group_by_type"
-                            domain="[]"
-                            context="{'group_by': 'link_type'}"/>
+            string="Link Type"
+            name="group_by_type"
+            domain="[]"
+            context="{'group_by': 'link_type'}"
+          />
                     <filter
-                            string="MIME Type"
-                            name="group_by_mime"
-                            domain="[]"
-                            context="{'group_by': 'mime_type'}"/>
+            string="MIME Type"
+            name="group_by_mime"
+            domain="[]"
+            context="{'group_by': 'mime_type'}"
+          />
                 </group>
             </search>
         </field>

@@ -1,12 +1,11 @@
 # models/document_page.py
 import logging
 import re
-import mimetypes
 
 import requests
 from dateutil.relativedelta import relativedelta
 
-from odoo import _, fields, models, api
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -56,11 +55,15 @@ class DocumentPage(models.Model):
     def _compute_pending_mime_updates(self):
         """Check if any links are waiting for MIME type updates."""
         for page in self:
-            page.pending_mime_updates = bool(self.env['document.page.link'].search_count([
-                ('page_id', '=', page.id),
-                ('link_type', '=', 'external'),
-                ('mime_type_updated', '=', False),
-            ]))
+            page.pending_mime_updates = bool(
+                self.env["document.page.link"].search_count(
+                    [
+                        ("page_id", "=", page.id),
+                        ("link_type", "=", "external"),
+                        ("mime_type_updated", "=", False),
+                    ]
+                )
+            )
 
     def action_retrieve_content(self):
         """Directly retrieve content from the external URL."""
@@ -96,7 +99,7 @@ class DocumentPage(models.Model):
                 "page_id": self.id,
                 "name": self.draft_name or "1.0",
                 "summary": summary
-                           or _("Retrieved from external URL: %s") % self.external_url,
+                or _("Retrieved from external URL: %s") % self.external_url,
                 "content": content,
             }
             self._create_history(history_vals)
@@ -123,10 +126,12 @@ class DocumentPage(models.Model):
 
         # Create new document.page.link records without fetching MIME info yet
         for link_data in links:
-            self.env['document.page.link'].create({
-                'page_id': self.id,
-                **link_data,
-            })
+            self.env["document.page.link"].create(
+                {
+                    "page_id": self.id,
+                    **link_data,
+                }
+            )
 
         return True
 
@@ -138,7 +143,10 @@ class DocumentPage(models.Model):
         unique_urls = set()  # Track unique URLs
 
         # Extract <a href="..."> links
-        href_pattern = re.compile(r'<a\s+(?:[^>]*?\s+)?href="([^"]*)"(?:\s+[^>]*?)?(?:\s*>\s*(.*?)\s*</a>)', re.IGNORECASE | re.DOTALL)
+        href_pattern = re.compile(
+            r'<a\s+(?:[^>]*?\s+)?href="([^"]*)"(?:\s+[^>]*?)?(?:\s*>\s*(.*?)\s*</a>)',
+            re.IGNORECASE | re.DOTALL,
+        )
         for match in href_pattern.finditer(content):
             url = match.group(1)
 
@@ -147,13 +155,17 @@ class DocumentPage(models.Model):
                 continue
 
             unique_urls.add(url)
-            title = re.sub(r'<[^>]*>', '', match.group(2) or '').strip() or url
+            title = re.sub(r"<[^>]*>", "", match.group(2) or "").strip() or url
 
             # Determine link type
             link_type = "external"
             if url.startswith("mailto:"):
                 link_type = "mailto"
-            elif url.startswith("/") or url.startswith("#") or (not url.startswith("http") and not url.startswith("www")):
+            elif (
+                url.startswith("/")
+                or url.startswith("#")
+                or (not url.startswith("http") and not url.startswith("www"))
+            ):
                 link_type = "internal"
 
             link_data = {
@@ -183,7 +195,9 @@ class DocumentPage(models.Model):
     def action_update_link_mime_types(self):
         """Update MIME types for all links of this page."""
         self.ensure_one()
-        links = self.link_ids.filtered(lambda r: r.link_type == 'external' and not r.mime_type_updated)
+        links = self.link_ids.filtered(
+            lambda r: r.link_type == "external" and not r.mime_type_updated
+        )
         if links:
             links.refresh_mime_info()
         return True
@@ -203,23 +217,31 @@ class DocumentPage(models.Model):
         cutoff_date = fields.Datetime.now() - relativedelta(days=frequency_days)
 
         # Get pages that have external_url set, auto_update enabled, and haven't been updated recently
-        pages = self.search([
-            ('external_url', '!=', False),
-            ('auto_update', '=', True),
-            '|',
-            ('write_date', '<', cutoff_date),  # Not updated recently
-            ('history_ids', '=', False),       # No history entries yet
-        ], limit=limit)
+        pages = self.search(
+            [
+                ("external_url", "!=", False),
+                ("auto_update", "=", True),
+                "|",
+                ("write_date", "<", cutoff_date),  # Not updated recently
+                ("history_ids", "=", False),  # No history entries yet
+            ],
+            limit=limit,
+        )
 
         _logger.info("Scheduled content retrieval: processing %d pages", len(pages))
 
         # Process each page
         for page in pages:
             try:
-                summary = _("Scheduled update from external URL: %s") % page.external_url
-                page.with_context(scheduled_action=True).retrieve_from_external_url(summary)
+                summary = (
+                    _("Scheduled update from external URL: %s") % page.external_url
+                )
+                page.with_context(scheduled_action=True).retrieve_from_external_url(
+                    summary
+                )
                 # Small delay to avoid overwhelming external servers
                 import time
+
                 time.sleep(0.5)
             except Exception as e:
                 _logger.error("Error retrieving content for page %s: %s", page.id, e)

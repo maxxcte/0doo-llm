@@ -1,10 +1,10 @@
 # models/document_page_link.py
 import logging
 import mimetypes
+
 import requests
 
-from odoo import fields, models, api
-from odoo.tools import human_size
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -73,13 +73,13 @@ class DocumentPageLink(models.Model):
         """Create links without fetching MIME types immediately."""
         # Basic MIME type guessing for file extensions
         for vals in vals_list:
-            url = vals.get('url', '')
+            url = vals.get("url", "")
             # Only try to guess MIME type for non-HTTP urls
-            if url and not url.startswith(('http://', 'https://', 'www.')):
+            if url and not url.startswith(("http://", "https://", "www.")):
                 mime_type, _ = mimetypes.guess_type(url)
                 if mime_type:
-                    vals['mime_type'] = mime_type
-                    vals['mime_type_updated'] = True
+                    vals["mime_type"] = mime_type
+                    vals["mime_type_updated"] = True
 
         return super().create(vals_list)
 
@@ -92,7 +92,7 @@ class DocumentPageLink(models.Model):
         }
 
         # Skip for non-http links
-        if not url.startswith(('http://', 'https://', 'www.')):
+        if not url.startswith(("http://", "https://", "www.")):
             # Try to guess mime type from extension
             mime_type, _ = mimetypes.guess_type(url)
             if mime_type:
@@ -100,25 +100,25 @@ class DocumentPageLink(models.Model):
             return result
 
         # Fix URLs starting with www.
-        if url.startswith('www.'):
-            url = 'http://' + url
+        if url.startswith("www."):
+            url = "http://" + url
 
         try:
             # Perform HEAD request with a timeout
             response = requests.head(url, timeout=5, allow_redirects=True)
 
             # Get content type from headers
-            if 'Content-Type' in response.headers:
-                content_type = response.headers['Content-Type']
+            if "Content-Type" in response.headers:
+                content_type = response.headers["Content-Type"]
                 # Strip parameters like charset
-                if ';' in content_type:
-                    content_type = content_type.split(';')[0].strip()
+                if ";" in content_type:
+                    content_type = content_type.split(";")[0].strip()
                 result["mime_type"] = content_type
 
             # Get content length if available
-            if 'Content-Length' in response.headers:
+            if "Content-Length" in response.headers:
                 try:
-                    size_bytes = int(response.headers['Content-Length'])
+                    size_bytes = int(response.headers["Content-Length"])
                     result["content_size"] = size_bytes // 1024  # Convert to KB
                 except (ValueError, TypeError):
                     pass
@@ -139,44 +139,47 @@ class DocumentPageLink(models.Model):
 
     def refresh_mime_info(self):
         """Action to refresh MIME type and content size information."""
-        for link in self.filtered(lambda r: r.link_type == 'external'):
+        for link in self.filtered(lambda r: r.link_type == "external"):
             mime_info = self._get_link_mime_info(link.url)
-            if mime_info.get('mime_type') or mime_info.get('content_size'):
-                link.write({
-                    'mime_type': mime_info.get('mime_type'),
-                    'content_size': mime_info.get('content_size'),
-                    'mime_type_updated': True,
-                })
+            if mime_info.get("mime_type") or mime_info.get("content_size"):
+                link.write(
+                    {
+                        "mime_type": mime_info.get("mime_type"),
+                        "content_size": mime_info.get("content_size"),
+                        "mime_type_updated": True,
+                    }
+                )
         return True
 
     @api.model
     def update_pending_mime_types(self, limit=50):
         """Update MIME types for links that haven't been processed yet.
         This can be called from a scheduled action."""
-        links = self.search([
-            ('link_type', '=', 'external'),
-            ('mime_type_updated', '=', False)
-        ], limit=limit)
+        links = self.search(
+            [("link_type", "=", "external"), ("mime_type_updated", "=", False)],
+            limit=limit,
+        )
 
         for link in links:
             try:
                 mime_info = self._get_link_mime_info(link.url)
-                update_vals = {'mime_type_updated': True}
+                update_vals = {"mime_type_updated": True}
 
-                if mime_info.get('mime_type'):
-                    update_vals['mime_type'] = mime_info['mime_type']
-                if mime_info.get('content_size'):
-                    update_vals['content_size'] = mime_info['content_size']
+                if mime_info.get("mime_type"):
+                    update_vals["mime_type"] = mime_info["mime_type"]
+                if mime_info.get("content_size"):
+                    update_vals["content_size"] = mime_info["content_size"]
 
                 link.write(update_vals)
 
                 # Small delay to avoid overwhelming external servers
                 import time
+
                 time.sleep(0.1)
 
             except Exception as e:
                 _logger.error("Error updating MIME info for link %s: %s", link.id, e)
                 # Mark as updated anyway to avoid retrying forever
-                link.write({'mime_type_updated': True})
+                link.write({"mime_type_updated": True})
 
         return True

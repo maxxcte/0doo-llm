@@ -7,56 +7,72 @@
         <field name="inherit_id" ref="document_page.view_wiki_form" />
         <field name="arch" type="xml">
             <!-- Add external URL field with button next to it (existing) -->
-            <xpath expr="//notebook/page[@name='info']/group/group[1]" position="inside">
-                <field name="external_url" placeholder="https://example.com/content" />
-                <field name="auto_update" attrs="{'invisible': [('external_url', '=', False)]}" />
+            <xpath
+        expr="//notebook/page[@name='info']/group/group[1]"
+        position="inside"
+      >
+                <field
+          name="external_url"
+          placeholder="https://example.com/content"
+        />
+                <field
+          name="auto_update"
+          attrs="{'invisible': [('external_url', '=', False)]}"
+        />
                 <button
-                        name="action_retrieve_content"
-                        type="object"
-                        string="Retrieve Content"
-                        class="oe_highlight btn-sm"
-                        attrs="{'invisible': [('external_url', '=', False)]}"
-                        icon="fa-download"
-                />
+          name="action_retrieve_content"
+          type="object"
+          string="Retrieve Content"
+          class="oe_highlight btn-sm"
+          attrs="{'invisible': [('external_url', '=', False)]}"
+          icon="fa-download"
+        />
             </xpath>
 
             <!-- Add links count to the button box (existing) -->
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button
-                        name="action_view_links"
-                        type="object"
-                        class="oe_stat_button"
-                        icon="fa-link">
-                    <field name="link_count" string="Links" widget="statinfo"/>
+          name="action_view_links"
+          type="object"
+          class="oe_stat_button"
+          icon="fa-link"
+        >
+                    <field name="link_count" string="Links" widget="statinfo" />
                 </button>
             </xpath>
 
             <!-- Add Links tab to the notebook (modified to show pending status) -->
             <xpath expr="//notebook" position="inside">
                 <page name="links" string="Links">
-                    <div class="alert alert-info" attrs="{'invisible': [('pending_mime_updates', '=', False)]}">
-                        <p><strong>Note:</strong> Some links are waiting for MIME type updates. This will happen automatically, or you can click the button below.</p>
+                    <div
+            class="alert alert-info"
+            attrs="{'invisible': [('pending_mime_updates', '=', False)]}"
+          >
+                        <p><strong
+              >Note:</strong> Some links are waiting for MIME type updates. This will happen automatically, or you can click the button below.</p>
                         <button
-                                name="action_update_link_mime_types"
-                                type="object"
-                                string="Update MIME Types Now"
-                                class="btn btn-primary btn-sm"/>
+              name="action_update_link_mime_types"
+              type="object"
+              string="Update MIME Types Now"
+              class="btn btn-primary btn-sm"
+            />
                     </div>
-                    <field name="pending_mime_updates" invisible="1"/>
+                    <field name="pending_mime_updates" invisible="1" />
                     <field name="link_ids">
                         <tree editable="bottom">
-                            <field name="name"/>
-                            <field name="url"/>
-                            <field name="link_type"/>
-                            <field name="mime_type"/>
-                            <field name="content_size" widget="float_time"/>
-                            <field name="mime_type_updated" invisible="1"/>
+                            <field name="name" />
+                            <field name="url" />
+                            <field name="link_type" />
+                            <field name="mime_type" />
+                            <field name="content_size" widget="float_time" />
+                            <field name="mime_type_updated" invisible="1" />
                             <button
-                                    name="open_link"
-                                    type="object"
-                                    string="Open"
-                                    icon="fa-external-link"
-                                    class="btn btn-sm btn-link"/>
+                name="open_link"
+                type="object"
+                string="Open"
+                icon="fa-external-link"
+                class="btn btn-sm btn-link"
+              />
                         </tree>
                     </field>
                 </page>
