@@ -4,8 +4,9 @@ import re
 import mimetypes
 
 import requests
+from dateutil.relativedelta import relativedelta
 
-from odoo import _, fields, models
+from odoo import _, fields, models, api
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -19,6 +20,12 @@ class DocumentPage(models.Model):
     external_url = fields.Char(
         string="External URL",
         help="URL of external content to fetch",
+    )
+
+    auto_update = fields.Boolean(
+        string="Auto Update",
+        default=True,
+        help="If checked, content will be automatically retrieved from the external URL by scheduled action",
     )
 
     link_ids = fields.One2many(
@@ -179,4 +186,44 @@ class DocumentPage(models.Model):
         links = self.link_ids.filtered(lambda r: r.link_type == 'external' and not r.mime_type_updated)
         if links:
             links.refresh_mime_info()
+        return True
+
+    @api.model
+    def scheduled_retrieve_content(self, limit=20, frequency_days=1):
+        """Scheduled method to automatically retrieve content from external URLs.
+
+        Args:
+            limit: Maximum number of pages to process
+            frequency_days: Only update pages that haven't been updated in this many days
+
+        Returns:
+            bool: True
+        """
+        # Find pages with external URLs that need updating
+        cutoff_date = fields.Datetime.now() - relativedelta(days=frequency_days)
+
+        # Get pages that have external_url set, auto_update enabled, and haven't been updated recently
+        pages = self.search([
+            ('external_url', '!=', False),
+            ('auto_update', '=', True),
+            '|',
+            ('write_date', '<', cutoff_date),  # Not updated recently
+            ('history_ids', '=', False),       # No history entries yet
+        ], limit=limit)
+
+        _logger.info("Scheduled content retrieval: processing %d pages", len(pages))
+
+        # Process each page
+        for page in pages:
+            try:
+                summary = _("Scheduled update from external URL: %s") % page.external_url
+                page.with_context(scheduled_action=True).retrieve_from_external_url(summary)
+                # Small delay to avoid overwhelming external servers
+                import time
+                time.sleep(0.5)
+            except Exception as e:
+                _logger.error("Error retrieving content for page %s: %s", page.id, e)
+                # Continue with the next page
+                continue
+
         return True

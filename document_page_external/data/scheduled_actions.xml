@@ -12,4 +12,17 @@
         <field name="doall" eval="False"/>
         <field name="active" eval="True"/>
     </record>
+
+    <!-- Scheduled action to retrieve page content from external URLs -->
+    <record id="ir_cron_retrieve_page_content" model="ir.cron">
+        <field name="name">Retrieve Document Page Content from External URLs</field>
+        <field name="model_id" ref="model_document_page"/>
+        <field name="state">code</field>
+        <field name="code">model.scheduled_retrieve_content(limit=20)</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="numbercall">-1</field>
+        <field name="doall" eval="False"/>
+        <field name="active" eval="True"/>
+    </record>
 </odoo>

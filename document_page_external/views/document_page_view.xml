@@ -9,6 +9,7 @@
             <!-- Add external URL field with button next to it (existing) -->
             <xpath expr="//notebook/page[@name='info']/group/group[1]" position="inside">
                 <field name="external_url" placeholder="https://example.com/content" />
+                <field name="auto_update" attrs="{'invisible': [('external_url', '=', False)]}" />
                 <button
                         name="action_retrieve_content"
                         type="object"
