@@ -16,7 +16,7 @@
         <field name="implementation">odoo_record_creator</field>
         <field
       name="description"
-    >Create new records in any Odoo model. This tool allows you to insert data into the database by specifying the model name and a dictionary of field values for the new record. Due to its data modification capabilities, this tool requires user consent before execution.</field>
+    >Create new records in any Odoo model. This tool allows you to insert data into the database by specifying the model name and a dictionary of field values using "fields" key, for the new record. Due to its data modification capabilities, this tool requires user consent before execution.</field>
         <field name="default" eval="True" />
         <field name="active" eval="True" />
         <field name="requires_user_consent" eval="True" />
