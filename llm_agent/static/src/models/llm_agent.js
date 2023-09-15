@@ -9,7 +9,9 @@ import { registerModel } from "@mail/model/model_core";
 registerModel({
   name: "LLMAgent",
   fields: {
-    id: attr(),
+    id: attr({
+      identifying: true,
+    }),
     name: attr(),
     /**
      * Threads associated with this agent
