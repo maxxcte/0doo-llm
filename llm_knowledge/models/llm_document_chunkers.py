@@ -21,14 +21,14 @@ class LLMDocumentChunker(models.Model):
     )
     target_chunk_size = fields.Integer(
         string="Target Chunk Size",
-        default=512,
+        default=200,
         required=True,
         help="Target size of chunks in tokens",
         tracking=True,
     )
     target_chunk_overlap = fields.Integer(
         string="Chunk Overlap",
-        default=50,
+        default=20,
         required=True,
         help="Number of tokens to overlap between chunks",
         tracking=True,
