@@ -201,8 +201,12 @@ class LLMDocument(models.Model):
             if collection_chunks:
                 # Use embedding_model_id instead of collection_id
                 embedding_model_id = collection.embedding_model_id.id
+                sample_embedding = collection.embedding_model_id.embedding("")[0]
+                dimensions = len(sample_embedding) if sample_embedding else None
                 collection_chunks.create_embedding_index(
-                    embedding_model_id=embedding_model_id, force=True
+                    embedding_model_id=embedding_model_id,
+                    force=True,
+                    dimensions=dimensions,
                 )
 
         return {
