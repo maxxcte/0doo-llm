@@ -17,16 +17,16 @@ registerPatch({
      */
     selectedAgent: one("LLMAgent", {
       compute() {
-          if (!this.selectedAgentId) {
-              return clear();
-          }
-          // This now searches within a collection of LLMAgent records
-          // and returns a record instance, which is correct.
-          return this.threadView.thread.llmChat.llmAgents.find(
-              (agentRecord) => agentRecord.id === this.selectedAgentId
-          );
+        if (!this.selectedAgentId) {
+          return clear();
+        }
+        // This now searches within a collection of LLMAgent records
+        // and returns a record instance, which is correct.
+        return this.threadView.thread.llmChat.llmAgents.find(
+          (agentRecord) => agentRecord.id === this.selectedAgentId
+        );
       },
-  }),
+    }),
   },
   recordMethods: {
     /**

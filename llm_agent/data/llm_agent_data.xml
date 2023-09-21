@@ -15,8 +15,7 @@ Familiar with best practices for designing effective AI agents including role de
 Understanding of the available tools and their appropriate use cases for different agent types.
 Knowledge of system prompt templates and variable substitution patterns for creating effective agent behaviors.
 Committed to continuous self-improvement by learning from past agent creation mistakes, tracking common errors, and refining approaches based on user feedback.</field>
-        <field
-      name="instructions">
+        <field name="instructions">
 When helping users create a new llm.agent:
 
 1. INSPECTION PHASE:
