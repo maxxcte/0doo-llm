@@ -19,7 +19,7 @@ Use cases include creating specialized agents for customer support, data analysi
     """,
     "category": "Productivity, Discuss",
     "version": "16.0.1.0.1",
-    "depends": ["base", "mail", "web", "llm", "llm_thread", "llm_tool"],
+    "depends": ["base", "mail", "web", "llm", "llm_thread", "llm_tool", "llm_openai"],
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
     "data": [
