@@ -32,6 +32,12 @@ class LLMDocument(models.Model):
         string="Content",
         help="Markdown representation of the document content",
     )
+    external_url = fields.Char(
+        string="External URL",
+        compute="_compute_external_url",
+        store=True,
+        help="External URL from the related record if available",
+    )
     state = fields.Selection(
         [
             ("draft", "Draft"),
@@ -76,6 +82,40 @@ class LLMDocument(models.Model):
         column2="collection_id",
         string="Collections",
     )
+
+    @api.depends("res_model", "res_id")
+    def _compute_external_url(self):
+        """Compute external URL from related record if available"""
+        for document in self:
+            document.external_url = False
+            if not document.res_model or not document.res_id:
+                continue
+
+            try:
+                # Get the related record
+                if document.res_model in self.env:
+                    record = self.env[document.res_model].browse(document.res_id)
+                    if not record.exists():
+                        continue
+
+                    # Case 1: Handle ir.attachment with type 'url'
+                    if document.res_model == "ir.attachment" and hasattr(
+                        record, "type"
+                    ):
+                        if record.type == "url" and hasattr(record, "url"):
+                            document.external_url = record.url
+
+                    # Case 2: Check if record has an external_url field
+                    elif hasattr(record, "external_url"):
+                        document.external_url = record.external_url
+
+            except Exception as e:
+                _logger.warning(
+                    "Error computing external URL for document %s: %s",
+                    document.id,
+                    str(e),
+                )
+                continue
 
     @api.depends("chunk_ids")
     def _compute_chunk_count(self):

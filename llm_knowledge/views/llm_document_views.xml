@@ -131,7 +131,6 @@
             </kanban>
         </field>
     </record>
-
     <!-- Form View -->
     <record id="view_llm_document_form" model="ir.ui.view">
         <field name="name">llm.document.form</field>
@@ -206,6 +205,11 @@
                             <field name="res_model" />
                             <field name="res_id" />
                             <field name="lock_date" readonly="1" />
+                            <field
+                name="external_url"
+                widget="url"
+                attrs="{'invisible': [('external_url', '=', False)]}"
+              />
                         </group>
                         <group>
                             <field
@@ -290,6 +294,7 @@
                 <field name="name" />
                 <field name="res_model" />
                 <field name="res_id" />
+                <field name="external_url" widget="url" optional="show" />
                 <field name="state" />
                 <field name="chunk_count" />
                 <field name="lock_date" />

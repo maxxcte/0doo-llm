@@ -94,7 +94,7 @@ class EmbeddingMixin(models.AbstractModel):
 
             # Store similarity scores in the context for access through the similarity field
             similarity_scores = dict(
-                zip([r.id for r in results], similarities)
+                zip([r.id for r in results], similarities, strict=False)
             )
 
             # Return results with similarity scores in context
