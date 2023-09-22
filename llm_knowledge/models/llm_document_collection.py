@@ -404,3 +404,18 @@ class LLMDocumentCollection(models.Model):
                     body=_("No chunks were successfully embedded"),
                     message_type="warning",
                 )
+
+    def action_open_upload_wizard(self):
+        """Open the upload document wizard with this collection pre-selected"""
+        self.ensure_one()
+        return {
+            "name": "Upload Documents",
+            "type": "ir.actions.act_window",
+            "res_model": "llm.upload.document.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_collection_id": self.id,
+                "default_document_name_template": "{filename}",
+            },
+        }

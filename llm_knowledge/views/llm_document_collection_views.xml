@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!-- This modified view adds the Upload Documents button to the collection form view header -->
 <odoo>
-    <!-- Form View -->
     <record id="view_llm_document_collection_form" model="ir.ui.view">
         <field name="name">llm.document.collection.form</field>
         <field name="model">llm.document.collection</field>
@@ -19,6 +19,12 @@
             type="object"
             class="btn-primary"
             attrs="{'invisible': [('source_domains', '=', False)]}"
+          />
+                    <button
+            name="action_open_upload_wizard"
+            string="Upload Documents"
+            type="object"
+            class="btn-primary"
           />
                     <button
             name="process_documents"
@@ -131,7 +137,6 @@
             </form>
         </field>
     </record>
-
     <!-- Tree View -->
     <record id="view_llm_document_collection_tree" model="ir.ui.view">
         <field name="name">llm.document.collection.tree</field>

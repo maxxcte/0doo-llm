@@ -47,4 +47,42 @@
         </field>
     </record>
 
+    <!-- Server Action for the Upload Documents button in document and collection list views -->
+    <record id="action_button_upload_documents" model="ir.actions.server">
+        <field name="name">Upload Documents</field>
+        <field name="model_id" ref="model_llm_document" />
+        <field name="binding_model_id" ref="model_llm_document" />
+        <field name="binding_view_types">list,kanban</field>
+        <field name="state">code</field>
+        <field name="code">
+            action = {
+            "type": "ir.actions.act_window",
+            "name": "Upload Documents",
+            "res_model": "llm.upload.document.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {},
+            }
+        </field>
+    </record>
+
+    <!-- Server Action for the Upload Documents button in collection list views -->
+    <record id="action_collection_upload_documents" model="ir.actions.server">
+        <field name="name">Upload Documents</field>
+        <field name="model_id" ref="model_llm_document_collection" />
+        <field name="binding_model_id" ref="model_llm_document_collection" />
+        <field name="binding_view_types">list,kanban</field>
+        <field name="state">code</field>
+        <field name="code">
+            action = {
+            "type": "ir.actions.act_window",
+            "name": "Upload Documents",
+            "res_model": "llm.upload.document.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {},
+            }
+        </field>
+    </record>
+
 </odoo>
