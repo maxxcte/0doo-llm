@@ -9,12 +9,13 @@
         - Document processing pipeline (retrieve, parse, chunk, embed)
         - Integration with LLM models
         - Vector search using pgvector
+        - HTTP retrieval for external URLs
     """,
     "category": "Technical",
     "version": "16.0.1.0.0",
     "depends": ["llm", "llm_pgvector"],
     "external_dependencies": {
-        "python": ["PyMuPDF", "numpy"],
+        "python": ["PyMuPDF", "numpy", "requests"],
     },
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
