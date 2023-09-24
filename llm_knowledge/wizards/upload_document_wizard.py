@@ -1,10 +1,11 @@
-import base64
 import logging
 import re
-from odoo import api, fields, models, _
+
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
+
 
 class UploadDocumentWizard(models.TransientModel):
     _name = "llm.upload.document.wizard"
@@ -17,13 +18,10 @@ class UploadDocumentWizard(models.TransientModel):
         help="Collection to which documents will be added",
     )
     file_ids = fields.Many2many(
-        'ir.attachment',
-        string='Files',
-        help="Local files to upload"
+        "ir.attachment", string="Files", help="Local files to upload"
     )
     external_urls = fields.Text(
-        string="External URLs",
-        help="External URLs to include, one per line"
+        string="External URLs", help="External URLs to include, one per line"
     )
     document_name_template = fields.Char(
         string="Document Name Template",
@@ -57,12 +55,12 @@ class UploadDocumentWizard(models.TransientModel):
     def _extract_filename_from_url(self, url):
         """Extract a clean filename from a URL"""
         # Try to extract filename from the URL path
-        match = re.search(r'/([^/]+)(?:\?.*)?$', url)
+        match = re.search(r"/([^/]+)(?:\?.*)?$", url)
         if match:
             filename = match.group(1)
             # Remove query string if present
-            if '?' in filename:
-                filename = filename.split('?')[0]
+            if "?" in filename:
+                filename = filename.split("?")[0]
             return filename
         return url
 
@@ -85,12 +83,14 @@ class UploadDocumentWizard(models.TransientModel):
             )
 
             # Create RAG document
-            document = self.env["llm.document"].create({
-                "name": document_name,
-                "res_model": "ir.attachment",
-                "res_id": attachment.id,
-                "collection_ids": [(4, collection.id)],
-            })
+            document = self.env["llm.document"].create(
+                {
+                    "name": document_name,
+                    "res_model": "ir.attachment",
+                    "res_id": attachment.id,
+                    "collection_ids": [(4, collection.id)],
+                }
+            )
 
             # Process document if requested
             if self.process_immediately:
@@ -100,7 +100,9 @@ class UploadDocumentWizard(models.TransientModel):
 
         # Process external URLs
         if self.external_urls:
-            urls = [url.strip() for url in self.external_urls.split('\n') if url.strip()]
+            urls = [
+                url.strip() for url in self.external_urls.split("\n") if url.strip()
+            ]
             for index, url in enumerate(urls):
                 # Extract filename from URL for naming
                 filename = self._extract_filename_from_url(url)
@@ -112,21 +114,25 @@ class UploadDocumentWizard(models.TransientModel):
                 )
 
                 # Create attachment for URL
-                attachment = self.env['ir.attachment'].create({
-                    'name': filename,
-                    'type': 'url',
-                    'url': url,
-                    'res_model': 'llm.document.collection',
-                    'res_id': collection.id,
-                })
+                attachment = self.env["ir.attachment"].create(
+                    {
+                        "name": filename,
+                        "type": "url",
+                        "url": url,
+                        "res_model": "llm.document.collection",
+                        "res_id": collection.id,
+                    }
+                )
 
                 # Create RAG document
-                document = self.env["llm.document"].create({
-                    "name": document_name,
-                    "res_model": "ir.attachment",
-                    "res_id": attachment.id,
-                    "collection_ids": [(4, collection.id)],
-                })
+                document = self.env["llm.document"].create(
+                    {
+                        "name": document_name,
+                        "res_model": "ir.attachment",
+                        "res_id": attachment.id,
+                        "collection_ids": [(4, collection.id)],
+                    }
+                )
 
                 # Process document if requested
                 if self.process_immediately:
@@ -135,10 +141,12 @@ class UploadDocumentWizard(models.TransientModel):
                 created_documents |= document
 
         # Update wizard state
-        self.write({
-            "state": "done",
-            "created_document_ids": [(6, 0, created_documents.ids)],
-        })
+        self.write(
+            {
+                "state": "done",
+                "created_document_ids": [(6, 0, created_documents.ids)],
+            }
+        )
 
         return {
             "type": "ir.actions.act_window",

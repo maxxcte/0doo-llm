@@ -84,6 +84,13 @@
                       >Chunk
                                             </a>
                                             <a
+                        name="action_embed"
+                        type="object"
+                        class="dropdown-item"
+                        t-if="record.state.raw_value == 'chunked'"
+                      >Embed
+                                            </a>
+                                            <a
                         name="process_document"
                         type="object"
                         class="dropdown-item"
@@ -158,6 +165,13 @@
             type="object"
             class="oe_highlight"
             states="parsed"
+          />
+                    <button
+            name="action_embed"
+            string="Embed"
+            type="object"
+            class="oe_highlight"
+            attrs="{'invisible': [('state', '!=', 'chunked')]}"
           />
                     <button
             name="process_document"
