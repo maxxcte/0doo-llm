@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Extend the document page form view to add external URL field and retrieve button -->
+    <record id="view_wiki_form_inherit_external_url" model="ir.ui.view">
+        <field name="name">document.page.form.inherit.external.url</field>
+        <field name="model">document.page</field>
+        <field name="inherit_id" ref="document_page.view_wiki_form"/>
+        <field name="arch" type="xml">
+            <!-- Add button in header -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_retrieve_external_content"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-refresh"
+                        string="Retrieve Content"
+                        attrs="{'invisible': [('external_url', '=', False)]}"/>
+            </xpath>
+
+            <!-- Add external URL field -->
+            <xpath expr="//field[@name='parent_id']" position="before">
+                <field name="external_url" placeholder="https://example.com/page"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Add External URL to the list view -->
+    <record id="view_wiki_tree_inherit_external_url" model="ir.ui.view">
+        <field name="name">document.page.tree.inherit.external.url</field>
+        <field name="model">document.page</field>
+        <field name="inherit_id" ref="document_page.view_wiki_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='parent_id']" position="after">
+                <field name="external_url" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Add External URL to search filters -->
+    <record id="view_wiki_filter_inherit_external_url" model="ir.ui.view">
+        <field name="name">document.page.search.inherit.external.url</field>
+        <field name="model">document.page</field>
+        <field name="inherit_id" ref="document_page.view_wiki_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='parent_id']" position="after">
+                <field name="external_url"/>
+                <filter string="With External URL" name="with_external_url" domain="[('external_url', '!=', False)]"/>
+                <filter string="Without External URL" name="without_external_url" domain="[('external_url', '=', False)]"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

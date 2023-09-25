@@ -49,11 +49,11 @@ class LLMDocumentRetriever(models.Model):
                         raise UserError(_("Referenced record not found"))
 
                     # Call the rag_retrieve method on the record if it exists
-                    if hasattr(record, "rag_retrieve"):
-                        record.rag_retrieve(document)
+
+                    result = record.rag_retrieve(document) if hasattr(record, "rag_retrieve") else None
 
                     # Mark as retrieved
-                    document.write({"state": "retrieved"})
+                    document.write({"state": result.get("state", "retrieved") if isinstance(result, dict) else "retrieved"})
 
                 except Exception as e:
                     document._post_message(
