@@ -20,16 +20,6 @@ class LLMDocumentRetrieverExtension(models.Model):
         retrievers.append(("http", "HTTP Retriever"))
         return retrievers
 
-    @api.onchange("res_model", "res_id")
-    def _onchange_related_record(self):
-        """
-        Set HTTP retriever as default when the related record is an attachment with external URL
-        """
-        if self.res_model == "ir.attachment" and self.res_id:
-            attachment = self.env["ir.attachment"].browse(self.res_id)
-            if attachment.exists() and attachment.type == "url" and attachment.url:
-                self.retriever = "http"
-
 
 class IrAttachmentExtension(models.Model):
     _inherit = "ir.attachment"
@@ -41,7 +31,7 @@ class IrAttachmentExtension(models.Model):
         self.ensure_one()
 
         # If the attachment has a URL and the document uses HTTP retriever, download content
-        if self.type == "url" and self.url and llm_document.retriever == "http":
+        if self.type == "url" and self.url:
             return self._http_retrieve(llm_document)
         else:
             # Fall back to default behavior

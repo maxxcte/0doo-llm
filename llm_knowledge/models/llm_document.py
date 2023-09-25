@@ -294,7 +294,7 @@ class LLMDocument(models.Model):
         self.ensure_one()
 
         # Check if document is in chunked state
-        if self.state != 'chunked':
+        if self.state != "chunked":
             return {
                 "type": "ir.actions.client",
                 "tag": "display_notification",
@@ -313,7 +313,9 @@ class LLMDocument(models.Model):
                 "tag": "display_notification",
                 "params": {
                     "title": _("Embedding"),
-                    "message": _("Document doesn't belong to any collections. Add it to a collection first."),
+                    "message": _(
+                        "Document doesn't belong to any collections. Add it to a collection first."
+                    ),
                     "type": "warning",
                     "sticky": False,
                 },
@@ -363,7 +365,9 @@ class LLMDocument(models.Model):
                     )
 
                 processed_chunks += len(batch)
-                _logger.info(f"Processed {processed_chunks}/{total_chunks} chunks for document {self.name}")
+                _logger.info(
+                    f"Processed {processed_chunks}/{total_chunks} chunks for document {self.name}"
+                )
 
                 # Commit transaction after each batch to avoid timeout issues
                 self.env.cr.commit()
@@ -385,7 +389,8 @@ class LLMDocument(models.Model):
             "tag": "display_notification",
             "params": {
                 "title": _("Embedding"),
-                "message": _("Document embedded successfully in %s collection(s).") % embed_count,
+                "message": _("Document embedded successfully in %s collection(s).")
+                % embed_count,
                 "type": "success",
                 "sticky": False,
             },
