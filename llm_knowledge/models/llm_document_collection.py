@@ -51,7 +51,6 @@ class LLMDocumentCollection(models.Model):
     document_count = fields.Integer(
         string="Document Count",
         compute="_compute_document_count",
-        store=True,
     )
     chunk_count = fields.Integer(
         string="Chunk Count",
