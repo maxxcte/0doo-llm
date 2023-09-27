@@ -2,6 +2,7 @@
 PyMuPDF
 anthropic
 emoji
+markdownify
 numpy
 ollama
 openai

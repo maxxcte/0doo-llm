@@ -50,10 +50,20 @@ class LLMDocumentRetriever(models.Model):
 
                     # Call the rag_retrieve method on the record if it exists
 
-                    result = record.rag_retrieve(document) if hasattr(record, "rag_retrieve") else None
+                    result = (
+                        record.rag_retrieve(document)
+                        if hasattr(record, "rag_retrieve")
+                        else None
+                    )
 
                     # Mark as retrieved
-                    document.write({"state": result.get("state", "retrieved") if isinstance(result, dict) else "retrieved"})
+                    document.write(
+                        {
+                            "state": result.get("state", "retrieved")
+                            if isinstance(result, dict)
+                            else "retrieved"
+                        }
+                    )
 
                 except Exception as e:
                     document._post_message(
