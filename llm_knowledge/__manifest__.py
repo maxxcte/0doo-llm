@@ -15,7 +15,7 @@
     "version": "16.0.1.0.0",
     "depends": ["llm", "llm_pgvector"],
     "external_dependencies": {
-        "python": ["PyMuPDF", "numpy", "requests"],
+        "python": ["PyMuPDF", "numpy", "requests", "markdownify"],
     },
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",

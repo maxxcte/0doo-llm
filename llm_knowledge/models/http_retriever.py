@@ -1,11 +1,13 @@
 import base64
 import logging
 import mimetypes
-from urllib.parse import urlparse
+import re
+from urllib.parse import urljoin, urlparse
 
 import requests
+from markdownify import markdownify as md
 
-from odoo import api, models
+from odoo import _, api, models
 
 _logger = logging.getLogger(__name__)
 
@@ -41,12 +43,54 @@ class IrAttachmentExtension(models.Model):
                 else False
             )
 
+    def _ensure_full_urls(self, markdown_content, base_url):
+        """
+        Ensure all links in markdown content have full URLs.
+
+        :param markdown_content: Markdown content to process
+        :param base_url: Base URL to prepend to relative URLs
+        :return: Markdown content with full URLs
+        """
+        # Regex to find markdown links
+        link_pattern = r"\[([^\]]+)\]\(([^)]+)\)"
+
+        def replace_link(match):
+            text = match.group(1)
+            url = match.group(2)
+
+            # If URL doesn't start with http:// or https://, it's relative
+            if not url.startswith(("http://", "https://", "mailto:", "tel:")):
+                full_url = urljoin(base_url, url)
+                return f"[{text}]({full_url})"
+            return match.group(0)
+
+        # Replace all markdown links with full URLs
+        return re.sub(link_pattern, replace_link, markdown_content)
+
+    def _is_text_content_type(self, content_type):
+        """
+        Check if the content type is a text type that can be processed directly.
+
+        :param content_type: MIME type to check
+        :return: Boolean indicating if it's a text content type
+        """
+        text_types = [
+            'text/html',
+            'text/plain',
+            'text/markdown',
+            'application/xhtml+xml',
+            'application/xml'
+        ]
+        return any(content_type.startswith(t) for t in text_types)
+
     def _http_retrieve(self, llm_document):
         """
-        Retrieves content from an external URL and saves it to the attachment
+        Retrieves content from an external URL.
+        For HTML, text, or markdown content, directly updates the llm.document content.
+        For binary content, downloads and saves it to the attachment.
 
         :param llm_document: The llm.document record being processed
-        :return: Boolean indicating success
+        :return: Dictionary with state or Boolean indicating success
         """
         self.ensure_one()
         url = self.url
@@ -62,7 +106,10 @@ class IrAttachmentExtension(models.Model):
             _logger.info(f"Retrieving content from URL: {url}")
 
             # Get the content from the URL
-            response = requests.get(url, timeout=30)
+            headers = {
+                "User-Agent": "Mozilla/5.0 (compatible; Odoo LLM RAG/1.0)"
+            }
+            response = requests.get(url, timeout=30, headers=headers)
             response.raise_for_status()  # Raise an exception for HTTP errors
 
             # Get the content
@@ -82,7 +129,7 @@ class IrAttachmentExtension(models.Model):
                 # Default to octet-stream if we still can't determine
                 content_type = "application/octet-stream"
 
-            # Update the attachment with the downloaded content
+            # Get filename from the URL or attachment name
             filename = self.name or urlparse(url).path.split("/")[-1]
             if not filename:
                 filename = "downloaded_file"
@@ -93,30 +140,70 @@ class IrAttachmentExtension(models.Model):
                 if ext:
                     filename += ext
 
-            # Convert the downloaded content to the format required by Odoo (base64)
-            content_base64 = base64.b64encode(content)
+            # Handle based on content type
+            if self._is_text_content_type(content_type):
+                # For text content types, extract the text and update the llm.document
+                try:
+                    text_content = content.decode('utf-8')
+                except UnicodeDecodeError:
+                    # Try other common encodings
+                    for encoding in ['latin-1', 'windows-1252', 'iso-8859-1']:
+                        try:
+                            text_content = content.decode(encoding)
+                            break
+                        except UnicodeDecodeError:
+                            continue
+                    else:
+                        raise UnicodeDecodeError("Failed to decode content with any supported encoding")
 
-            # Update the attachment
-            self.write(
-                {
+                # Convert HTML to markdown if it's HTML content
+                if content_type.startswith(('text/html', 'application/xhtml+xml')):
+                    markdown_content = md(text_content)
+                else:
+                    # For plain text or already markdown, keep as is
+                    markdown_content = text_content
+
+                # Ensure all links have full URLs
+                markdown_content = self._ensure_full_urls(markdown_content, url)
+
+                # Update the llm.document with markdown content
+                llm_document.write({"content": markdown_content})
+
+                # Store as attachment anyway for reference
+                content_base64 = base64.b64encode(content)
+                self.write({
                     "datas": content_base64,
                     "mimetype": content_type,
                     "name": filename,
-                    # Keep the URL but change the type to binary
                     "type": "binary",
-                }
-            )
+                })
 
-            # Update the document
-            llm_document._post_message(
-                f"Successfully retrieved content from URL: {url} ({len(content)} bytes, {content_type})",
-                "success",
-            )
+                # Post success message
+                llm_document._post_message(
+                    f"Successfully retrieved and parsed content from URL: {url} ({len(text_content)} characters)",
+                    "success",
+                )
 
-            # Mark as retrieved
-            llm_document.write({"state": "retrieved"})
+                # Since we've already parsed the content, return parsed state
+                return {"state": "parsed"}
+            else:
+                # For binary content, save to attachment
+                content_base64 = base64.b64encode(content)
+                self.write({
+                    "datas": content_base64,
+                    "mimetype": content_type,
+                    "name": filename,
+                    "type": "binary",
+                })
 
-            return True
+                # Post success message
+                llm_document._post_message(
+                    f"Successfully retrieved content from URL: {url} ({len(content)} bytes, {content_type})",
+                    "success",
+                )
+
+                # Binary content still needs parsing
+                return {"state": "retrieved"}
 
         except requests.RequestException as e:
             error_msg = f"Error retrieving content from URL {url}: {str(e)}"
