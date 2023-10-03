@@ -179,36 +179,51 @@ class LLMDocument(models.Model):
         return self.write({"lock_date": False})
 
     def process_document(self):
-        """Process the document through the entire pipeline"""
-        for document in self:
-            if document.state == "draft":
-                document.retrieve()
+        """
+        Process documents through the entire pipeline.
+        Can handle multiple documents at once, processing them through
+        as many pipeline stages as possible based on their current states.
+        """
+        # Process each stage with the filtered recordsets
+        # Each method will only process documents in the appropriate state
 
-            if document.state == "retrieved":
-                document.parse()
+        # Stage 1: Retrieve content for draft documents
+        draft_docs = self.filtered(lambda d: d.state == "draft")
+        if draft_docs:
+            draft_docs.retrieve()
 
-            if document.state == "parsed":
-                document.chunk()
+        # Stage 2: Parse retrieved documents
+        retrieved_docs = self.filtered(lambda d: d.state == "retrieved")
+        if retrieved_docs:
+            retrieved_docs.parse()
 
-            # After chunking, check if document belongs to collections
-            if document.state == "chunked":
-                collections = document.collection_ids
-                if collections:
-                    # Notify user about embedding through collections
-                    document._post_message(
-                        f"Document is ready to be embedded through its collections "
-                        f"({', '.join(collections.mapped('name'))}). "
-                        f"Please use the 'Embed Documents' function in the collection.",
-                        "info",
-                    )
-                else:
-                    document._post_message(
-                        "Document is chunked but not part of any collection. "
-                        "Add it to a collection and use 'Embed Documents' to complete processing.",
-                        "warning",
-                    )
+        # Stage 3: Chunk parsed documents
+        parsed_docs = self.filtered(lambda d: d.state == "parsed")
+        if parsed_docs:
+            parsed_docs.chunk()
+
+        # Stage 4: Embed chunked documents
+        chunked_docs = self.filtered(lambda d: d.state == "chunked")
+        if chunked_docs:
+            chunked_docs.embed()
 
         return True
+
+    def action_embed(self):
+        """Action handler for embedding document chunks"""
+        result = self.embed()
+
+        # Return appropriate notification
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Embedding"),
+                "message": _("Document embedding process completed."),
+                "type": "success" if result else "warning",
+                "sticky": False,
+            },
+        }
 
     def action_reindex(self):
         """Reindex a single document's chunks"""
@@ -393,5 +408,74 @@ class LLMDocument(models.Model):
                 % embed_count,
                 "type": "success",
                 "sticky": False,
+            },
+        }
+    def embed(self):
+        """
+        Embed document chunks in collections by calling the collection's embed_documents method.
+        Called after chunking to create vector representations.
+
+        Returns:
+            bool: True if any documents were successfully embedded, False otherwise
+        """
+        # Filter to only get documents in chunked state
+        chunked_docs = self.filtered(lambda d: d.state == "chunked")
+
+        if not chunked_docs:
+            return False
+
+        # Get all collections for these documents
+        collections = self.env['llm.document.collection']
+        for doc in chunked_docs:
+            collections |= doc.collection_ids
+
+        # If no collections, documents can't be embedded
+        if not collections:
+            return False
+
+        # Track if any documents were embedded
+        any_embedded = False
+
+        # Let each collection handle the embedding
+        for collection in collections:
+            result = collection.embed_documents(specific_document_ids=chunked_docs.ids)
+            # If any collection successfully embedded documents, mark as successful
+            if result.get('success') and result.get('processed_documents', 0) > 0:
+                any_embedded = True
+
+        # Return True only if documents were actually embedded
+        return any_embedded
+
+    @api.model
+    def action_mass_process_documents(self):
+        """
+        Server action handler for mass processing documents.
+        This will be triggered from the server action in the UI.
+        """
+        active_ids = self.env.context.get('active_ids', [])
+        if not active_ids:
+            return {
+                "type": "ir.actions.client",
+                "tag": "display_notification",
+                "params": {
+                    "title": _("No Documents Selected"),
+                    "message": _("Please select documents to process."),
+                    "type": "warning",
+                    "sticky": False,
+                },
+            }
+
+        documents = self.browse(active_ids)
+        # Process all selected documents
+        documents.process_document()
+
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Document Processing"),
+                "message": _("%s documents processing started") % len(documents),
+                "sticky": False,
+                "type": "success",
             },
         }

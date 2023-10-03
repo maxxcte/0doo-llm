@@ -315,34 +315,58 @@ class LLMDocumentCollection(models.Model):
                     message_type="notification",
                 )
 
-    def embed_documents(self):
-        """Embed all chunked documents using the collection's embedding model"""
+    def action_open_upload_wizard(self):
+        """Open the upload document wizard with this collection pre-selected"""
+        self.ensure_one()
+        return {
+            "name": "Upload Documents",
+            "type": "ir.actions.act_window",
+            "res_model": "llm.upload.document.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_collection_id": self.id,
+                "default_document_name_template": "{filename}",
+            },
+        }
+
+    def embed_documents(self, specific_document_ids=None, batch_size=20):
+        """
+        Embed all chunked documents using the collection's embedding model.
+        Optimized to directly filter chunks instead of searching documents first.
+
+        Args:
+            specific_document_ids: Optional list of document IDs to process.
+                                 If provided, only chunks from these documents will be processed.
+            batch_size: Number of chunks to process in each batch
+        """
         for collection in self:
             if not collection.embedding_model_id:
-                raise UserError(
-                    _("Embedding model must be specified for the collection")
-                )
-
-            # Get all documents in chunked state
-            chunked_docs = collection.document_ids.filtered(
-                lambda d: d.state == "chunked"
-            )
-
-            if not chunked_docs:
                 collection.message_post(
-                    body=_("No documents in chunked state to embed."),
-                    message_type="notification",
+                    body=_("No embedding model configured for this collection."),
+                    message_type="warning",
                 )
                 continue
 
-            # Get all chunks from these documents
-            chunks = self.env["llm.document.chunk"].search(
-                [("document_id", "in", chunked_docs.ids)]
-            )
+            # Directly search for chunks that belong to chunked documents in this collection
+            chunk_domain = [
+                ("document_id.state", "=", "chunked"),
+                ("collection_ids", "in", [collection.id]),
+            ]
+
+            # Add specific document filter if provided
+            if specific_document_ids:
+                chunk_domain.append(("document_id", "in", specific_document_ids))
+
+            # Get all relevant chunks in one query
+            chunks = self.env["llm.document.chunk"].search(chunk_domain)
 
             if not chunks:
+                message = _("No chunks found for documents in chunked state")
+                if specific_document_ids:
+                    message += _(" for the specified document IDs")
                 collection.message_post(
-                    body=_("No chunks found for documents in chunked state."),
+                    body=message,
                     message_type="notification",
                 )
                 continue
@@ -351,9 +375,9 @@ class LLMDocumentCollection(models.Model):
             embedding_model = collection.embedding_model_id
 
             # Process chunks in batches for efficiency
-            batch_size = 20
             total_chunks = len(chunks)
             processed_chunks = 0
+            processed_document_ids = set()  # Track which document IDs had chunks processed
 
             # Process in batches
             for i in range(0, total_chunks, batch_size):
@@ -373,6 +397,8 @@ class LLMDocumentCollection(models.Model):
                             "collection_ids": [(4, collection.id)],
                         }
                     )
+                    # Track the document ID for this chunk
+                    processed_document_ids.add(chunk.document_id.id)
 
                 processed_chunks += len(batch)
                 _logger.info(f"Processed {processed_chunks}/{total_chunks} chunks")
@@ -380,41 +406,40 @@ class LLMDocumentCollection(models.Model):
                 # Commit transaction after each batch to avoid timeout issues
                 self.env.cr.commit()
 
-            # Update document states to ready
-            if processed_chunks > 0:
-                chunked_docs.write({"state": "ready"})
+            # Update document states to ready - only update documents that had chunks processed
+            if processed_document_ids:
+                self.env["llm.document"].browse(list(processed_document_ids)).write({"state": "ready"})
                 self.env.cr.commit()
 
+                # Prepare message with document details for clarity
+                doc_count = len(processed_document_ids)
+                msg = _(f"Embedded {processed_chunks} chunks from {doc_count} documents using {embedding_model.name}")
+
                 collection.message_post(
-                    body=_(
-                        f"Embedded {processed_chunks} chunks using {embedding_model.name}"
-                    ),
+                    body=msg,
                     message_type="notification",
                 )
 
                 # Create a model-specific index for better performance
                 # Use embedding_model_id instead of collection_id
-                dimensions = len(batch_embeddings[0]) if batch_embeddings else None
+                dimensions = len(batch_embeddings[0]) if batch_embeddings and batch_embeddings[0] else None
                 self.env["llm.document.chunk"].create_embedding_index(
                     embedding_model_id=embedding_model.id, dimensions=dimensions
                 )
+
+                return {
+                    'success': True,
+                    'processed_chunks': processed_chunks,
+                    'processed_documents': len(processed_document_ids)
+                }
             else:
                 collection.message_post(
                     body=_("No chunks were successfully embedded"),
                     message_type="warning",
                 )
 
-    def action_open_upload_wizard(self):
-        """Open the upload document wizard with this collection pre-selected"""
-        self.ensure_one()
-        return {
-            "name": "Upload Documents",
-            "type": "ir.actions.act_window",
-            "res_model": "llm.upload.document.wizard",
-            "view_mode": "form",
-            "target": "new",
-            "context": {
-                "default_collection_id": self.id,
-                "default_document_name_template": "{filename}",
-            },
-        }
+                return {
+                    'success': False,
+                    'processed_chunks': 0,
+                    'processed_documents': 0
+                }

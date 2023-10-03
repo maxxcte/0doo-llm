@@ -3,8 +3,8 @@
     <!-- Server Action for Creating RAG Documents -->
     <record id="action_create_rag_document" model="ir.actions.server">
         <field name="name">Create RAG Document</field>
-        <field name="model_id" ref="base.model_ir_attachment" />
-        <field name="binding_model_id" ref="base.model_ir_attachment" />
+        <field name="model_id" ref="base.model_ir_attachment"/>
+        <field name="binding_model_id" ref="base.model_ir_attachment"/>
         <field name="binding_view_types">list,form</field>
         <field name="state">code</field>
         <field name="code">
@@ -28,18 +28,20 @@
         <field name="context">{"search_default_group_by_state": 1}</field>
         <field name="help" type="html">
             <p
-        class="o_view_nocontent_smiling_face"
-      >Create your first RAG document</p>
+                    class="o_view_nocontent_smiling_face"
+            >Create your first RAG document
+            </p>
             <p
-      >Documents can be linked to any record in Odoo for RAG processing.</p>
+            >Documents can be linked to any record in Odoo for RAG processing.
+            </p>
         </field>
     </record>
 
     <!-- Server Action for Re-indexing RAG Documents -->
     <record id="action_reindex_rag_documents" model="ir.actions.server">
         <field name="name">Re-index RAG Documents</field>
-        <field name="model_id" ref="model_llm_document" />
-        <field name="binding_model_id" ref="model_llm_document" />
+        <field name="model_id" ref="model_llm_document"/>
+        <field name="binding_model_id" ref="model_llm_document"/>
         <field name="binding_view_types">list</field>
         <field name="state">code</field>
         <field name="code">
@@ -50,8 +52,8 @@
     <!-- Server Action for the Upload Documents button in document and collection list views -->
     <record id="action_button_upload_documents" model="ir.actions.server">
         <field name="name">Upload Documents</field>
-        <field name="model_id" ref="model_llm_document" />
-        <field name="binding_model_id" ref="model_llm_document" />
+        <field name="model_id" ref="model_llm_document"/>
+        <field name="binding_model_id" ref="model_llm_document"/>
         <field name="binding_view_types">list,kanban</field>
         <field name="state">code</field>
         <field name="code">
@@ -69,8 +71,8 @@
     <!-- Server Action for the Upload Documents button in collection list views -->
     <record id="action_collection_upload_documents" model="ir.actions.server">
         <field name="name">Upload Documents</field>
-        <field name="model_id" ref="model_llm_document_collection" />
-        <field name="binding_model_id" ref="model_llm_document_collection" />
+        <field name="model_id" ref="model_llm_document_collection"/>
+        <field name="binding_model_id" ref="model_llm_document_collection"/>
         <field name="binding_view_types">list,kanban</field>
         <field name="state">code</field>
         <field name="code">
@@ -82,6 +84,18 @@
             "target": "new",
             "context": {},
             }
+        </field>
+    </record>
+
+    <!-- Server Action for Mass Processing of RAG Documents -->
+    <record id="action_mass_process_documents" model="ir.actions.server">
+        <field name="name">Process Documents (Mass)</field>
+        <field name="model_id" ref="model_llm_document"/>
+        <field name="binding_model_id" ref="model_llm_document"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+            action = model.action_mass_process_documents()
         </field>
     </record>
 
