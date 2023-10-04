@@ -410,6 +410,7 @@ class LLMDocument(models.Model):
                 "sticky": False,
             },
         }
+
     def embed(self):
         """
         Embed document chunks in collections by calling the collection's embed_documents method.
@@ -425,7 +426,7 @@ class LLMDocument(models.Model):
             return False
 
         # Get all collections for these documents
-        collections = self.env['llm.document.collection']
+        collections = self.env["llm.document.collection"]
         for doc in chunked_docs:
             collections |= doc.collection_ids
 
@@ -440,19 +441,23 @@ class LLMDocument(models.Model):
         for collection in collections:
             result = collection.embed_documents(specific_document_ids=chunked_docs.ids)
             # Check if result is not None before trying to access .get()
-            if result and result.get('success') and result.get('processed_documents', 0) > 0:
+            if (
+                result
+                and result.get("success")
+                and result.get("processed_documents", 0) > 0
+            ):
                 any_embedded = True
 
         # Return True only if documents were actually embedded
         return any_embedded
-    
+
     @api.model
     def action_mass_process_documents(self):
         """
         Server action handler for mass processing documents.
         This will be triggered from the server action in the UI.
         """
-        active_ids = self.env.context.get('active_ids', [])
+        active_ids = self.env.context.get("active_ids", [])
         if not active_ids:
             return {
                 "type": "ir.actions.client",

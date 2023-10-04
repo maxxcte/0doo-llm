@@ -1,18 +1,20 @@
 import logging
-import re
 
-from odoo import _, api, fields, models
+from odoo import _, api, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
 try:
-    from llama_index.core.node_parser import MarkdownNodeParser
-    from llama_index.core.node_parser import SentenceSplitter
-    from llama_index.core.node_parser import SentenceWindowNodeParser
-    from llama_index.core.node_parser import TokenTextSplitter
-    from llama_index.core.node_parser import HierarchicalNodeParser
     from llama_index.core import Document as LlamaDocument
+    from llama_index.core.node_parser import (
+        HierarchicalNodeParser,
+        MarkdownNodeParser,
+        SentenceSplitter,
+        SentenceWindowNodeParser,
+        TokenTextSplitter,
+    )
+
     HAS_LLAMA_INDEX = True
 except ImportError:
     _logger.warning("Could not import llama_index, make sure it is installed.")
@@ -28,12 +30,14 @@ class LLMDocumentLlamaChunker(models.Model):
         Extend the available chunkers to include LlamaIndex's chunkers.
         """
         chunkers = super()._get_available_chunkers()
-        chunkers.extend([
-            ("llama_markdown", "LlamaIndex Markdown Chunker"),
-            ("llama_sentence", "LlamaIndex Sentence Splitter"),
-            ("llama_token", "LlamaIndex Token Splitter"),
-            ("llama_hierarchical", "LlamaIndex Hierarchical Chunker"),
-        ])
+        chunkers.extend(
+            [
+                ("llama_markdown", "LlamaIndex Markdown Chunker"),
+                ("llama_sentence", "LlamaIndex Sentence Splitter"),
+                ("llama_token", "LlamaIndex Token Splitter"),
+                ("llama_hierarchical", "LlamaIndex Hierarchical Chunker"),
+            ]
+        )
         return chunkers
 
     @api.model
@@ -43,8 +47,8 @@ class LLMDocumentLlamaChunker(models.Model):
         """
         res = super().default_get(fields_list)
 
-        if 'chunker' in fields_list and HAS_LLAMA_INDEX:
-            res['chunker'] = 'llama_markdown'
+        if "chunker" in fields_list and HAS_LLAMA_INDEX:
+            res["chunker"] = "llama_markdown"
 
         return res
 
@@ -56,7 +60,11 @@ class LLMDocumentLlamaChunker(models.Model):
         self.ensure_one()
 
         if not HAS_LLAMA_INDEX:
-            raise UserError(_("LlamaIndex is not installed. Please install it with pip: pip install llama_index"))
+            raise UserError(
+                _(
+                    "LlamaIndex is not installed. Please install it with pip: pip install llama_index"
+                )
+            )
 
         if not self.content:
             raise UserError(_("No content to chunk"))
@@ -71,7 +79,7 @@ class LLMDocumentLlamaChunker(models.Model):
                 "name": self.name,
                 "res_model": self.res_model,
                 "res_id": self.res_id,
-            }
+            },
         )
 
         # Use the MarkdownNodeParser
@@ -81,16 +89,20 @@ class LLMDocumentLlamaChunker(models.Model):
         # Create chunks from the parsed nodes
         created_chunks = []
         for idx, node in enumerate(nodes, 1):
-            chunk = self.env["llm.document.chunk"].create({
-                "document_id": self.id,
-                "sequence": idx,
-                "content": node.text,
-                "metadata": {
-                    **node.metadata,
-                    "start_char_idx": node.start_char_idx,
-                    "end_char_idx": node.end_char_idx,
-                } if hasattr(node, 'metadata') else {},
-            })
+            chunk = self.env["llm.document.chunk"].create(
+                {
+                    "document_id": self.id,
+                    "sequence": idx,
+                    "content": node.text,
+                    "metadata": {
+                        **node.metadata,
+                        "start_char_idx": node.start_char_idx,
+                        "end_char_idx": node.end_char_idx,
+                    }
+                    if hasattr(node, "metadata")
+                    else {},
+                }
+            )
             created_chunks.append(chunk)
 
         # Post success message
@@ -108,7 +120,11 @@ class LLMDocumentLlamaChunker(models.Model):
         self.ensure_one()
 
         if not HAS_LLAMA_INDEX:
-            raise UserError(_("LlamaIndex is not installed. Please install it with pip: pip install llama_index"))
+            raise UserError(
+                _(
+                    "LlamaIndex is not installed. Please install it with pip: pip install llama_index"
+                )
+            )
 
         if not self.content:
             raise UserError(_("No content to chunk"))
@@ -123,7 +139,7 @@ class LLMDocumentLlamaChunker(models.Model):
                 "name": self.name,
                 "res_model": self.res_model,
                 "res_id": self.res_id,
-            }
+            },
         )
 
         # Use SentenceSplitter with the configured chunk sizes
@@ -136,16 +152,20 @@ class LLMDocumentLlamaChunker(models.Model):
         # Create chunks
         created_chunks = []
         for idx, node in enumerate(nodes, 1):
-            chunk = self.env["llm.document.chunk"].create({
-                "document_id": self.id,
-                "sequence": idx,
-                "content": node.text,
-                "metadata": {
-                    **node.metadata,
-                    "start_char_idx": getattr(node, 'start_char_idx', None),
-                    "end_char_idx": getattr(node, 'end_char_idx', None),
-                } if hasattr(node, 'metadata') else {},
-            })
+            chunk = self.env["llm.document.chunk"].create(
+                {
+                    "document_id": self.id,
+                    "sequence": idx,
+                    "content": node.text,
+                    "metadata": {
+                        **node.metadata,
+                        "start_char_idx": getattr(node, "start_char_idx", None),
+                        "end_char_idx": getattr(node, "end_char_idx", None),
+                    }
+                    if hasattr(node, "metadata")
+                    else {},
+                }
+            )
             created_chunks.append(chunk)
 
         # Post success message
@@ -164,7 +184,11 @@ class LLMDocumentLlamaChunker(models.Model):
         self.ensure_one()
 
         if not HAS_LLAMA_INDEX:
-            raise UserError(_("LlamaIndex is not installed. Please install it with pip: pip install llama_index"))
+            raise UserError(
+                _(
+                    "LlamaIndex is not installed. Please install it with pip: pip install llama_index"
+                )
+            )
 
         if not self.content:
             raise UserError(_("No content to chunk"))
@@ -179,7 +203,7 @@ class LLMDocumentLlamaChunker(models.Model):
                 "name": self.name,
                 "res_model": self.res_model,
                 "res_id": self.res_id,
-            }
+            },
         )
 
         # Use TokenTextSplitter with the configured chunk sizes
@@ -192,16 +216,20 @@ class LLMDocumentLlamaChunker(models.Model):
         # Create chunks
         created_chunks = []
         for idx, node in enumerate(nodes, 1):
-            chunk = self.env["llm.document.chunk"].create({
-                "document_id": self.id,
-                "sequence": idx,
-                "content": node.text,
-                "metadata": {
-                    **node.metadata,
-                    "start_char_idx": getattr(node, 'start_char_idx', None),
-                    "end_char_idx": getattr(node, 'end_char_idx', None),
-                } if hasattr(node, 'metadata') else {},
-            })
+            chunk = self.env["llm.document.chunk"].create(
+                {
+                    "document_id": self.id,
+                    "sequence": idx,
+                    "content": node.text,
+                    "metadata": {
+                        **node.metadata,
+                        "start_char_idx": getattr(node, "start_char_idx", None),
+                        "end_char_idx": getattr(node, "end_char_idx", None),
+                    }
+                    if hasattr(node, "metadata")
+                    else {},
+                }
+            )
             created_chunks.append(chunk)
 
         # Post success message
@@ -220,7 +248,11 @@ class LLMDocumentLlamaChunker(models.Model):
         self.ensure_one()
 
         if not HAS_LLAMA_INDEX:
-            raise UserError(_("LlamaIndex is not installed. Please install it with pip: pip install llama_index"))
+            raise UserError(
+                _(
+                    "LlamaIndex is not installed. Please install it with pip: pip install llama_index"
+                )
+            )
 
         if not self.content:
             raise UserError(_("No content to chunk"))
@@ -235,7 +267,7 @@ class LLMDocumentLlamaChunker(models.Model):
                 "name": self.name,
                 "res_model": self.res_model,
                 "res_id": self.res_id,
-            }
+            },
         )
 
         # Use HierarchicalNodeParser
@@ -247,17 +279,21 @@ class LLMDocumentLlamaChunker(models.Model):
         # Create chunks
         created_chunks = []
         for idx, node in enumerate(nodes, 1):
-            chunk = self.env["llm.document.chunk"].create({
-                "document_id": self.id,
-                "sequence": idx,
-                "content": node.text,
-                "metadata": {
-                    **node.metadata,
-                    "start_char_idx": getattr(node, 'start_char_idx', None),
-                    "end_char_idx": getattr(node, 'end_char_idx', None),
-                    "hierarchical_level": getattr(node, 'level', 0),
-                } if hasattr(node, 'metadata') else {},
-            })
+            chunk = self.env["llm.document.chunk"].create(
+                {
+                    "document_id": self.id,
+                    "sequence": idx,
+                    "content": node.text,
+                    "metadata": {
+                        **node.metadata,
+                        "start_char_idx": getattr(node, "start_char_idx", None),
+                        "end_char_idx": getattr(node, "end_char_idx", None),
+                        "hierarchical_level": getattr(node, "level", 0),
+                    }
+                    if hasattr(node, "metadata")
+                    else {},
+                }
+            )
             created_chunks.append(chunk)
 
         # Post success message

@@ -7,7 +7,7 @@ from urllib.parse import urljoin, urlparse
 import requests
 from markdownify import markdownify as md
 
-from odoo import _, api, models
+from odoo import api, models
 
 _logger = logging.getLogger(__name__)
 
@@ -75,11 +75,11 @@ class IrAttachmentExtension(models.Model):
         :return: Boolean indicating if it's a text content type
         """
         text_types = [
-            'text/html',
-            'text/plain',
-            'text/markdown',
-            'application/xhtml+xml',
-            'application/xml'
+            "text/html",
+            "text/plain",
+            "text/markdown",
+            "application/xhtml+xml",
+            "application/xml",
         ]
         return any(content_type.startswith(t) for t in text_types)
 
@@ -106,9 +106,7 @@ class IrAttachmentExtension(models.Model):
             _logger.info(f"Retrieving content from URL: {url}")
 
             # Get the content from the URL
-            headers = {
-                "User-Agent": "Mozilla/5.0 (compatible; Odoo LLM RAG/1.0)"
-            }
+            headers = {"User-Agent": "Mozilla/5.0 (compatible; Odoo LLM RAG/1.0)"}
             response = requests.get(url, timeout=30, headers=headers)
             response.raise_for_status()  # Raise an exception for HTTP errors
 
@@ -144,20 +142,22 @@ class IrAttachmentExtension(models.Model):
             if self._is_text_content_type(content_type):
                 # For text content types, extract the text and update the llm.document
                 try:
-                    text_content = content.decode('utf-8')
+                    text_content = content.decode("utf-8")
                 except UnicodeDecodeError:
                     # Try other common encodings
-                    for encoding in ['latin-1', 'windows-1252', 'iso-8859-1']:
+                    for encoding in ["latin-1", "windows-1252", "iso-8859-1"]:
                         try:
                             text_content = content.decode(encoding)
                             break
                         except UnicodeDecodeError:
                             continue
                     else:
-                        raise UnicodeDecodeError("Failed to decode content with any supported encoding")
+                        raise UnicodeDecodeError(
+                            "Failed to decode content with any supported encoding"
+                        )
 
                 # Convert HTML to markdown if it's HTML content
-                if content_type.startswith(('text/html', 'application/xhtml+xml')):
+                if content_type.startswith(("text/html", "application/xhtml+xml")):
                     markdown_content = md(text_content)
                 else:
                     # For plain text or already markdown, keep as is
@@ -171,12 +171,14 @@ class IrAttachmentExtension(models.Model):
 
                 # Store as attachment anyway for reference
                 content_base64 = base64.b64encode(content)
-                self.write({
-                    "datas": content_base64,
-                    "mimetype": content_type,
-                    "name": filename,
-                    "type": "binary",
-                })
+                self.write(
+                    {
+                        "datas": content_base64,
+                        "mimetype": content_type,
+                        "name": filename,
+                        "type": "binary",
+                    }
+                )
 
                 # Post success message
                 llm_document._post_message(
@@ -189,12 +191,14 @@ class IrAttachmentExtension(models.Model):
             else:
                 # For binary content, save to attachment
                 content_base64 = base64.b64encode(content)
-                self.write({
-                    "datas": content_base64,
-                    "mimetype": content_type,
-                    "name": filename,
-                    "type": "binary",
-                })
+                self.write(
+                    {
+                        "datas": content_base64,
+                        "mimetype": content_type,
+                        "name": filename,
+                        "type": "binary",
+                    }
+                )
 
                 # Post success message
                 llm_document._post_message(

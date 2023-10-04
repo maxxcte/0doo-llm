@@ -1,13 +1,16 @@
-import ollama
 import json
 import logging
 import uuid
 
+import ollama
+
 from odoo import api, models
+
 from ..utils.ollama_message_validator import OllamaMessageValidator
 from ..utils.tool_id_utils import ToolIdUtils
 
 _logger = logging.getLogger(__name__)
+
 
 class LLMProvider(models.Model):
     _inherit = "llm.provider"
@@ -96,21 +99,12 @@ class LLMProvider(models.Model):
 
         return formatted_tool
 
-    def ollama_chat(
-        self,
-        messages,
-        model=None,
-        stream=False,
-        tools=None,
-        **kwargs
-    ):
+    def ollama_chat(self, messages, model=None, stream=False, tools=None, **kwargs):
         """Send chat messages using Ollama with tools support"""
         model = self.get_model(model, "chat")
 
         # Prepare request parameters
-        params = self._prepare_ollama_chat_params(
-            model, messages, stream, tools=tools
-        )
+        params = self._prepare_ollama_chat_params(model, messages, stream, tools=tools)
 
         # Make the API call
         response = self.client.chat(**params)
@@ -180,10 +174,7 @@ class LLMProvider(models.Model):
         }
 
         # Handle tool calls if present
-        if (
-            "tool_calls" in response["message"]
-            and response["message"]["tool_calls"]
-        ):
+        if "tool_calls" in response["message"] and response["message"]["tool_calls"]:
             message["tool_calls"] = []
 
             for tool_call in response["message"]["tool_calls"]:
@@ -196,7 +187,7 @@ class LLMProvider(models.Model):
                         "arguments": "",
                     },
                 }
-                
+
                 # Handle different types of arguments
                 if "function" in tool_call and "arguments" in tool_call["function"]:
                     arguments = tool_call["function"]["arguments"]
@@ -207,11 +198,15 @@ class LLMProvider(models.Model):
                     else:
                         # For any other type, convert to string via JSON
                         try:
-                            tool_call_data["function"]["arguments"] = json.dumps(arguments)
+                            tool_call_data["function"]["arguments"] = json.dumps(
+                                arguments
+                            )
                         except (TypeError, ValueError):
-                            _logger.warning(f"Could not serialize arguments of type {type(arguments)}")
+                            _logger.warning(
+                                f"Could not serialize arguments of type {type(arguments)}"
+                            )
                             tool_call_data["function"]["arguments"] = str(arguments)
-                
+
                 message["tool_calls"].append(tool_call_data)
 
         yield message
@@ -223,7 +218,11 @@ class LLMProvider(models.Model):
 
         for chunk in response:
             # Handle normal content
-            if "message" in chunk and "content" in chunk["message"] and chunk["message"]["content"]:
+            if (
+                "message" in chunk
+                and "content" in chunk["message"]
+                and chunk["message"]["content"]
+            ):
                 content = chunk["message"]["content"]
                 # Only yield if there's new content
                 if content != last_content:
@@ -234,17 +233,21 @@ class LLMProvider(models.Model):
                     }
 
             # Handle tool calls
-            if "message" in chunk and "tool_calls" in chunk["message"] and chunk["message"]["tool_calls"]:
+            if (
+                "message" in chunk
+                and "tool_calls" in chunk["message"]
+                and chunk["message"]["tool_calls"]
+            ):
                 for i, tool_call in enumerate(chunk["message"]["tool_calls"]):
                     # Use the index from the loop if not provided in the response
                     index = tool_call.get("index", i)
-                    
+
                     # Get the tool name
                     tool_name = tool_call["function"]["name"]
-                    
+
                     # Generate a unique ID that includes the tool name
                     tool_id = ToolIdUtils.create_tool_id(tool_name, str(uuid.uuid4()))
-                    
+
                     # Initialize tool call data if it doesn't exist
                     if index not in tool_call_chunks:
                         tool_call_chunks[index] = {
@@ -255,41 +258,55 @@ class LLMProvider(models.Model):
                                 "arguments": "",
                             },
                         }
-                    
+
                     # Update arguments
                     if "arguments" in tool_call["function"]:
                         arguments = tool_call["function"]["arguments"]
-                        
+
                         # Handle different argument types, but always store as JSON string
                         # for consistency with llm_thread module
                         if isinstance(arguments, dict):
                             # Convert dictionary to JSON string
-                            tool_call_chunks[index]["function"]["arguments"] = json.dumps(arguments)
+                            tool_call_chunks[index]["function"]["arguments"] = (
+                                json.dumps(arguments)
+                            )
                         elif isinstance(arguments, str):
                             # If it's already a string, check if it's valid JSON
                             try:
                                 # Parse and re-stringify to ensure consistent formatting
                                 parsed = json.loads(arguments)
-                                tool_call_chunks[index]["function"]["arguments"] = json.dumps(parsed)
+                                tool_call_chunks[index]["function"]["arguments"] = (
+                                    json.dumps(parsed)
+                                )
                             except json.JSONDecodeError:
                                 # If it's not valid JSON, use as is (might be plain text)
-                                tool_call_chunks[index]["function"]["arguments"] = arguments
-                                _logger.warning(f"Received string arguments that aren't valid JSON: {arguments}")
+                                tool_call_chunks[index]["function"]["arguments"] = (
+                                    arguments
+                                )
+                                _logger.warning(
+                                    f"Received string arguments that aren't valid JSON: {arguments}"
+                                )
                         else:
                             # For any other type, try to convert to JSON string
                             try:
-                                tool_call_chunks[index]["function"]["arguments"] = json.dumps(arguments)
+                                tool_call_chunks[index]["function"]["arguments"] = (
+                                    json.dumps(arguments)
+                                )
                             except (TypeError, ValueError):
                                 # If conversion fails, use string representation
-                                tool_call_chunks[index]["function"]["arguments"] = str(arguments)
-                                _logger.warning(f"Couldn't convert arguments to JSON: {type(arguments)}")
-                    
+                                tool_call_chunks[index]["function"]["arguments"] = str(
+                                    arguments
+                                )
+                                _logger.warning(
+                                    f"Couldn't convert arguments to JSON: {type(arguments)}"
+                                )
+
                     # Yield the tool call
                     yield {
                         "role": "assistant",
                         "tool_call": tool_call_chunks[index],
                     }
-            
+
             # If this is the final chunk (done=True), make sure we've yielded all tool calls
             if chunk.get("done", False) and tool_call_chunks:
                 # We've already yielded the tool calls above, so we don't need to do anything here
@@ -313,29 +330,31 @@ class LLMProvider(models.Model):
     def ollama_models(self):
         """List available Ollama models"""
         models_response = self.client.list()
-        
+
         # Get models from the response
-        if hasattr(models_response, 'models'):
+        if hasattr(models_response, "models"):
             models = models_response.models
         else:
             error_msg = f"Unexpected Ollama API response format: {models_response}"
             _logger.error(error_msg)
             raise ValueError(error_msg)
-        
+
         for model in models:
             model_name = model.model
-            
+
             model_info = {
                 "name": model_name,
                 "details": {
                     "id": model_name,
                     "capabilities": ["chat"],  # Default capability
-                    "modified_at": str(model.modified_at) if hasattr(model, 'modified_at') else None,
-                    "size": model.size if hasattr(model, 'size') else None,
-                    "digest": model.digest if hasattr(model, 'digest') else None,
-                }
+                    "modified_at": str(model.modified_at)
+                    if hasattr(model, "modified_at")
+                    else None,
+                    "size": model.size if hasattr(model, "size") else None,
+                    "digest": model.digest if hasattr(model, "digest") else None,
+                },
             }
-            
+
             # Add embedding capability if model name suggests it
             if "embedding" in model_name.lower():
                 model_info["details"]["capabilities"].append("embedding")
@@ -344,11 +363,11 @@ class LLMProvider(models.Model):
 
     def ollama_format_messages(self, messages, system_prompt=None):
         """Format messages for Ollama API
-        
+
         Args:
             messages: List of message records
             system_prompt: Optional system prompt to prepend
-            
+
         Returns:
             List of formatted messages in Ollama format
         """
@@ -376,11 +395,11 @@ class LLMProvider(models.Model):
             if message.subtype_id.id == tool_message_subtype.id:
                 # Extract the tool name from the tool_call_id using the utility class
                 tool_name = ToolIdUtils.extract_tool_name_from_id(message.tool_call_id)
-                
+
                 # If we couldn't extract a tool name, return None
                 if not tool_name:
                     return None
-                    
+
                 return {
                     "role": "tool",
                     "name": tool_name,
@@ -391,18 +410,24 @@ class LLMProvider(models.Model):
         if not message.author_id and message.tool_calls:
             try:
                 tool_calls_data = json.loads(message.tool_calls)
-                
+
                 # Process each tool call to ensure arguments are properly formatted
                 for tool_call in tool_calls_data:
                     if "function" in tool_call and "arguments" in tool_call["function"]:
                         # If arguments are a string that looks like JSON, parse it to a dict
                         args = tool_call["function"]["arguments"]
-                        if isinstance(args, str) and args.strip().startswith("{") and args.strip().endswith("}"):
+                        if (
+                            isinstance(args, str)
+                            and args.strip().startswith("{")
+                            and args.strip().endswith("}")
+                        ):
                             try:
                                 tool_call["function"]["arguments"] = json.loads(args)
                             except json.JSONDecodeError:
-                                _logger.warning(f"Could not parse tool call arguments as JSON: {args}")
-                
+                                _logger.warning(
+                                    f"Could not parse tool call arguments as JSON: {args}"
+                                )
+
                 return {
                     "role": "assistant",
                     "content": message.body or "",  # Ensure content is never null

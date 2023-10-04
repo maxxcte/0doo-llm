@@ -377,7 +377,9 @@ class LLMDocumentCollection(models.Model):
             # Process chunks in batches for efficiency
             total_chunks = len(chunks)
             processed_chunks = 0
-            processed_document_ids = set()  # Track which document IDs had chunks processed
+            processed_document_ids = (
+                set()
+            )  # Track which document IDs had chunks processed
 
             # Process in batches
             for i in range(0, total_chunks, batch_size):
@@ -408,12 +410,16 @@ class LLMDocumentCollection(models.Model):
 
             # Update document states to ready - only update documents that had chunks processed
             if processed_document_ids:
-                self.env["llm.document"].browse(list(processed_document_ids)).write({"state": "ready"})
+                self.env["llm.document"].browse(list(processed_document_ids)).write(
+                    {"state": "ready"}
+                )
                 self.env.cr.commit()
 
                 # Prepare message with document details for clarity
                 doc_count = len(processed_document_ids)
-                msg = _(f"Embedded {processed_chunks} chunks from {doc_count} documents using {embedding_model.name}")
+                msg = _(
+                    f"Embedded {processed_chunks} chunks from {doc_count} documents using {embedding_model.name}"
+                )
 
                 collection.message_post(
                     body=msg,
@@ -422,15 +428,19 @@ class LLMDocumentCollection(models.Model):
 
                 # Create a model-specific index for better performance
                 # Use embedding_model_id instead of collection_id
-                dimensions = len(batch_embeddings[0]) if batch_embeddings and batch_embeddings[0] else None
+                dimensions = (
+                    len(batch_embeddings[0])
+                    if batch_embeddings and batch_embeddings[0]
+                    else None
+                )
                 self.env["llm.document.chunk"].create_embedding_index(
                     embedding_model_id=embedding_model.id, dimensions=dimensions
                 )
 
                 return {
-                    'success': True,
-                    'processed_chunks': processed_chunks,
-                    'processed_documents': len(processed_document_ids)
+                    "success": True,
+                    "processed_chunks": processed_chunks,
+                    "processed_documents": len(processed_document_ids),
                 }
             else:
                 collection.message_post(
@@ -439,7 +449,7 @@ class LLMDocumentCollection(models.Model):
                 )
 
                 return {
-                    'success': False,
-                    'processed_chunks': 0,
-                    'processed_documents': 0
+                    "success": False,
+                    "processed_chunks": 0,
+                    "processed_documents": 0,
                 }
