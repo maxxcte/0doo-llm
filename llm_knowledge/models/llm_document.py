@@ -439,13 +439,13 @@ class LLMDocument(models.Model):
         # Let each collection handle the embedding
         for collection in collections:
             result = collection.embed_documents(specific_document_ids=chunked_docs.ids)
-            # If any collection successfully embedded documents, mark as successful
-            if result.get('success') and result.get('processed_documents', 0) > 0:
+            # Check if result is not None before trying to access .get()
+            if result and result.get('success') and result.get('processed_documents', 0) > 0:
                 any_embedded = True
 
         # Return True only if documents were actually embedded
         return any_embedded
-
+    
     @api.model
     def action_mass_process_documents(self):
         """
