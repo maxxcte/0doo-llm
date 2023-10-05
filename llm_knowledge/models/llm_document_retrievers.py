@@ -25,19 +25,18 @@ class LLMDocumentRetriever(models.Model):
         return [("default", "Default Retriever")]
 
     def retrieve(self):
-        """Retrieve document content from the related record"""
-        for document in self:
-            if document.state != "draft":
-                _logger.warning(
-                    "Document %s must be in draft state to retrieve content",
-                    document.id,
-                )
-                continue
+        """Retrieve document content from the related record with proper error handling and lock management"""
+        documents_to_process = self.filtered(lambda d: d.state == "draft")
+        if not documents_to_process:
+            return False
 
         # Lock documents and process only the successfully locked ones
-        documents = self._lock()
+        documents = documents_to_process._lock()
         if not documents:
             return False
+
+        # Track which documents have been processed successfully
+        successful_documents = self.env["llm.document"]
 
         try:
             # Process each document
@@ -46,10 +45,12 @@ class LLMDocumentRetriever(models.Model):
                     # Get the related record
                     record = self.env[document.res_model].browse(document.res_id)
                     if not record.exists():
-                        raise UserError(_("Referenced record not found"))
+                        document._post_message(
+                            _("Referenced record not found"), "error"
+                        )
+                        continue
 
                     # Call the rag_retrieve method on the record if it exists
-
                     result = (
                         record.rag_retrieve(document)
                         if hasattr(record, "rag_retrieve")
@@ -65,16 +66,31 @@ class LLMDocumentRetriever(models.Model):
                         }
                     )
 
+                    # Track successful document
+                    successful_documents |= document
+
                 except Exception as e:
+                    _logger.error(
+                        "Error retrieving document %s: %s",
+                        document.id,
+                        str(e),
+                        exc_info=True,
+                    )
                     document._post_message(
                         f"Error retrieving document: {str(e)}", "error"
                     )
+
+                    # Make sure to explicitly unlock the document in case of error
                     document._unlock()
 
             # Unlock all successfully processed documents
-            documents._unlock()
-            return True
+            successful_documents._unlock()
+            return bool(successful_documents)
 
         except Exception as e:
+            # Make sure to unlock ALL documents in case of a catastrophic error
             documents._unlock()
+            _logger.error(
+                "Critical error in batch retrieval: %s", str(e), exc_info=True
+            )
             raise UserError(_("Error in batch retrieval: %s") % str(e)) from e

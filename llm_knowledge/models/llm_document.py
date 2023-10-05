@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from odoo import _, api, fields, models
 
@@ -161,18 +162,25 @@ class LLMDocument(models.Model):
             message_type="comment",
         )
 
-    def _lock(self):
+    def _lock(self, stale_lock_minutes=10):
         """Lock documents for processing and return the ones successfully locked"""
-        successfully_locked = self.env["llm.document"]
-        for document in self:
-            if document.lock_date:
-                _logger.warning(
-                    "Document %s is already locked for processing", document.id
-                )
-                continue
-            document.lock_date = fields.Datetime.now()
-            successfully_locked |= document
-        return successfully_locked
+        now = fields.Datetime.now()
+        stale_lock_threshold = now - timedelta(minutes=stale_lock_minutes)
+
+        # Find documents that are not locked or have stale locks
+        domain = [
+            ("id", "in", self.ids),
+            "|",
+            ("lock_date", "=", False),
+            ("lock_date", "<", stale_lock_threshold),
+        ]
+
+        unlocked_docs = self.env["llm.document"].search(domain)
+
+        if unlocked_docs:
+            unlocked_docs.write({"lock_date": now})
+
+        return unlocked_docs
 
     def _unlock(self):
         """Unlock documents after processing"""

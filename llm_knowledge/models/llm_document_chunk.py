@@ -42,6 +42,8 @@ class LLMDocumentChunk(models.Model):
     collection_ids = fields.Many2many(
         "llm.document.collection",
         string="Collections",
+        related="document_id.collection_ids",
+        store=False,
     )
 
     @api.depends("document_id.name", "sequence")
