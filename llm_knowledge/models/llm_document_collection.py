@@ -351,7 +351,7 @@ class LLMDocumentCollection(models.Model):
             # Directly search for chunks that belong to chunked documents in this collection
             chunk_domain = [
                 ("document_id.state", "=", "chunked"),
-                ("collection_ids", "=", [collection.id]),
+                ("collection_ids", "=", collection.id),
             ]
 
             # Add specific document filter if provided
