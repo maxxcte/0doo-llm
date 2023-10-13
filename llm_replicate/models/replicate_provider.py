@@ -52,6 +52,7 @@ class LLMProvider(models.Model):
         return response
 
     def replicate_models(self):
+        self.ensure_one()
         """List available Replicate models with pagination support"""
         cursor = ...
 
@@ -61,7 +62,7 @@ class LLMProvider(models.Model):
 
             # Process models in current page
             for model in page.results:
-                details = LLMProvider.serialize_model_data(model.dict())
+                details = self.serialize_model_data(model.dict())
                 capabilities = []
 
                 # Infer capabilities from model metadata
