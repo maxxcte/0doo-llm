@@ -5,12 +5,18 @@ from odoo import _, api, fields, models
 
 _logger = logging.getLogger(__name__)
 
-
 class LLMDocument(models.Model):
     _name = "llm.document"
     _description = "LLM Document for RAG"
     _inherit = ["mail.thread", "mail.activity.mixin"]
     _order = "id desc"
+    _sql_constraints = [
+        (
+            'unique_document_reference',
+            'UNIQUE(res_model, res_id)',
+            'A document already exists for this record. Please use the existing document.'
+        ),
+    ]
 
     name = fields.Char(
         string="Name",
