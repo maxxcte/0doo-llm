@@ -222,83 +222,53 @@ class LLMDocumentCollection(models.Model):
     def process_documents(self):
         """Process documents through retrieval, parsing, and chunking (up to chunked state)"""
         for collection in self:
-            draft_docs = collection.document_ids.filtered(lambda d: d.state == "draft")
-            retrieved_docs = collection.document_ids.filtered(
-                lambda d: d.state == "retrieved"
-            )
-            parsed_docs = collection.document_ids.filtered(
-                lambda d: d.state == "parsed"
-            )
-
-            # Process documents through the pipeline stages
-            if draft_docs:
-                draft_docs.retrieve()
-
-            if retrieved_docs:
-                retrieved_docs.parse()
-
-            if parsed_docs:
-                parsed_docs.chunk()
-
-            # Count processed documents
-            processed = len(draft_docs) + len(retrieved_docs) + len(parsed_docs)
-
-            if processed > 0:
-                collection.message_post(
-                    body=_(
-                        f"Processed {processed} documents through the RAG pipeline."
-                    ),
-                    message_type="notification",
-                )
-            else:
-                collection.message_post(
-                    body=_("No documents needed processing."),
-                    message_type="notification",
-                )
-
-    def action_process_and_embed(self):
-        """Process and embed documents in one action"""
-        for collection in self:
-            collection.process_documents()
-            collection.embed_documents()
-
-        return {
-            "type": "ir.actions.client",
-            "tag": "display_notification",
-            "params": {
-                "title": _("Collection Processing"),
-                "message": _("Documents processed and embedded successfully."),
-                "sticky": False,
-                "type": "success",
-            },
-        }
+            collection.document_ids.process_document()
 
     def reindex_collection(self):
-        """Reindex all documents in the collection"""
+        """
+        Reindex all documents in the collection.
+        This will clear all chunk embeddings (setting them to NULL),
+        reset document states from 'ready' to 'chunked',
+        and rebuild the index to exclude NULL embeddings.
+        """
         for collection in self:
-            # Get all chunks from this collection
+            ready_docs = collection.document_ids.filtered(lambda d: d.state == "ready")
             chunks = self.env["llm.document.chunk"].search(
                 [("collection_ids", "=", collection.id)]
             )
+            if ready_docs:
+                ready_docs.write({"state": "chunked"})
 
             if chunks:
                 # Use embedding_model_id instead of collection_id
                 if collection.embedding_model_id:
                     embedding_model_id = collection.embedding_model_id.id
+
                     # Get sample embedding to determine dimensions
                     sample_embedding = collection.embedding_model_id.embedding("")[0]
                     dimensions = len(sample_embedding) if sample_embedding else None
 
-                    # Use the create_embedding_index method with embedding_model_id parameter
-                    chunks.create_embedding_index(
-                        embedding_model_id=embedding_model_id,
-                        dimensions=dimensions,
-                        force=True,  # Force recreate
+                    # First clear all embeddings and commit
+                    # This is done in one operation to avoid partial states
+                    chunks.write(
+                        {
+                            "embedding": None,
+                            "embedding_model_id": embedding_model_id,
+                        }
                     )
+                    self.env.cr.commit()
+
+                    # Now create the index - it will automatically exclude NULL embeddings
+                    # due to the WHERE embedding IS NOT NULL clause in create_embedding_index
+                    if dimensions:
+                        self.env["llm.document.chunk"].create_embedding_index(
+                            embedding_model_id=embedding_model_id,
+                            dimensions=dimensions,
+                        )
 
                     collection.message_post(
                         body=_(
-                            f"Reindexed {len(chunks)} chunks with model {collection.embedding_model_id.name}."
+                            f"Reset embeddings for {len(chunks)} chunks and recreated index for model {collection.embedding_model_id.name}."
                         ),
                         message_type="notification",
                     )

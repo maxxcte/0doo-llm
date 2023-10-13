@@ -207,4 +207,3 @@ class IrAttachmentExtension(models.Model):
 
             # Binary content still needs parsing
             return {"state": "retrieved"}
-

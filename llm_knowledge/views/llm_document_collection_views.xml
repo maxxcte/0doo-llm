@@ -41,13 +41,6 @@
             confirm="This will embed all document chunks with the selected embedding model. Continue?"
           />
                     <button
-            name="action_process_and_embed"
-            string="Process &amp; Embed"
-            type="object"
-            class="btn-secondary"
-            confirm="This will process and embed all documents in one step. Continue?"
-          />
-                    <button
             name="reindex_collection"
             string="Reindex Collection"
             type="object"

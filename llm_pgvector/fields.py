@@ -34,8 +34,13 @@ class PgVector(fields.Field):
         if value is None:
             return None
 
-        # Use Vector._to_db method from pgvector
-        return Vector._to_db(value, self.dimension)
+        # Ensure the value is properly formatted for pgvector
+        try:
+            # Use Vector._to_db method from pgvector
+            return Vector._to_db(value, self.dimension)
+        except (ValueError, TypeError) as e:
+            _logger.warning(f"Error converting vector: {e}. Returning NULL.")
+            return None
 
     def convert_to_cache(self, value, record, validate=True):
         """Convert database value to cache format."""
@@ -46,8 +51,13 @@ class PgVector(fields.Field):
         if isinstance(value, list) or isinstance(value, np.ndarray):
             return value
 
-        # Use Vector._from_db method from pgvector for string values
-        return Vector._from_db(value)
+        # Safely convert from database format
+        try:
+            # Use Vector._from_db method from pgvector for string values
+            return Vector._from_db(value)
+        except (ValueError, TypeError) as e:
+            _logger.warning(f"Error converting vector from DB: {e}. Returning None.")
+            return None
 
     def create_column(self, cr, table, column, **kwargs):
         """Create a vector column in the database."""
