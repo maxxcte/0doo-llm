@@ -168,7 +168,7 @@ class EmbeddingMixin(models.AbstractModel):
         if domain:
             for cond in domain:
                 if (
-                    isinstance(cond, (list, tuple))
+                    (isinstance(cond, list) or isinstance(cond, tuple))
                     and len(cond) == 3
                     and cond[0] == "embedding_model_id"
                     and cond[1] == "="

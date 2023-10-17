@@ -11,7 +11,6 @@ try:
         HierarchicalNodeParser,
         MarkdownNodeParser,
         SentenceSplitter,
-        SentenceWindowNodeParser,
         TokenTextSplitter,
     )
 
@@ -366,4 +365,4 @@ class LLMDocumentLlamaChunker(models.Model):
 
         except Exception as e:
             documents._unlock()
-            raise UserError(_("Error in batch chunking: %s") % str(e))
+            raise UserError(_("Error in batch chunking: %s") % str(e)) from e
