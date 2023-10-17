@@ -115,6 +115,32 @@
             border-top: 1px solid #eee;
             padding-top: 20px;
         }
+        .usage-steps {
+            margin: 20px 0;
+        }
+        .usage-step {
+            background-color: #f8f9fa;
+            border-left: 4px solid #6f42c1;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 0 4px 4px 0;
+        }
+        .usage-step h4 {
+            margin-top: 0;
+            color: #6f42c1;
+        }
+        .img-wrapper {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .img-placeholder {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
@@ -125,7 +151,7 @@
 </div>
 
 <div class="note">
-    <strong>What is RAG?</strong> Retrieval Augmented Generation (RAG) enhances Large Language Models by retrieving relevant information from a knowledge base before generating responses, improving accuracy and providing up-to-date information.
+    <strong>What is RAG?</strong> Retrieval Augmented Generation (RAG) enhances Large Language Models by retrieving relevant information from a knowledge base before generating responses, improving accuracy and providing up-to-date information from your Odoo data.
 </div>
 
 <h2>Key Features</h2>
@@ -135,8 +161,9 @@
         <p>Complete system for organizing, tracking, and processing documents for RAG:</p>
         <ul>
             <li>Document status tracking</li>
-            <li>Document versioning</li>
+            <li>Multiple document sources</li>
             <li>Attachment handling</li>
+            <li>Collection-based organization</li>
             <li>Activity logging</li>
         </ul>
     </div>
@@ -147,7 +174,8 @@
             <li>Integration with PostgreSQL pgvector</li>
             <li>Cosine similarity matching</li>
             <li>Optimized vector indices</li>
-            <li>Hybrid search capabilities</li>
+            <li>Model-specific embeddings</li>
+            <li>Configurable similarity thresholds</li>
         </ul>
     </div>
     <div class="feature-card">
@@ -155,9 +183,10 @@
         <p>Intuitive interfaces for managing the RAG process:</p>
         <ul>
             <li>Document creation wizard</li>
-            <li>RAG search interface</li>
+            <li>File upload wizard</li>
+            <li>Domain filtering wizard</li>
             <li>Document processing dashboard</li>
-            <li>Results visualization</li>
+            <li>Kanban and list views</li>
         </ul>
     </div>
 </div>
@@ -167,7 +196,7 @@
 <div class="pipeline">
     <div class="pipeline-step">
         <h3>Retrieve</h3>
-        <p>Extract document content from source records</p>
+        <p>Extract document content from source records or URLs</p>
     </div>
     <div class="pipeline-step">
         <h3>Parse</h3>
@@ -175,11 +204,58 @@
     </div>
     <div class="pipeline-step">
         <h3>Chunk</h3>
-        <p>Split into semantic segments</p>
+        <p>Split into semantic segments with configurable overlap</p>
     </div>
     <div class="pipeline-step">
         <h3>Embed</h3>
-        <p>Create vector representations</p>
+        <p>Create vector representations using AI models</p>
+    </div>
+</div>
+
+<h2>Document Sources</h2>
+<p>The module supports multiple ways to create RAG documents:</p>
+
+<div class="usage-steps">
+    <div class="usage-step">
+        <h4>Odoo Records</h4>
+        <p>Create RAG documents directly from any Odoo record:</p>
+        <ul>
+            <li>Select records in any model</li>
+            <li>Use the "Create RAG Document" server action</li>
+            <li>Documents retain references to the original records</li>
+        </ul>
+    </div>
+
+    <div class="usage-step">
+        <h4>File Uploads</h4>
+        <p>Upload local files to create RAG documents:</p>
+        <ul>
+            <li>PDF files with text and image extraction</li>
+            <li>Text files with automatic formatting</li>
+            <li>HTML files with conversion to markdown</li>
+            <li>And other document formats</li>
+        </ul>
+    </div>
+
+    <div class="usage-step">
+        <h4>External URLs</h4>
+        <p>Create RAG documents from web content:</p>
+        <ul>
+            <li>Automatic retrieval and parsing</li>
+            <li>HTML-to-markdown conversion</li>
+            <li>Link normalization for references</li>
+            <li>Support for various content types</li>
+        </ul>
+    </div>
+
+    <div class="usage-step">
+        <h4>Domain Filters</h4>
+        <p>Automatically create documents from record sets:</p>
+        <ul>
+            <li>Define Odoo domains for specific models</li>
+            <li>Bulk create documents for matching records</li>
+            <li>Automatic updates when domain data changes</li>
+        </ul>
     </div>
 </div>
 
@@ -198,12 +274,12 @@
         <tbody>
         <tr>
             <td><strong>Retrievers</strong></td>
-            <td>Extract content from different record types</td>
+            <td>Extract content from different record types and sources</td>
             <td>Extend <code>_get_available_retrievers</code> method and implement a custom retriever method</td>
         </tr>
         <tr>
             <td><strong>Parsers</strong></td>
-            <td>Process different file formats (PDF, text, etc.)</td>
+            <td>Process different file formats (PDF, text, JSON, etc.)</td>
             <td>Extend <code>_get_available_parsers</code> method and implement a custom parser method</td>
         </tr>
         <tr>
@@ -212,24 +288,28 @@
             <td>Extend <code>_get_available_chunkers</code> method and implement a custom chunker method</td>
         </tr>
         <tr>
-            <td><strong>Embedders</strong></td>
-            <td>Integrate with different embedding models</td>
-            <td>Configure via the embedding model selection</td>
+            <td><strong>Models</strong></td>
+            <td>Add RAG capabilities to any Odoo model</td>
+            <td>Implement <code>rag_retrieve</code> and <code>rag_parse</code> methods on your model</td>
         </tr>
         </tbody>
     </table>
 </div>
 
-<h2>Integration Points</h2>
-<p>The module can be integrated with other Odoo models through:</p>
+<h2>Document Collections</h2>
+<p>Collections are at the heart of the RAG system, organizing documents for effective retrieval:</p>
 <ul>
-    <li><strong>Server Actions</strong>: Pre-configured actions for creating RAG documents from any record</li>
-    <li><strong>Model Extensions</strong>: Add RAG capabilities to any model by implementing the <code>rag_retrieve</code> method</li>
-    <li><strong>API Access</strong>: Programmatic access to the RAG pipeline through the Odoo API</li>
+    <li><strong>Unified Knowledge Base</strong>: Group related documents together</li>
+    <li><strong>Embedding Models</strong>: Each collection uses a specific embedding model</li>
+    <li><strong>Bulk Operations</strong>: Process, embed, and reindex documents in batches</li>
+    <li><strong>Domain Management</strong>: Add documents based on domain filters</li>
 </ul>
 
-<div class="note">
-    <strong>PDF Processing:</strong> The module includes advanced PDF handling capabilities through PyMuPDF, including text extraction and image handling.
+<div class="img-wrapper">
+    <div class="img-placeholder">
+        <p>[Collection Management Interface Image]</p>
+        <p>The document collection interface allows for efficient organization and processing of RAG documents</p>
+    </div>
 </div>
 
 <h2>Getting Started</h2>
@@ -237,7 +317,7 @@
 <p>Install the module and its dependencies:</p>
 <ol>
     <li>Install the base <code>llm</code> and <code>llm_pgvector</code> modules</li>
-    <li>Install Python dependencies: <code>PyMuPDF</code> and <code>numpy</code></li>
+    <li>Install Python dependencies: <code>PyMuPDF</code>, <code>numpy</code>, <code>requests</code>, and <code>markdownify</code></li>
     <li>Install the <code>llm_rag</code> module</li>
 </ol>
 
@@ -245,9 +325,36 @@
 <p>Set up your embedding models and configure the RAG pipeline:</p>
 <ol>
     <li>Configure embedding models in the LLM settings</li>
-    <li>Select default parsers, chunkers, and other pipeline options</li>
-    <li>Create your first RAG documents</li>
+    <li>Create collections with appropriate embedding models</li>
+    <li>Add documents to collections through one of the supported methods</li>
+    <li>Process documents through the RAG pipeline</li>
 </ol>
+
+<h3>Usage Workflows</h3>
+<p>Common usage workflows include:</p>
+<ul>
+    <li><strong>Document Creation</strong>: Using wizards to create documents from various sources</li>
+    <li><strong>Document Processing</strong>: Handling documents through the pipeline stages</li>
+    <li><strong>Collection Management</strong>: Organizing documents into knowledge bases</li>
+    <li><strong>Vector Search</strong>: Performing semantic searches on document chunks</li>
+</ul>
+
+<div class="note">
+    <strong>Performance Tips:</strong> For optimal performance with large document collections, consider:
+    <ul>
+        <li>Processing documents in batches rather than individually</li>
+        <li>Adjusting chunk sizes based on your content type</li>
+        <li>Using collection-specific embedding models for better search accuracy</li>
+    </ul>
+</div>
+
+<h2>Integration with LLM Module</h2>
+<p>The RAG module integrates seamlessly with the LLM module, enhancing AI capabilities with your Odoo data:</p>
+<ul>
+    <li>Augment AI responses with relevant information from your documents</li>
+    <li>Provide context from your business data for more accurate answers</li>
+    <li>Keep AI responses aligned with your company's knowledge base</li>
+</ul>
 
 <div class="footer">
     <p>Developed by Apexive Solutions LLC | Licensed under LGPL-3</p>

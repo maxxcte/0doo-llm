@@ -199,8 +199,13 @@ class LLMDocument(models.Model):
         Can handle multiple documents at once, processing them through
         as many pipeline stages as possible based on their current states.
         """
-        # Process each stage with the filtered recordsets
-        # Each method will only process documents in the appropriate state
+
+        inconsistent_docs = self.filtered(
+            lambda d: d.state in ['chunked', 'ready'] and not d.chunk_ids
+        )
+
+        if inconsistent_docs:
+            inconsistent_docs.write({"state": "parsed"})
 
         # Stage 1: Retrieve content for draft documents
         draft_docs = self.filtered(lambda d: d.state == "draft")
