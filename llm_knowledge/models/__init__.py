@@ -4,5 +4,6 @@ from . import llm_document_retrievers
 from . import llm_document_parsers
 from . import llm_document_chunkers
 from . import llm_document_chunk
+from . import llm_collection_domain
 from . import ir_attachment
 from . import http_retriever

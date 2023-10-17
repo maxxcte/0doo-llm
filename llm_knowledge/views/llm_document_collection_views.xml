@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- This modified view adds the Upload Documents button to the collection form view header -->
+<!-- This modified view replaces source_domains with domain_ids and removes the Add Domain button -->
 <odoo>
     <record id="view_llm_document_collection_form" model="ir.ui.view">
         <field name="name">llm.document.collection.form</field>
@@ -8,71 +8,65 @@
             <form>
                 <header>
                     <button
-            name="action_open_add_domain_wizard"
-            string="Add Domain"
-            type="object"
-            class="btn-primary"
-          />
+                            name="add_documents_from_domain"
+                            string="Add Documents from Domain"
+                            type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('domain_ids', '=', [])]}"
+                    />
                     <button
-            name="add_documents_from_domain"
-            string="Add Documents from Domain"
-            type="object"
-            class="btn-primary"
-            attrs="{'invisible': [('source_domains', '=', False)]}"
-          />
+                            name="action_open_upload_wizard"
+                            string="Upload Documents"
+                            type="object"
+                            class="btn-primary"
+                    />
                     <button
-            name="action_open_upload_wizard"
-            string="Upload Documents"
-            type="object"
-            class="btn-primary"
-          />
+                            name="process_documents"
+                            string="Process Documents"
+                            type="object"
+                            class="btn-primary"
+                            confirm="This will process documents through the RAG pipeline until chunked state. Continue?"
+                    />
                     <button
-            name="process_documents"
-            string="Process Documents"
-            type="object"
-            class="btn-primary"
-            confirm="This will process documents through the RAG pipeline until chunked state. Continue?"
-          />
+                            name="embed_documents"
+                            string="Embed Documents"
+                            type="object"
+                            class="btn-primary"
+                            confirm="This will embed all document chunks with the selected embedding model. Continue?"
+                    />
                     <button
-            name="embed_documents"
-            string="Embed Documents"
-            type="object"
-            class="btn-primary"
-            confirm="This will embed all document chunks with the selected embedding model. Continue?"
-          />
-                    <button
-            name="reindex_collection"
-            string="Reindex Collection"
-            type="object"
-            class="btn-secondary"
-            confirm="This will recreate vector indexes for documents. Continue?"
-          />
+                            name="reindex_collection"
+                            string="Reindex Collection"
+                            type="object"
+                            class="btn-secondary"
+                            confirm="This will recreate vector indexes for documents. Continue?"
+                    />
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button
-              name="action_view_documents"
-              type="object"
-              class="oe_stat_button"
-              icon="fa-file-text"
-            >
+                                name="action_view_documents"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-file-text"
+                        >
                             <field
-                name="document_count"
-                widget="statinfo"
-                string="Documents"
-              />
+                                    name="document_count"
+                                    widget="statinfo"
+                                    string="Documents"
+                            />
                         </button>
                         <button
-              name="action_view_chunks"
-              type="object"
-              class="oe_stat_button"
-              icon="fa-puzzle-piece"
-            >
+                                name="action_view_chunks"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-puzzle-piece"
+                        >
                             <field
-                name="chunk_count"
-                widget="statinfo"
-                string="Chunks"
-              />
+                                    name="chunk_count"
+                                    widget="statinfo"
+                                    string="Chunks"
+                            />
                         </button>
                     </div>
                     <div class="oe_title">
@@ -84,27 +78,19 @@
                         <group>
                             <field name="active" widget="boolean_toggle" />
                             <field
-                name="embedding_model_id"
-                options="{'no_create': True}"
-                required="1"
-              />
-                        </group>
-                        <group>
-                            <field
-                name="source_domains"
-                widget="ace"
-                options="{'mode': 'json'}"
-                placeholder='{"model.name": "[domain]", "res.partner": "[("type", "=", "contact")]"}'
-              />
+                                    name="embedding_model_id"
+                                    options="{'no_create': True}"
+                                    required="1"
+                            />
                         </group>
                     </group>
                     <notebook>
                         <page string="Description">
                             <field
-                name="description"
-                placeholder="Collection description..."
-                nolabel="1"
-              />
+                                    name="description"
+                                    placeholder="Collection description..."
+                                    nolabel="1"
+                            />
                         </page>
                         <page string="Documents">
                             <field name="document_ids" nolabel="1">
@@ -117,13 +103,29 @@
                                 </tree>
                             </field>
                         </page>
+                        <page string="Domain Filters">
+                            <field name="domain_ids" nolabel="1">
+                                <tree editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="model_id" options="{'no_create': True}"/>
+                                    <field name="model_name" invisible="1"/>
+                                    <field name="domain" widget="domain" options="{'model': 'model_name'}"/>
+                                    <field name="active" widget="boolean_toggle"/>
+                                </tree>
+                            </field>
+                            <div class="alert alert-info mt-3" role="alert">
+                                <p><strong>Domain filters are used to automatically create RAG documents</strong></p>
+                                <p>Add domain filters for different models to select records that will be converted to RAG documents.
+                                    Click 'Add Documents from Domain' to process these filters.</p>
+                            </div>
+                        </page>
                     </notebook>
                 </sheet>
                 <div class="oe_chatter">
                     <field
-            name="message_follower_ids"
-            widget="mail_followers"
-          />
+                            name="message_follower_ids"
+                            widget="mail_followers"
+                    />
                     <field name="activity_ids" widget="mail_activity" />
                     <field name="message_ids" widget="mail_thread" />
                 </div>
@@ -154,17 +156,17 @@
                 <field name="name" />
                 <field name="embedding_model_id" />
                 <filter
-          string="Archived"
-          name="inactive"
-          domain="[('active', '=', False)]"
-        />
+                        string="Archived"
+                        name="inactive"
+                        domain="[('active', '=', False)]"
+                />
                 <group expand="0" string="Group By">
                     <filter
-            string="Embedding Model"
-            name="group_by_model"
-            domain="[]"
-            context="{'group_by':'embedding_model_id'}"
-          />
+                            string="Embedding Model"
+                            name="group_by_model"
+                            domain="[]"
+                            context="{'group_by':'embedding_model_id'}"
+                    />
                 </group>
             </search>
         </field>
@@ -195,19 +197,19 @@
                                 <div class="row">
                                     <div class="col-6">
                                         <strong>Documents:</strong> <field
-                      name="document_count"
-                    />
+                                            name="document_count"
+                                    />
                                     </div>
                                     <div class="col-6">
                                         <strong>Chunks:</strong> <field
-                      name="chunk_count"
-                    />
+                                            name="chunk_count"
+                                    />
                                     </div>
                                 </div>
                                 <div>
                                     <strong>Model:</strong> <field
-                    name="embedding_model_id"
-                  />
+                                        name="embedding_model_id"
+                                />
                                 </div>
                             </div>
                         </div>

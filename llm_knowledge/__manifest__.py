@@ -25,7 +25,6 @@
         "views/llm_document_collection_views.xml",
         "views/llm_document_chunk_views.xml",
         "wizards/create_rag_document_wizard_views.xml",
-        "wizards/add_domain_wizard_views.xml",
         "wizards/upload_document_wizard_views.xml",
         "data/server_actions.xml",
         "views/menu.xml",

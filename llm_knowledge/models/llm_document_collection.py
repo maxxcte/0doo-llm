@@ -1,4 +1,3 @@
-import json
 import logging
 
 from odoo import _, api, fields, models
@@ -43,10 +42,12 @@ class LLMDocumentCollection(models.Model):
         column1="collection_id",
         column2="document_id",
     )
-    source_domains = fields.Text(
-        string="Source Domains",
-        help="JSON structure containing model-domain pairs to select records for RAG document creation",
-        tracking=True,
+    # New field to replace source_domains
+    domain_ids = fields.One2many(
+        "llm.collection.domain",
+        "collection_id",
+        string="Domain Filters",
+        help="Domain filters to select records for RAG document creation",
     )
     document_count = fields.Integer(
         string="Document Count",
@@ -93,42 +94,26 @@ class LLMDocumentCollection(models.Model):
             "type": "ir.actions.act_window",
         }
 
-    def _parse_source_domains(self):
-        """Parse the source_domains field into a dictionary of model:domain pairs"""
-        self.ensure_one()
-        if not self.source_domains:
-            return {}
-
-        try:
-            # Parse the JSON structure
-            domains_dict = json.loads(self.source_domains)
-            return domains_dict
-        except json.JSONDecodeError as e:
-            raise UserError(_("Invalid JSON format in source domains")) from e
-
     def add_documents_from_domain(self):
         """
         Add documents to collection by creating llm.document for records matching domains.
         This creates RAG documents for Odoo records from multiple models based on
-        the domain criteria defined in source_domains.
+        the domain criteria defined in domain_ids.
         """
         for collection in self:
-            if not collection.source_domains:
+            if not collection.domain_ids:
                 collection.message_post(
-                    body=_("Please define source domains before adding documents."),
+                    body=_("Please define domain filters before adding documents."),
                     message_type="notification",
                 )
-                continue
-
-            domains_dict = collection._parse_source_domains()
-            if not domains_dict:
                 continue
 
             created_count = 0
             linked_count = 0
 
             # Process each model and its domain
-            for model_name, domain_str in domains_dict.items():
+            for domain_filter in collection.domain_ids.filtered(lambda d: d.active):
+                model_name = domain_filter.model_name
                 # Validate model exists
                 if model_name not in self.env:
                     collection.message_post(
@@ -139,7 +124,7 @@ class LLMDocumentCollection(models.Model):
 
                 # Get model and evaluate domain
                 model = self.env[model_name]
-                domain = safe_eval(domain_str)
+                domain = safe_eval(domain_filter.domain)
 
                 # Search records matching the domain
                 records = model.search(domain)
@@ -147,7 +132,7 @@ class LLMDocumentCollection(models.Model):
                 if not records:
                     collection.message_post(
                         body=_(
-                            f"No records found for model '{model_name}' with given domain."
+                            f"No records found for model '{domain_filter.model_id.name}' with given domain."
                         ),
                         message_type="notification",
                     )
@@ -204,20 +189,6 @@ class LLMDocumentCollection(models.Model):
                     body=_("No new documents were created or linked."),
                     message_type="notification",
                 )
-
-    def action_open_add_domain_wizard(self):
-        """Open wizard to add a domain to the source domains"""
-        self.ensure_one()
-        return {
-            "name": _("Add Domain to Collection"),
-            "type": "ir.actions.act_window",
-            "res_model": "llm.add.domain.wizard",
-            "view_mode": "form",
-            "target": "new",
-            "context": {
-                "default_collection_id": self.id,
-            },
-        }
 
     def process_documents(self):
         """Process documents through retrieval, parsing, and chunking (up to chunked state)"""
