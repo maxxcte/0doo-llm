@@ -8,39 +8,40 @@
             <form>
                 <header>
                     <button
-            name="add_documents_from_domain"
-            string="Add Documents from Domain"
-            type="object"
-            class="btn-primary"
-            attrs="{'invisible': [('domain_ids', '=', [])]}"
-          />
+                            name="sync_documents"
+                            string="Sync Documents"
+                            type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('domain_ids', '=', [])]}"
+                            confirm="This will synchronize the collection with domain filters, adding new documents and removing those no longer matching. Continue?"
+                    />
                     <button
-            name="action_open_upload_wizard"
-            string="Upload Documents"
-            type="object"
-            class="btn-primary"
-          />
+                            name="action_open_upload_wizard"
+                            string="Upload Documents"
+                            type="object"
+                            class="btn-primary"
+                    />
                     <button
-            name="process_documents"
-            string="Process Documents"
-            type="object"
-            class="btn-primary"
-            confirm="This will process documents through the RAG pipeline until chunked state. Continue?"
-          />
+                            name="process_documents"
+                            string="Process Documents"
+                            type="object"
+                            class="btn-primary"
+                            confirm="This will process documents through the RAG pipeline until chunked state. Continue?"
+                    />
                     <button
-            name="embed_documents"
-            string="Embed Documents"
-            type="object"
-            class="btn-primary"
-            confirm="This will embed all document chunks with the selected embedding model. Continue?"
-          />
+                            name="embed_documents"
+                            string="Embed Documents"
+                            type="object"
+                            class="btn-primary"
+                            confirm="This will embed all document chunks with the selected embedding model. Continue?"
+                    />
                     <button
-            name="reindex_collection"
-            string="Reindex Collection"
-            type="object"
-            class="btn-secondary"
-            confirm="This will recreate vector indexes for documents. Continue?"
-          />
+                            name="reindex_collection"
+                            string="Reindex Collection"
+                            type="object"
+                            class="btn-secondary"
+                            confirm="This will recreate vector indexes for documents. Continue?"
+                    />
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">

@@ -93,22 +93,24 @@ class LLMDocumentCollection(models.Model):
             "type": "ir.actions.act_window",
         }
 
-    def add_documents_from_domain(self):
+    def sync_documents(self):
         """
-        Add documents to collection by creating llm.document for records matching domains.
-        This creates RAG documents for Odoo records from multiple models based on
-        the domain criteria defined in domain_ids.
+        Synchronize collection documents with domain filters.
+        This will:
+        1. Add new documents for records matching domain filters
+        2. Remove documents that no longer match domain filters
         """
         for collection in self:
             if not collection.domain_ids:
-                collection.message_post(
-                    body=_("Please define domain filters before adding documents."),
-                    message_type="notification",
-                )
                 continue
 
             created_count = 0
             linked_count = 0
+            removed_count = 0
+
+            # Find all records that match domains across all active domain filters
+            matching_records = []
+            model_map = {}  # To track which model each record belongs to
 
             # Process each model and its domain
             for domain_filter in collection.domain_ids.filtered(lambda d: d.active):
@@ -137,55 +139,84 @@ class LLMDocumentCollection(models.Model):
                     )
                     continue
 
-                # Create or link llm.document for each record
+                # Store model_id with each record for later use
                 for record in records:
-                    # Check if document already exists for this record
-                    existing_doc = self.env["llm.document"].search(
-                        [
-                            ("model_id", "=", domain_filter.model_id.id),
-                            ("res_id", "=", record.id),
-                        ],
-                        limit=1,
-                    )
+                    matching_records.append((model_name, record.id))
+                    model_map[(model_name, record.id)] = domain_filter.model_id
 
-                    if existing_doc:
-                        # Link existing document to this collection if not already linked
-                        if existing_doc.id not in collection.document_ids.ids:
-                            collection.write({"document_ids": [(4, existing_doc.id)]})
-                            linked_count += 1
+            # Get all existing documents in the collection
+            existing_docs = collection.document_ids
+
+            # Track which existing documents should be kept
+            docs_to_keep = self.env['llm.document']
+
+            # Process all matching records to create/link documents
+            for model_name, record_id in matching_records:
+                # Get actual record
+                record = self.env[model_name].browse(record_id)
+                model_id = model_map[(model_name, record_id)].id
+
+                # Check if document already exists for this record
+                existing_doc = self.env["llm.document"].search(
+                    [
+                        ("model_id", "=", model_id),
+                        ("res_id", "=", record_id),
+                    ],
+                    limit=1,
+                )
+
+                if existing_doc:
+                    # Document exists - add to keep list if in our collection
+                    if existing_doc in existing_docs:
+                        docs_to_keep |= existing_doc
+                    # Otherwise link it if not already in the collection
+                    elif existing_doc.id not in collection.document_ids.ids:
+                        collection.write({"document_ids": [(4, existing_doc.id)]})
+                        linked_count += 1
+                        docs_to_keep |= existing_doc
+                else:
+                    # Create new document with meaningful name
+                    if hasattr(record, "display_name") and record.display_name:
+                        name = record.display_name
+                    elif hasattr(record, "name") and record.name:
+                        name = record.name
                     else:
-                        # Create new document and link to collection
-                        # Try to get a meaningful name from the record
-                        if hasattr(record, "display_name") and record.display_name:
-                            name = record.display_name
-                        elif hasattr(record, "name") and record.name:
-                            name = record.name
-                        else:
-                            model_display = self.env["ir.model"]._get(model_name).name
-                            name = f"{model_display} #{record.id}"
+                        model_display = self.env["ir.model"]._get(model_name).name
+                        name = f"{model_display} #{record_id}"
 
-                        new_doc = self.env["llm.document"].create(
-                            {
-                                "name": name,
-                                "res_model": model_name,
-                                "res_id": record.id,
-                            }
-                        )
+                    new_doc = self.env["llm.document"].create(
+                        {
+                            "name": name,
+                            "model_id": model_id,
+                            "res_id": record_id,
+                            "collection_ids": [(4, collection.id)],
+                        }
+                    )
+                    docs_to_keep |= new_doc
+                    created_count += 1
 
-                        collection.write({"document_ids": [(4, new_doc.id)]})
-                        created_count += 1
+            # Find documents to remove (those in the collection but not matching any domains)
+            docs_to_remove = existing_docs - docs_to_keep
+
+            # Remove documents that no longer match any domains
+            if docs_to_remove:
+                # Only remove from this collection, not delete the documents
+                collection.write({"document_ids": [(3, doc.id) for doc in docs_to_remove]})
+                removed_count = len(docs_to_remove)
 
             # Post summary message
-            if created_count > 0 or linked_count > 0:
+            if created_count > 0 or linked_count > 0 or removed_count > 0:
                 collection.message_post(
                     body=_(
-                        f"Processing complete: Created {created_count} new documents, linked {linked_count} existing documents."
+                        f"Synchronization complete: Created {created_count} new documents, "
+                        f"linked {linked_count} existing documents, "
+                        f"removed {removed_count} documents no longer matching domains."
                     ),
                     message_type="notification",
                 )
-            elif created_count == 0 and linked_count == 0:
+            else:
                 collection.message_post(
-                    body=_("No new documents were created or linked."),
+                    body=_("No changes made - collection is already in sync with domains."),
                     message_type="notification",
                 )
 
