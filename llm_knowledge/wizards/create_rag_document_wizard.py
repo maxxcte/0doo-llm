@@ -59,6 +59,13 @@ class CreateRAGDocumentWizard(models.TransientModel):
             or active_model.replace(".", " ").title()
         )
 
+        # Get the ir.model record for this model
+        model_id = (
+            self.env["ir.model"].search([("model", "=", active_model)], limit=1).id
+        )
+        if not model_id:
+            return {"type": "ir.actions.act_window_close"}
+
         created_documents = self.env["llm.document"]
 
         for record in records:
@@ -76,11 +83,11 @@ class CreateRAGDocumentWizard(models.TransientModel):
                 id=record.id,
             )
 
-            # Create RAG document
+            # Create RAG document with model_id instead of res_model
             document = self.env["llm.document"].create(
                 {
                     "name": document_name,
-                    "res_model": active_model,
+                    "model_id": model_id,
                     "res_id": record.id,
                 }
             )

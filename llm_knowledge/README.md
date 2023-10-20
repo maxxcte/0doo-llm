@@ -30,24 +30,28 @@ Documents flow through a well-defined pipeline:
 The module is designed to be highly extensible at every stage of the pipeline:
 
 - **Retrievers**: Custom retrieval logic for different document types
-    - Default Retriever: Works with any Odoo record
-    - HTTP Retriever: Fetches content from external URLs
+
+  - Default Retriever: Works with any Odoo record
+  - HTTP Retriever: Fetches content from external URLs
 
 - **Parsers**: Support for different file formats
-    - Default Parser: Generic parser for Odoo records
-    - JSON Parser: Structured output for record data
-    - PDF Parser: Extracts text and images from PDF files
-    - Text Parser: Handles plain text files
+
+  - Default Parser: Generic parser for Odoo records
+  - JSON Parser: Structured output for record data
+  - PDF Parser: Extracts text and images from PDF files
+  - Text Parser: Handles plain text files
 
 - **Chunkers**: Different algorithms for document segmentation
-    - Default Chunker: Splits text into overlapping chunks with configurable size
+
+  - Default Chunker: Splits text into overlapping chunks with configurable size
 
 - **Embedding Models**: Integration with vector embedding models
-    - Uses the `llm_pgvector` module for vector storage and search
+  - Uses the `llm_pgvector` module for vector storage and search
 
 ### Collections
 
 Documents are organized into collections, which:
+
 - Share the same embedding model
 - Can be queried as a unified knowledge base
 - Support domain-based document addition
@@ -80,18 +84,21 @@ The module has the following dependencies:
 ### Creating RAG Documents
 
 **From Odoo Records:**
+
 1. Select records in any model
 2. Use the "Create RAG Document" action
 3. Configure document processing options
 4. Process documents through the pipeline
 
 **From Files:**
+
 1. Open a collection
 2. Click "Upload Documents"
 3. Select local files or provide URLs
 4. Configure processing options
 
 **From Domain Queries:**
+
 1. Open a collection
 2. Add domains for specific models
 3. Click "Add Documents from Domain"
@@ -100,6 +107,7 @@ The module has the following dependencies:
 ### Processing Documents
 
 Documents can be processed:
+
 - Individually from their form view
 - In batches from the document list view
 - Automatically during creation by enabling "Process Immediately"

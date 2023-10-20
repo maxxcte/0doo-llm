@@ -70,6 +70,13 @@ class UploadDocumentWizard(models.TransientModel):
         collection = self.collection_id
         created_documents = self.env["llm.document"]
 
+        # Get the ir.model record for ir.attachment
+        attachment_model_id = (
+            self.env["ir.model"].search([("model", "=", "ir.attachment")], limit=1).id
+        )
+        if not attachment_model_id:
+            raise UserError(_("Could not find ir.attachment model"))
+
         # Validate that at least one file or URL is provided
         if not self.file_ids and not self.external_urls:
             raise UserError(_("Please provide at least one file or URL"))
@@ -82,11 +89,11 @@ class UploadDocumentWizard(models.TransientModel):
                 index=index + 1,
             )
 
-            # Create RAG document
+            # Create RAG document using model_id
             document = self.env["llm.document"].create(
                 {
                     "name": document_name,
-                    "res_model": "ir.attachment",
+                    "model_id": attachment_model_id,
                     "res_id": attachment.id,
                     "collection_ids": [(4, collection.id)],
                 }
@@ -124,11 +131,11 @@ class UploadDocumentWizard(models.TransientModel):
                     }
                 )
 
-                # Create RAG document
+                # Create RAG document using model_id
                 document = self.env["llm.document"].create(
                     {
                         "name": document_name,
-                        "res_model": "ir.attachment",
+                        "model_id": attachment_model_id,
                         "res_id": attachment.id,
                         "collection_ids": [(4, collection.id)],
                     }

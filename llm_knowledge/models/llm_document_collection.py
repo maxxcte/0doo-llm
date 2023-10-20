@@ -1,7 +1,6 @@
 import logging
 
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
 from odoo.tools.safe_eval import safe_eval
 
 _logger = logging.getLogger(__name__)
@@ -143,7 +142,7 @@ class LLMDocumentCollection(models.Model):
                     # Check if document already exists for this record
                     existing_doc = self.env["llm.document"].search(
                         [
-                            ("res_model", "=", model_name),
+                            ("model_id", "=", domain_filter.model_id.id),
                             ("res_id", "=", record.id),
                         ],
                         limit=1,

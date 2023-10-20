@@ -14,7 +14,7 @@ class LLMDocument(models.Model):
     _sql_constraints = [
         (
             "unique_document_reference",
-            "UNIQUE(res_model, res_id)",
+            "UNIQUE(model_id, res_id)",
             "A document already exists for this record. Please use the existing document.",
         ),
     ]
@@ -24,17 +24,26 @@ class LLMDocument(models.Model):
         required=True,
         tracking=True,
     )
-    res_model = fields.Char(
+    model_id = fields.Many2one(
+        "ir.model",
         string="Related Model",
         required=True,
         tracking=True,
+        ondelete="cascade",
         help="The model of the referenced document",
     )
+    res_model = fields.Char(
+        string="Model Name",
+        related="model_id.model",
+        store=True,
+        readonly=True,
+        help="Technical name of the related model",
+    )
     res_id = fields.Integer(
-        string="Related ID",
+        string="Record ID",
         required=True,
         tracking=True,
-        help="The ID of the referenced document",
+        help="The ID of the referenced record",
     )
     content = fields.Text(
         string="Content",
@@ -201,7 +210,7 @@ class LLMDocument(models.Model):
         """
 
         inconsistent_docs = self.filtered(
-            lambda d: d.state in ['chunked', 'ready'] and not d.chunk_ids
+            lambda d: d.state in ["chunked", "ready"] and not d.chunk_ids
         )
 
         if inconsistent_docs:
