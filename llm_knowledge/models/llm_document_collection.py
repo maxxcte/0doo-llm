@@ -148,7 +148,7 @@ class LLMDocumentCollection(models.Model):
             existing_docs = collection.document_ids
 
             # Track which existing documents should be kept
-            docs_to_keep = self.env['llm.document']
+            docs_to_keep = self.env["llm.document"]
 
             # Process all matching records to create/link documents
             for model_name, record_id in matching_records:
@@ -201,7 +201,9 @@ class LLMDocumentCollection(models.Model):
             # Remove documents that no longer match any domains
             if docs_to_remove:
                 # Only remove from this collection, not delete the documents
-                collection.write({"document_ids": [(3, doc.id) for doc in docs_to_remove]})
+                collection.write(
+                    {"document_ids": [(3, doc.id) for doc in docs_to_remove]}
+                )
                 removed_count = len(docs_to_remove)
 
             # Post summary message
@@ -216,7 +218,9 @@ class LLMDocumentCollection(models.Model):
                 )
             else:
                 collection.message_post(
-                    body=_("No changes made - collection is already in sync with domains."),
+                    body=_(
+                        "No changes made - collection is already in sync with domains."
+                    ),
                     message_type="notification",
                 )
 
