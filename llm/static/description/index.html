@@ -3,261 +3,578 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLM Knowledge Automation</title>
+    <title>LLM Integration Base for Odoo | Integrate ChatGPT, Claude, Grok, DeepSeek & More</title>
+    <meta name="description" content="Connect your Odoo instance with leading AI providers like OpenAI, Anthropic, Replicate and more. This base module enables chat completions, text embeddings, and model management for Odoo.">
+    <meta name="keywords" content="Odoo LLM integration, OpenAI Odoo, Anthropic Claude Odoo, LLM API integration, Odoo AI, LLM for ERP, AI Odoo module, Ollama Odoo, LLM model management">
+    <meta name="author" content="Apexive Solutions LLC">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
     <style>
+        :root {
+            --primary-color: #6f42c1;
+            --secondary-color: #e9ecef;
+            --accent-color: #ffc107;
+            --text-color: #343a40;
+            --light-bg: #f8f9fa;
+        }
+
         body {
-            font-family: 'Roboto', sans-serif;
-            color: #333;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 20px;
+            color: var(--text-color);
         }
-        h1, h2, h3 {
-            color: #875A7B;
+
+        .header-container {
+            background-color: var(--light-bg);
+            border-bottom: 3px solid var(--primary-color);
+            padding: 2rem 0;
         }
-        h1 {
-            font-size: 2.5em;
-            margin-bottom: 0.5em;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 10px;
+
+        h1, h2, h3, h4 {
+            color: var(--primary-color);
         }
-        h2 {
-            font-size: 1.8em;
-            margin-top: 1.5em;
-            margin-bottom: 0.5em;
+
+        .feature-card {
+            height: 100%;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border-top: 3px solid var(--primary-color);
         }
-        h3 {
-            font-size: 1.4em;
-            margin-top: 1.2em;
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
-        .subtitle {
-            color: #555;
-            font-size: 1.3em;
-            margin-top: -0.5em;
-            margin-bottom: 1.5em;
+
+        .module-card {
+            border-left: 3px solid var(--primary-color);
+            transition: transform 0.3s;
         }
-        p {
-            margin-bottom: 1em;
+
+        .module-card:hover {
+            transform: translateY(-3px);
         }
-        ul, ol {
-            margin-bottom: 1.5em;
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
         }
-        li {
-            margin-bottom: 0.5em;
+
+        .btn-primary:hover {
+            background-color: #5a32a3;
+            border-color: #5a32a3;
         }
-        .feature-box {
-            background-color: #f8f9fa;
-            border-left: 4px solid #875A7B;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 0 4px 4px 0;
+
+        .section-divider {
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), transparent);
+            margin: 3rem 0;
         }
-        .feature-box h3 {
-            margin-top: 0;
-            color: #875A7B;
+
+        .highlight-box {
+            background-color: var(--light-bg);
+            border-left: 4px solid var(--primary-color);
+            padding: 1.5rem;
+            margin: 2rem 0;
         }
-        .feature-box ul {
-            margin-bottom: 0;
-        }
-        .image-container {
-            margin: 20px 0;
-            text-align: center;
-        }
-        .image-container img {
-            max-width: 100%;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            border-radius: 4px;
-        }
-        .caption {
-            font-style: italic;
-            color: #666;
-            margin-top: 8px;
-        }
-        .section {
-            margin-bottom: 40px;
-        }
-        .tech-specs {
-            background-color: #f0f0f0;
-            padding: 20px;
-            border-radius: 4px;
-            margin-top: 20px;
-        }
-        .tech-specs h3 {
-            margin-top: 0;
-        }
-        .note {
-            background-color: #fffacd;
-            padding: 15px;
-            border-left: 4px solid #e6db55;
-            margin: 20px 0;
-            border-radius: 0 4px 4px 0;
-        }
-        .workflow {
-            background-color: #e9f7ef;
-            padding: 20px;
-            border-radius: 4px;
-            margin: 20px 0;
-        }
+
         code {
-            background: #f4f4f4;
-            padding: 2px 5px;
+            color: var(--primary-color);
+            background-color: var(--light-bg);
+            padding: 0.2rem 0.4rem;
             border-radius: 3px;
-            font-family: 'Courier New', monospace;
         }
-        .buttons {
-            margin: 30px 0;
-        }
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #875A7B;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-weight: bold;
+
+        .provider-logo {
+            width: 40px;
+            height: 40px;
             margin-right: 10px;
-            transition: background-color 0.3s;
+            opacity: 0.8;
+            transition: opacity 0.3s;
         }
-        .btn:hover {
-            background-color: #68465e;
+
+        .provider-logo:hover {
+            opacity: 1;
         }
-        .btn-secondary {
-            background-color: #f2f2f2;
-            color: #333;
-            border: 1px solid #ddd;
+
+        .github-link {
+            font-weight: bold;
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: color 0.3s;
         }
-        .btn-secondary:hover {
-            background-color: #e6e6e6;
-        }
-        footer {
-            margin-top: 50px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-            color: #666;
-            font-size: 0.9em;
+
+        .github-link:hover {
+            color: #5a32a3;
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-<div class="section">
-    <h1>LLM Knowledge Automation</h1>
-    <p class="subtitle">Automate RAG document creation and collection management for Odoo</p>
-
-    <p>This module extends the LLM Knowledge base module to provide automated document creation, processing, and collection management through Odoo's automation system.</p>
-
-    <div class="buttons">
-        <a href="https://github.com/apexive/odoo-llm" class="btn">GitHub Repository</a>
-        <a href="https://github.com/apexive/odoo-llm/issues" class="btn btn-secondary">Report Issues</a>
+<div class="header-container">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="fw-bold">LLM Integration Base</h1>
+                <p class="lead mb-4">Connect your Odoo instance with leading AI providers like OpenAI, Anthropic, Replicate and more.</p>
+                <div class="d-flex mb-3 align-items-center">
+                    <span class="badge bg-primary me-2">v16.0.1.1.0</span>
+                    <span class="badge bg-secondary me-2">LGPL-3</span>
+                    <a href="https://github.com/apexive/odoo-llm" class="github-link ms-auto">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-github me-1" viewBox="0 0 16 16">
+                            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                        </svg>
+                        GitHub Repository
+                    </a>
+                </div>
+                <p>The foundation for integrating Large Language Models (LLMs) with your Odoo instance, providing essential features for AI-powered applications.</p>
+            </div>
+            <div class="col-md-4 text-center">
+                <img src="static/description/icon.svg" alt="LLM Integration Base Logo" class="img-fluid" style="max-width: 200px;">
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="section">
-    <h2>Key Features</h2>
+<div class="container py-5">
+    <!-- Overview Section -->
+    <section class="mb-5">
+        <h2 class="mb-4">Overview</h2>
+        <p>LLM Integration Base provides a unified framework for connecting various AI providers and models with your Odoo instance. This module serves as the foundation for building AI-powered features across your Odoo applications.</p>
 
-    <div class="feature-box">
-        <h3>Automated Document Management</h3>
-        <ul>
-            <li>Automatically create RAG documents when records are created</li>
-            <li>Update documents when source records are modified</li>
-            <li>Remove documents from collections when they no longer match filters</li>
-            <li>Clean up orphaned documents that don't belong to any collection</li>
-        </ul>
-    </div>
+        <div class="highlight-box">
+            <h4>Core Capabilities</h4>
+            <ul class="mb-0">
+                <li><strong>Chat completions</strong> - Generate conversational responses</li>
+                <li><strong>Text embeddings</strong> - Create vector representations of text</li>
+                <li><strong>Model management</strong> - Organize and configure LLM models</li>
+                <li><strong>Tool support framework</strong> - Enable function calling capabilities</li>
+            </ul>
+        </div>
+    </section>
 
-    <div class="feature-box">
-        <h3>Collection Synchronization</h3>
-        <ul>
-            <li>Keep collections synchronized with domain filters</li>
-            <li>Automatically apply domain filters to maintain collection integrity</li>
-            <li>Easily manage which records are included in RAG collections</li>
-            <li>One-click sync button to update all automated actions</li>
-        </ul>
-    </div>
+    <div class="section-divider"></div>
 
-    <div class="feature-box">
-        <h3>Streamlined RAG Pipeline</h3>
-        <ul>
-            <li>Trigger document processing automatically after creation</li>
-            <li>Configure processing options per collection</li>
-            <li>Maintain up-to-date vector embeddings with no manual intervention</li>
-            <li>Ensure LLMs always have access to the latest data</li>
-        </ul>
-    </div>
+    <!-- Key Features Section -->
+    <section class="mb-5">
+        <h2 class="mb-4">Key Features</h2>
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6">
+                <div class="card feature-card shadow-sm">
+                    <div class="card-body">
+                        <h3 class="card-title h5">Multiple Provider Support</h3>
+                        <p class="card-text">Connect with OpenAI, Anthropic Claude, Ollama, Replicate, and more AI providers through a unified interface.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="card feature-card shadow-sm">
+                    <div class="card-body">
+                        <h3 class="card-title h5">Model Discovery</h3>
+                        <p class="card-text">Automatically discover and import available models from connected providers.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="card feature-card shadow-sm">
+                    <div class="card-body">
+                        <h3 class="card-title h5">Publisher Management</h3>
+                        <p class="card-text">Track model publishers, organizations, and their official status.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="card feature-card shadow-sm">
+                    <div class="card-body">
+                        <h3 class="card-title h5">Secure API Storage</h3>
+                        <p class="card-text">Safely store API keys and endpoint configurations for each provider.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="card feature-card shadow-sm">
+                    <div class="card-body">
+                        <h3 class="card-title h5">Role-Based Security</h3>
+                        <p class="card-text">Control access to LLM features with dedicated security groups and record rules.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="card feature-card shadow-sm">
+                    <div class="card-body">
+                        <h3 class="card-title h5">Tool Execution Framework</h3>
+                        <p class="card-text">Enable AI models to execute functions through a standardized interface.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Getting Started Section -->
+    <section class="mb-5">
+        <h2 class="mb-4">Getting Started</h2>
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h3 class="card-title h4">Installation</h3>
+                        <ol>
+                            <li>Download the module from <a href="https://github.com/apexive/odoo-llm" class="github-link">GitHub</a></li>
+                            <li>Install the module in your Odoo instance</li>
+                            <li>Verify the dependencies are satisfied (<code>mail</code>, <code>web</code>)</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="card-title h4">Configuration</h3>
+                        <ol>
+                            <li>Navigate to <strong>LLM > Configuration > Providers</strong></li>
+                            <li>Create a new provider and select the service type</li>
+                            <li>Enter your API key and base URL (if required)</li>
+                            <li>Click "Fetch Models" to import available models</li>
+                            <li>Set default models for chat, embedding, and other services</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Related Modules Section -->
+    <section class="mb-5">
+        <h2 class="mb-4">Related Modules</h2>
+        <p>The LLM Integration Base is part of a comprehensive AI ecosystem for Odoo. Explore these additional modules for enhanced functionality:</p>
+
+        <div class="row g-4 mt-3">
+            <div class="col-lg-6">
+                <div class="card module-card shadow-sm p-3 mb-3">
+                    <div class="card-body">
+                        <h3 class="card-title h4">Easy AI Chat</h3>
+                        <p class="card-text">A simple, powerful AI chat module to supercharge your Odoo workflows with real-time conversations. Connect with multiple AI providers and enjoy multimodal capabilities.</p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="badge bg-success">Available Now</span>
+                            <a href="https://github.com/apexive/odoo-llm" class="btn btn-sm btn-outline-primary">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card module-card shadow-sm p-3 mb-3">
+                    <div class="card-body">
+                        <h3 class="card-title h4">LLM Agent</h3>
+                        <p class="card-text">Create and manage specialized AI agents with dedicated tools and configurations. Assign specific models and customize system prompts for different use cases.</p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="badge bg-success">Available Now</span>
+                            <a href="https://github.com/apexive/odoo-llm" class="btn btn-sm btn-outline-primary">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card module-card shadow-sm p-3 mb-3">
+                    <div class="card-body">
+                        <h3 class="card-title h4">LLM RAG (Retrieval Augmented Generation)</h3>
+                        <p class="card-text">Enhance AI responses with knowledge from your Odoo database. Create document collections, generate embeddings, and implement semantic search for more accurate AI interactions.</p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="badge bg-success">Available Now</span>
+                            <a href="https://github.com/apexive/odoo-llm" class="btn btn-sm btn-outline-primary">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card module-card shadow-sm p-3 mb-3">
+                    <div class="card-body">
+                        <h3 class="card-title h4">LLM Tool</h3>
+                        <p class="card-text">Implement function calling capabilities for AI models. Enable your AI to perform actions in Odoo through a standardized tool execution framework.</p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="badge bg-success">Available Now</span>
+                            <a href="https://github.com/apexive/odoo-llm" class="btn btn-sm btn-outline-primary">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="highlight-box mt-4">
+            <div class="d-flex align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-info-circle me-3" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                    <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                </svg>
+                <div>
+                    <h4 class="mb-2">Explore The Full Ecosystem</h4>
+                    <p class="mb-0">For specific integrations, provider implementations, and tools, visit our <a href="https://github.com/apexive/odoo-llm" class="github-link">GitHub repository</a>. The repository contains additional modules, documentation, and examples to extend your Odoo AI capabilities.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Supported Providers Section -->
+    <section class="mb-5">
+        <h2 class="mb-4">Supported AI Providers</h2>
+        <p>Connect with leading AI providers through our standardized integration framework:</p>
+
+        <div class="row g-4 mt-3">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="card-title h5 d-flex align-items-center">
+                            <span class="provider-logo">🔄</span>
+                            OpenAI
+                        </h3>
+                        <p class="card-text">Access ChatGPT, GPT-4, and other models for chat completions and embeddings.</p>
+                        <p class="card-text"><small class="text-muted">Models: GPT-4o, GPT-4, GPT-3.5 Turbo, text-embedding models</small></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="card-title h5 d-flex align-items-center">
+                            <span class="provider-logo">🔄</span>
+                            Anthropic
+                        </h3>
+                        <p class="card-text">Integrate with Claude AI models for thoughtful, harmless, and helpful responses.</p>
+                        <p class="card-text"><small class="text-muted">Models: Claude 3 Opus, Sonnet, Haiku series</small></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="card-title h5 d-flex align-items-center">
+                            <span class="provider-logo">🔄</span>
+                            Ollama
+                        </h3>
+                        <p class="card-text">Run open-source models locally or on your own servers for full control and privacy.</p>
+                        <p class="card-text"><small class="text-muted">Models: Llama, Mistral, Vicuna, and other open-source models</small></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="card-title h5 d-flex align-items-center">
+                            <span class="provider-logo">🔄</span>
+                            Replicate
+                        </h3>
+                        <p class="card-text">Access a wide variety of open-source models hosted on the Replicate platform.</p>
+                        <p class="card-text"><small class="text-muted">Models: Various open-source LLMs and specialized models</small></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="card-title h5 d-flex align-items-center">
+                            <span class="provider-logo">🔄</span>
+                            DeepSeek
+                        </h3>
+                        <p class="card-text">Connect with DeepSeek's powerful AI models for advanced reasoning capabilities.</p>
+                        <p class="card-text"><small class="text-muted">Models: DeepSeek-Coder, DeepSeek-Chat series</small></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="card-title h5 d-flex align-items-center">
+                            <span class="provider-logo">🔄</span>
+                            Grok
+                        </h3>
+                        <p class="card-text">Integrate with xAI's Grok models for witty and informative responses.</p>
+                        <p class="card-text"><small class="text-muted">Models: Grok-1 and future Grok model iterations</small></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="mt-4">The modular architecture makes it easy to add support for additional providers. Check our <a href="https://github.com/apexive/odoo-llm" class="github-link">GitHub repository</a> for the latest provider implementations.</p>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Tech Specs Section -->
+    <section class="mb-5">
+        <h2 class="mb-4">Technical Specifications</h2>
+        <div class="row">
+            <div class="col-lg-6">
+                <h3 class="h5">Module Information</h3>
+                <table class="table table-sm">
+                    <tbody>
+                    <tr>
+                        <th scope="row">Name</th>
+                        <td>LLM Integration Base</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Version</th>
+                        <td>16.0.1.1.0</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Category</th>
+                        <td>Technical</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">License</th>
+                        <td>LGPL-3</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Dependencies</th>
+                        <td>mail, web</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Author</th>
+                        <td>Apexive Solutions LLC</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-lg-6">
+                <h3 class="h5">Key Models</h3>
+                <table class="table table-sm">
+                    <tbody>
+                    <tr>
+                        <th scope="row">llm.provider</th>
+                        <td>Manages connections to AI providers</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">llm.model</th>
+                        <td>Represents individual AI models</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">llm.publisher</th>
+                        <td>Tracks organizations that publish models</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">llm.fetch.models.wizard</th>
+                        <td>Wizard for importing models from providers</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Latest Updates Section -->
+    <section class="mb-5">
+        <h2 class="mb-4">Latest Updates</h2>
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title h4">Version 16.0.1.1.0 (March 6, 2025)</h3>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item bg-transparent">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-success me-2">ADD</span>
+                            <span>Tool support framework in base LLM models</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item bg-transparent">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-primary me-2">IMP</span>
+                            <span>Enhanced provider interface to support tool execution</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item bg-transparent">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-primary me-2">IMP</span>
+                            <span>Updated model handling for function calling capabilities</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-footer bg-light">
+                <h3 class="card-title h4">Version 16.0.1.0.0 (January 2, 2025)</h3>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item bg-transparent">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-info me-2">INIT</span>
+                            <span>Initial release of the module</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- Support & Resources Section -->
+    <section class="mb-5">
+        <h2 class="mb-4">Support & Resources</h2>
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="card-title h4">Documentation</h3>
+                        <p class="card-text">Find detailed documentation, examples, and integration guides in our GitHub repository. The repository includes setup guides, API references, and example implementations.</p>
+                        <a href="https://github.com/apexive/odoo-llm" class="btn btn-primary mt-2">View Documentation</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="card-title h4">Community & Support</h3>
+                        <p class="card-text">Join our community to get help, share ideas, and contribute to the development of the LLM integration ecosystem for Odoo.</p>
+                        <a href="https://github.com/apexive/odoo-llm/issues" class="btn btn-outline-primary mt-2 me-2">Report Issues</a>
+                        <a href="https://github.com/apexive/odoo-llm" class="btn btn-outline-primary mt-2">Feature Requests</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
 
-<div class="section">
-    <h2>How It Works</h2>
-
-    <div class="workflow">
-        <h3>Automated Workflow</h3>
-        <ol>
-            <li><strong>Enable Automation:</strong> Turn on "Automated Sync" for a collection</li>
-            <li><strong>Configure Domain Filters:</strong> Define which records should be included</li>
-            <li><strong>Sync Automated Actions:</strong> Create actions for Create/Write/Unlink events</li>
-            <li><strong>Automatic Processing:</strong> Documents are created and processed as records change</li>
-        </ol>
+<footer class="bg-light py-4 border-top">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6">
+                <h4>LLM Integration Base</h4>
+                <p>Developed by Apexive Solutions LLC</p>
+                <p>Licensed under <a href="https://www.gnu.org/licenses/lgpl-3.0.html" target="_blank">LGPL-3</a></p>
+            </div>
+            <div class="col-lg-6 text-lg-end">
+                <p>For the latest updates and additional modules, visit:</p>
+                <a href="https://github.com/apexive/odoo-llm" class="btn btn-outline-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-github me-2" viewBox="0 0 16 16">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    GitHub Repository
+                </a>
+            </div>
+        </div>
+        <div class="mt-4 pt-3 border-top text-center">
+            <p class="mb-0">© 2025 Apexive Solutions LLC. All rights reserved.</p>
+        </div>
     </div>
-
-    <div class="image-container">
-        <img src="/api/placeholder/800/400" alt="LLM Knowledge Automation Interface" />
-        <p class="caption">Collection configuration with automation settings</p>
-    </div>
-</div>
-
-<div class="section">
-    <h2>Configuration</h2>
-
-    <h3>Collection Settings</h3>
-    <p>Each document collection can be configured with the following automation options:</p>
-    <ul>
-        <li><strong>Automated Sync:</strong> Enable/disable automatic synchronization</li>
-        <li><strong>Auto-Process Documents:</strong> Automatically process newly created documents</li>
-        <li><strong>Domain Filters:</strong> Define which records should be included in the collection</li>
-    </ul>
-
-    <div class="note">
-        <p><strong>Note:</strong> When enabling automated sync for the first time, make sure to click the "Sync Automated Actions" button to create the initial automated actions.</p>
-    </div>
-
-    <h3>Technical Implementation</h3>
-    <p>The module extends Odoo's base automation system with a new action type:</p>
-    <ul>
-        <li><strong>Update LLM Document:</strong> Creates, updates, or removes RAG documents based on record changes</li>
-    </ul>
-
-    <p>For each domain filter and each event type (create, write, unlink), a separate automated action is created to ensure proper handling of all record changes.</p>
-</div>
-
-<div class="section">
-    <h2>Use Cases</h2>
-
-    <h3>Customer Support Knowledge Base</h3>
-    <p>Automatically keep your LLM updated with the latest support ticket resolutions, product information, and FAQs. When new knowledge articles are created or updated, they are instantly added to the LLM's knowledge.</p>
-
-    <h3>Document Management</h3>
-    <p>Maintain collections of documents organized by department, project, or category. As documents move between categories or projects, they are automatically added to or removed from the appropriate LLM collections.</p>
-
-    <h3>Product Information</h3>
-    <p>Keep your LLM up-to-date with the latest product details, specifications, and pricing. When products are updated in your database, the LLM's knowledge is automatically refreshed.</p>
-</div>
-
-<div class="section">
-    <div class="tech-specs">
-        <h3>Technical Specifications</h3>
-        <ul>
-            <li><strong>Version:</strong> 16.0.1.0.0</li>
-            <li><strong>Dependencies:</strong> llm_knowledge, base_automation</li>
-            <li><strong>License:</strong> LGPL-3</li>
-            <li><strong>Author:</strong> Apexive Solutions LLC</li>
-            <li><strong>Website:</strong> <a href="https://github.com/apexive/odoo-llm">https://github.com/apexive/odoo-llm</a></li>
-        </ul>
-    </div>
-</div>
-
-<footer>
-    <p>&copy; 2025 Apexive Solutions LLC - Licensed under LGPL-3</p>
-    <p>This module is part of the Odoo LLM framework developed by Apexive Solutions.</p>
 </footer>
+
+<script>
+    // Simple script to handle smooth scrolling for anchor links
+    document.addEventListener('DOMContentLoaded', function() {
+        const links = document.querySelectorAll('a[href^="#"]');
+        for (const link of links) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    window.scrollTo({
+                        top: target.offsetTop - 70,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        }
+    });
+</script>
 </body>
 </html>
