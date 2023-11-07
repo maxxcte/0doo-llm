@@ -1,7 +1,9 @@
 import logging
+
 from odoo import _, api, fields, models
 
 _logger = logging.getLogger(__name__)
+
 
 class LLMDocumentCollection(models.Model):
     _inherit = "llm.document.collection"
@@ -10,7 +12,7 @@ class LLMDocumentCollection(models.Model):
         string="Automated Sync",
         default=False,
         help="When enabled, automated actions will be created to keep this collection "
-             "synchronized with its domain filters.",
+        "synchronized with its domain filters.",
     )
 
     automation_ids = fields.One2many(
@@ -38,8 +40,10 @@ class LLMDocumentCollection(models.Model):
         result = super().write(vals)
 
         # If automated_sync or domain_ids changed, sync automated actions
-        sync_needed = 'automated_sync' in vals or 'domain_ids' in vals or any(
-            key.startswith('domain_ids.') for key in vals
+        sync_needed = (
+            "automated_sync" in vals
+            or "domain_ids" in vals
+            or any(key.startswith("domain_ids.") for key in vals)
         )
 
         if sync_needed:
@@ -66,7 +70,9 @@ class LLMDocumentCollection(models.Model):
                     "tag": "display_notification",
                     "params": {
                         "title": _("Automation Disabled"),
-                        "message": _("All automated actions for this collection have been removed."),
+                        "message": _(
+                            "All automated actions for this collection have been removed."
+                        ),
                         "type": "info",
                     },
                 }
@@ -96,18 +102,21 @@ class LLMDocumentCollection(models.Model):
 
                 # Prepare values for the automation
                 vals = {
-                    "name": _(
-                        "RAG: %(collection)s - %(model)s (%(trigger)s)"
-                    ) % {
-                                "collection": self.name,
-                                "model": domain_filter.model_id.name,
-                                "trigger": dict(self.env["base.automation"]._fields["trigger"].selection)[trigger],
-                            },
+                    "name": _("RAG: %(collection)s - %(model)s (%(trigger)s)")
+                    % {
+                        "collection": self.name,
+                        "model": domain_filter.model_id.name,
+                        "trigger": dict(
+                            self.env["base.automation"]._fields["trigger"].selection
+                        )[trigger],
+                    },
                     "model_id": model_id,
                     "trigger": trigger,
                     "state": "llm_update",
                     "llm_collection_id": self.id,
-                    "filter_domain": "[]" if trigger == "on_create" else domain_filter.domain,
+                    "filter_domain": "[]"
+                    if trigger == "on_create"
+                    else domain_filter.domain,
                     "active": domain_filter.active,
                     "llm_auto_process": self.auto_process_documents,
                 }
@@ -138,11 +147,12 @@ class LLMDocumentCollection(models.Model):
                 "title": _("Automated Actions Synchronized"),
                 "message": _(
                     "Created: %(created)d, Updated: %(updated)d, Removed: %(removed)d"
-                ) % {
-                               "created": created_count,
-                               "updated": updated_count,
-                               "removed": removed_count,
-                           },
+                )
+                % {
+                    "created": created_count,
+                    "updated": updated_count,
+                    "removed": removed_count,
+                },
                 "type": "success",
             },
         }

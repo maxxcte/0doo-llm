@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM RAG for Document Pages</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #6f42c1;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            color: #6f42c1;
+        }
+        h2, h3 {
+            color: #6f42c1;
+            margin-top: 30px;
+        }
+        .feature-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .feature-card {
+            flex: 1 1 300px;
+            border: 1px solid #e1e1e1;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .feature-card h3 {
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .note {
+            background-color: #f3e5ff;
+            border-left: 5px solid #6f42c1;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        code {
+            background-color: #f5f5f5;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .step-list {
+            margin: 20px 0;
+        }
+        .step {
+            background-color: #f8f9fa;
+            border-left: 4px solid #6f42c1;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 0 4px 4px 0;
+        }
+        .step h4 {
+            margin-top: 0;
+            color: #6f42c1;
+        }
+        .img-wrapper {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .img-placeholder {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            padding: 20px;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .workflow {
+            display: flex;
+            justify-content: space-between;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+        .workflow-step {
+            flex: 1 1 200px;
+            text-align: center;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin: 10px;
+            position: relative;
+        }
+        .workflow-step:not(:last-child):after {
+            content: "→";
+            position: absolute;
+            right: -15px;
+            top: 50%;
+            font-size: 24px;
+            color: #6f42c1;
+        }
+        @media (max-width: 768px) {
+            .workflow-step:not(:last-child):after {
+                content: "↓";
+                position: absolute;
+                right: 50%;
+                bottom: -20px;
+                top: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>LLM RAG Integration for Document Pages</h1>
+    <p>Connect your knowledge base documents to AI-powered search and generation</p>
+</div>
+
+<div class="note">
+    <strong>What is this module?</strong> This module connects your Document Page knowledge base with the LLM RAG (Retrieval Augmented Generation) system, making your internal documentation searchable and usable by large language models.
+</div>
+
+<h2>Key Features</h2>
+<div class="feature-list">
+    <div class="feature-card">
+        <h3>Knowledge Base Integration</h3>
+        <p>Seamlessly bring your document pages into the AI-powered RAG system:</p>
+        <ul>
+            <li>Convert page content to AI-friendly markdown</li>
+            <li>Preserve document page hierarchy</li>
+            <li>Include related documents and categories</li>
+            <li>Maintain formatting and links</li>
+        </ul>
+    </div>
+    <div class="feature-card">
+        <h3>Metadata Preservation</h3>
+        <p>Keep important context with your documents:</p>
+        <ul>
+            <li>Document contributors</li>
+            <li>Last update timestamps</li>
+            <li>Category information</li>
+            <li>Document relationships</li>
+        </ul>
+    </div>
+    <div class="feature-card">
+        <h3>Easy Integration</h3>
+        <p>Simple tools to connect your knowledge base:</p>
+        <ul>
+            <li>One-click document creation from UI</li>
+            <li>Batch processing of multiple pages</li>
+            <li>Programmatic integration via API</li>
+            <li>Automatic document organization</li>
+        </ul>
+    </div>
+</div>
+
+<h2>How It Works</h2>
+<p>The module creates a seamless integration between the Document Page knowledge base and the LLM RAG system:</p>
+
+<div class="workflow">
+    <div class="workflow-step">
+        <h3>Select Documents</h3>
+        <p>Choose document pages from your knowledge base</p>
+    </div>
+    <div class="workflow-step">
+        <h3>Create RAG Docs</h3>
+        <p>Convert pages to LLM-optimized format</p>
+    </div>
+    <div class="workflow-step">
+        <h3>Add to Collection</h3>
+        <p>Organize in LLM RAG collections</p>
+    </div>
+    <div class="workflow-step">
+        <h3>Process & Embed</h3>
+        <p>Process through the RAG pipeline</p>
+    </div>
+</div>
+
+<h2>Usage Guide</h2>
+
+<h3>Creating RAG Documents from the UI</h3>
+<div class="step-list">
+    <div class="step">
+        <h4>Step 1: Select Document Pages</h4>
+        <p>Navigate to Knowledge → Document Pages and select one or more documents you want to make available to the LLM system.</p>
+    </div>
+    <div class="step">
+        <h4>Step 2: Use the Create RAG Document Action</h4>
+        <p>Click on the "Create RAG Document" action button in the list or form view.</p>
+    </div>
+    <div class="step">
+        <h4>Step 3: Configure Document Creation</h4>
+        <p>In the wizard, you can:</p>
+        <ul>
+            <li>Customize the document name template</li>
+            <li>Choose to process documents immediately</li>
+        </ul>
+    </div>
+    <div class="step">
+        <h4>Step 4: Process Documents</h4>
+        <p>The RAG documents will be created, referencing your original document pages. If you selected "Process Immediately," they will be processed through the full RAG pipeline.</p>
+    </div>
+</div>
+
+<div class="img-wrapper">
+    <div class="img-placeholder">
+        <p>[RAG Document Creation Workflow Image]</p>
+        <p>The Create RAG Document wizard makes it easy to add document pages to your LLM knowledge base</p>
+    </div>
+</div>
+
+<h3>Processing Entire Categories</h3>
+<p>You can also add entire categories of documents to your LLM RAG system programmatically:</p>
+
+<pre>
+from odoo import api, SUPERUSER_ID
+
+def add_knowledge_base_to_rag(env, category_id, collection_id):
+    # Get all pages in this category
+    pages = env['document.page'].search([
+        ('parent_id', '=', category_id),
+        ('type', '=', 'content')
+    ])
+
+    # Get model ID for document.page
+    model_id = env['ir.model'].search([('model', '=', 'document.page')], limit=1).id
+
+    # Create documents
+    created_docs = env['llm.document']
+    for page in pages:
+        # Create document with reference to the page
+        document = env['llm.document'].create({
+            'name': f"{page.name} - Knowledge Base",
+            'model_id': model_id,
+            'res_id': page.id,
+            'collection_ids': [(4, collection_id)]
+        })
+
+        # Process through RAG pipeline
+        document.process_document()
+        created_docs |= document
+
+    return created_docs
+
+# Example usage
+env = api.Environment(cr, SUPERUSER_ID, {})
+category_id = 1  # ID of your document.page category
+collection_id = 1  # ID of your llm.document.collection
+
+docs = add_knowledge_base_to_rag(env, category_id, collection_id)
+</pre>
+
+<h2>Technical Implementation</h2>
+<p>The module works by implementing a custom <code>rag_parse</code> method on the <code>document.page</code> model. This method is called by the LLM RAG module during document processing.</p>
+
+<div class="note">
+    <strong>How documents are converted:</strong>
+    <ul>
+        <li>Page title becomes the main heading</li>
+        <li>Metadata section includes contributor and timestamp information</li>
+        <li>Main content is preserved in its original format</li>
+        <li>Related pages are linked at the end of the document</li>
+    </ul>
+</div>
+
+<h3>Sample Output</h3>
+<p>Here's an example of how a document page is converted to the RAG format:</p>
+
+<pre>
+# Product Return Policy
+
+## Metadata
+**Last Contributor:** Administrator
+**Last Updated:** 2023-05-15 14:30:22
+**Category:** Policies
+
+## Content
+&lt;p&gt;Our product return policy allows customers to return items within 30 days of purchase.&lt;/p&gt;
+&lt;p&gt;To qualify for a return, items must be:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;In original condition&lt;/li&gt;
+  &lt;li&gt;With original packaging&lt;/li&gt;
+  &lt;li&gt;Accompanied by a receipt or proof of purchase&lt;/li&gt;
+&lt;/ul&gt;
+
+## Related Pages
+- [Return Process](/web#id=12&model=document.page&view_type=form)
+- [Refund Policy](/web#id=15&model=document.page&view_type=form)
+</pre>
+
+<h2>Benefits for Your Organization</h2>
+<ul>
+    <li><strong>Unified Knowledge Base:</strong> Make your existing documentation available to your AI systems</li>
+    <li><strong>Improved AI Responses:</strong> LLMs can answer questions based on your internal knowledge</li>
+    <li><strong>Reduced Duplication:</strong> Maintain documentation in one place and use it everywhere</li>
+    <li><strong>Up-to-date Information:</strong> Changes to your knowledge base can be reflected in the LLM system</li>
+</ul>
+
+<h2>Installation</h2>
+<ol>
+    <li>Ensure both <code>document_page</code> and <code>llm_rag</code> modules are installed</li>
+    <li>Install this module (<code>llm_document_page</code>)</li>
+    <li>No additional configuration is needed - the integration is automatic</li>
+</ol>
+
+<div class="footer">
+    <p>Developed by Apexive Solutions LLC | Licensed under LGPL-3</p>
+</div>
+
+</body>
+</html>
