@@ -11,10 +11,6 @@ export class LLMChatThreadHeader extends Component {
    */
   setup() {
     super.setup();
-    useComponentToModel({
-      // Use this hook for component state
-      Component: this, // Pass the component instance
-    });
     useRefToModel({
       fieldName: "llmChatThreadNameInputRef",
       refName: "threadNameInput",
@@ -127,20 +123,21 @@ export class LLMChatThreadHeader extends Component {
       // Clear search when provider changes
       this.state.modelSearchQuery = "";
 
-      // Give feedback
-      if (defaultModel) {
-        this.messaging.notify({
-          title: "Model updated",
-          message: `Switched to provider '${provider.name}' and selected default model '${defaultModel.name}'.`,
-          type: "info",
-        });
-      } else {
-        this.messaging.notify({
-          title: "Provider updated",
-          message: `Switched to provider '${provider.name}'. Please select a model.`,
-          type: "warning", // Warn if no default model found
-        });
-      }
+      setTimeout(() => {
+        const dropdownContainer = this.modelDropdownRef.el;
+        if (dropdownContainer) {
+            // Find the trigger *within* the specific dropdown container
+            const dropdownTrigger = $(dropdownContainer).find('[data-toggle="dropdown"]');
+            if (dropdownTrigger.length) {
+                // Use jQuery plugin to show the dropdown
+                dropdownTrigger.dropdown('show');
+            } else {
+                console.warn("Model dropdown trigger element not found for showing.");
+            }
+        } else {
+            console.warn("Model dropdown container element not found.");
+        }
+    }, 0);
     }
   }
 
