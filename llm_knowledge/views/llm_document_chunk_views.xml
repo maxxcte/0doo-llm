@@ -37,29 +37,47 @@
         <field name="model">llm.document.chunk</field>
         <field name="arch" type="xml">
             <search>
-                <field name="embedding"/>
+                <field name="embedding" />
                 <field name="name" />
                 <field name="content" />
                 <field name="document_id" />
                 <field name="collection_ids" />
-                
+
                 <!-- Similarity threshold filters -->
-                <separator string="Similarity Threshold"/>
-                <filter string="High Similarity (0.75)" name="similarity_high" 
-                        context="{'search_similarity_threshold': 0.75}"/>
-                <filter string="Medium Similarity (0.5)" name="similarity_medium" 
-                        context="{'search_similarity_threshold': 0.5}"/>
-                <filter string="Low Similarity (0.25)" name="similarity_low" 
-                        context="{'search_similarity_threshold': 0.25}"/>
-                
+                <separator string="Similarity Threshold" />
+                <filter
+          string="High Similarity (0.75)"
+          name="similarity_high"
+          context="{'search_similarity_threshold': 0.75}"
+        />
+                <filter
+          string="Medium Similarity (0.5)"
+          name="similarity_medium"
+          context="{'search_similarity_threshold': 0.5}"
+        />
+                <filter
+          string="Low Similarity (0.25)"
+          name="similarity_low"
+          context="{'search_similarity_threshold': 0.25}"
+        />
+
                 <!-- Vector search operator filters -->
-                <separator string="Search Method"/>
-                <filter string="Cosine Similarity(&lt;=&gt;)" name="operator_cosine" 
-                        context="{'search_vector_operator': '&lt;=&gt;'}"/>
-                <filter string="Euclidean Distance(&lt;-&gt;)" name="operator_euclidean" 
-                        context="{'search_vector_operator': '&lt;-&gt;'}"/>
-                <filter string="Inner Product(&lt;#&gt;)" name="operator_inner_product" 
-                        context="{'search_vector_operator': '&lt;#&gt;'}"/>
+                <separator string="Search Method" />
+                <filter
+          string="Cosine Similarity(&lt;=&gt;)"
+          name="operator_cosine"
+          context="{'search_vector_operator': '&lt;=&gt;'}"
+        />
+                <filter
+          string="Euclidean Distance(&lt;-&gt;)"
+          name="operator_euclidean"
+          context="{'search_vector_operator': '&lt;-&gt;'}"
+        />
+                <filter
+          string="Inner Product(&lt;#&gt;)"
+          name="operator_inner_product"
+          context="{'search_vector_operator': '&lt;#&gt;'}"
+        />
             </search>
         </field>
     </record>

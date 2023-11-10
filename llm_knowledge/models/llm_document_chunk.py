@@ -76,7 +76,7 @@ class LLMDocumentChunk(models.Model):
                 and len(arg) == 3
                 and arg[0] == "embedding"
                 # Trigger vector search if any operator is used with a string value
-                and isinstance(arg[2], str) # Expecting a search term string
+                and isinstance(arg[2], str)  # Expecting a search term string
             ):
                 vector_search_term = arg[2]
                 break  # Found our vector search term, no need to continue
@@ -91,7 +91,9 @@ class LLMDocumentChunk(models.Model):
 
                 kwargs["query_vector"] = vector
                 # Get similarity threshold from context or use default
-                similarity_threshold = self.env.context.get("search_similarity_threshold", 0.5)
+                similarity_threshold = self.env.context.get(
+                    "search_similarity_threshold", 0.5
+                )
                 kwargs["query_min_similarity"] = similarity_threshold
                 # Get vector operator from context or use default cosine similarity
                 vector_operator = self.env.context.get("search_vector_operator", "<=>")
@@ -108,13 +110,14 @@ class LLMDocumentChunk(models.Model):
             else:
                 # Fallback or raise error if no embedding model found?
                 # For now, fallback to standard search without vector enhancement
-                _logger.warning("Vector search requested on 'embedding' field, but no default embedding model found.")
+                _logger.warning(
+                    "Vector search requested on 'embedding' field, but no default embedding model found."
+                )
                 # Call super with the original args (including the embedding condition)
                 # This might fail if the ORM doesn't understand the operator for PgVector.
                 return super().search(
                     args, offset=offset, limit=limit, order=order, count=count, **kwargs
                 )
-
 
         # If no vector search condition on 'embedding' field, proceed as normal
         return super().search(
