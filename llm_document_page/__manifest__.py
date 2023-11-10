@@ -3,7 +3,7 @@
     "summary": "Integrate document.page with LLM RAG for knowledge base search",
     "description": """
         Integrates the Document Page module with LLM RAG.
-        
+
         Features:
         - Parse document pages into LLM Knowledge documents
         - Include document hierarchy in generated content
@@ -13,6 +13,9 @@
     "category": "Knowledge",
     "version": "16.0.1.0.0",
     "depends": ["document_page", "llm_knowledge"],
+    "external_dependencies": {
+        "python": ["markdownify"],
+    },
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
     "license": "LGPL-3",

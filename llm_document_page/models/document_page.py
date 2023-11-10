@@ -1,4 +1,6 @@
-from odoo import api, models
+from markdownify import markdownify as md
+
+from odoo import models
 
 
 class DocumentPage(models.Model):
@@ -36,10 +38,7 @@ class DocumentPage(models.Model):
         # Add main content
         content_parts.append("\n## Content\n")
 
-        # The content is already in HTML, but we need to convert it to markdown
-        # The simplest approach is to use the content directly if it's already parsed
-        # For document.page, the content field is already HTML which works well with markdown
-        content_parts.append(self.content)
+        content_parts.append(md(self.content))
 
         # If there are child pages, include their titles as references
         if self.child_ids:
