@@ -19,26 +19,7 @@ class DocumentPage(models.Model):
         self.ensure_one()
 
         # Start with the page title as heading
-        content_parts = [f"# {self.name}"]
-
-        # Get page metadata
-        metadata = []
-        if self.content_uid:
-            metadata.append(f"**Last Contributor:** {self.content_uid.name}")
-        if self.content_date:
-            metadata.append(f"**Last Updated:** {self.content_date}")
-        if self.parent_id:
-            metadata.append(f"**Category:** {self.parent_id.name}")
-
-        # Add metadata section if we have any
-        if metadata:
-            content_parts.append("\n## Metadata\n")
-            content_parts.append("\n".join(metadata))
-
-        # Add main content
-        content_parts.append("\n## Content\n")
-
-        content_parts.append(md(self.content))
+        content_parts = [md(self.content)]
 
         # If there are child pages, include their titles as references
         if self.child_ids:
