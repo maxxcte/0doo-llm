@@ -1,8 +1,9 @@
 /** @odoo-module **/
 import { registerMessagingComponent } from "@mail/utils/messaging_component";
 import { useRefToModel } from "@mail/component_hooks/use_ref_to_model";
+import { useComponentToModel } from "@mail/component_hooks/use_component_to_model"; // Needed for state handling
 
-const { Component } = owl;
+const { Component, useState, useRef, onMounted, onWillUnmount } = owl;
 
 export class LLMChatThreadHeader extends Component {
   /**
@@ -10,12 +11,63 @@ export class LLMChatThreadHeader extends Component {
    */
   setup() {
     super.setup();
+    useComponentToModel({
+      // Use this hook for component state
+      Component: this, // Pass the component instance
+    });
     useRefToModel({
       fieldName: "llmChatThreadNameInputRef",
       refName: "threadNameInput",
     });
+
+    // State for model search dropdown
+    this.state = useState({
+      modelSearchQuery: "",
+    });
+
+    // Refs for dropdown elements
+    this.modelDropdownRef = useRef("modelDropdown");
+    this.modelSearchInputRef = useRef("modelSearchInput");
+
     this.onToolSelectChange = this.onToolSelectChange.bind(this);
+
+    // Bind Bootstrap event listeners for better UX
+    this._onModelDropdownShown = this._onModelDropdownShown.bind(this);
+    this._onModelDropdownHidden = this._onModelDropdownHidden.bind(this);
+    this.onSelectModel = this.onSelectModel.bind(this); // <-- Add this line
+    this.onSelectProvider = this.onSelectProvider.bind(this); // <-- Good practice to bind this too
+    this._preventDropdownClose = this._preventDropdownClose.bind(this); // <-- And this
+    this.onModelSearchInput = this.onModelSearchInput.bind(this); // <-- And this
+    onMounted(() => {
+      if (this.modelDropdownRef.el) {
+        this.modelDropdownRef.el.addEventListener(
+          "shown.bs.dropdown",
+          this._onModelDropdownShown
+        );
+        this.modelDropdownRef.el.addEventListener(
+          "hidden.bs.dropdown",
+          this._onModelDropdownHidden
+        );
+      }
+    });
+
+    onWillUnmount(() => {
+      if (this.modelDropdownRef.el) {
+        this.modelDropdownRef.el.removeEventListener(
+          "shown.bs.dropdown",
+          this._onModelDropdownShown
+        );
+        this.modelDropdownRef.el.removeEventListener(
+          "hidden.bs.dropdown",
+          this._onModelDropdownHidden
+        );
+      }
+    });
   }
+
+  // --------------------------------------------------------------------------
+  // Getters
+  // --------------------------------------------------------------------------
 
   get llmChatThreadHeaderView() {
     return this.props.record;
@@ -38,12 +90,30 @@ export class LLMChatThreadHeader extends Component {
   }
 
   get llmModels() {
-    return this.llmChat.llmModels;
+    // Use the computed property from the view model
+    return this.llmChatThreadHeaderView.modelsAvailableToSelect;
+  }
+
+  /**
+   * Filters the available models based on the search query.
+   */
+  get filteredModels() {
+    const query = this.state.modelSearchQuery.trim().toLowerCase();
+    if (!query) {
+      return this.llmModels; // Return all available models if no query
+    }
+    return this.llmModels.filter((model) =>
+      model.name.toLowerCase().includes(query)
+    );
   }
 
   get isSmall() {
     return this.messaging.device.isSmall;
   }
+
+  // --------------------------------------------------------------------------
+  // Handlers
+  // --------------------------------------------------------------------------
 
   /**
    * @param {Object} provider
@@ -51,25 +121,41 @@ export class LLMChatThreadHeader extends Component {
   onSelectProvider(provider) {
     if (provider.id !== this.llmChatThreadHeaderView.selectedProviderId) {
       const defaultModel = this.getDefaultModelForProvider(provider.id);
-      // It should trigger onChange event
+      // It should trigger saveSelectedModel via the underlying model's compute/onchange
       this.llmChatThreadHeaderView.saveSelectedModel(defaultModel?.id);
-      this.messaging.notify({
-        title: "Model have been reset",
-        message: "We have auto updated model to default one for this provider",
-        type: "info",
-      });
+
+      // Clear search when provider changes
+      this.state.modelSearchQuery = "";
+
+      // Give feedback
+      if (defaultModel) {
+        this.messaging.notify({
+          title: "Model updated",
+          message: `Switched to provider '${provider.name}' and selected default model '${defaultModel.name}'.`,
+          type: "info",
+        });
+      } else {
+        this.messaging.notify({
+          title: "Provider updated",
+          message: `Switched to provider '${provider.name}'. Please select a model.`,
+          type: "warning", // Warn if no default model found
+        });
+      }
     }
   }
 
   getDefaultModelForProvider(providerId) {
+    // Note: Use llmChat.llmModels here to check *all* models, not just those already filtered
     const availableModels =
-      this.llmModels?.filter((model) => model.llmProvider?.id === providerId) ||
-      [];
+      this.llmChat.llmModels?.filter(
+        (model) => model.llmProvider?.id === providerId
+      ) || [];
     const defaultModel = availableModels.find((model) => model.default);
 
     if (defaultModel) {
       return defaultModel;
     } else if (availableModels.length > 0) {
+      // Fallback to the first available model if no default is set
       return availableModels[0];
     }
     return null;
@@ -80,6 +166,44 @@ export class LLMChatThreadHeader extends Component {
    */
   onSelectModel(model) {
     this.llmChatThreadHeaderView.saveSelectedModel(model.id);
+    // Clear search after selection
+    this.state.modelSearchQuery = "";
+    // Bootstrap dropdown might close automatically, but clearing state is important
+  }
+
+  /**
+   * Handle search input changes for models.
+   * @param {Event} ev
+   */
+  onModelSearchInput(ev) {
+    this.state.modelSearchQuery = ev.target.value;
+  }
+
+  /**
+   * Prevents the dropdown from closing when clicking inside the search input or results list.
+   * @param {Event} ev
+   */
+  _preventDropdownClose(ev) {
+    ev.stopPropagation();
+  }
+
+  /**
+   * Focus the search input when the model dropdown is shown.
+   */
+  _onModelDropdownShown() {
+    // // Use owl's nextTick to ensure the element is visible in the DOM
+    // owl.utils.nextTick(() => {
+    //     if (this.modelSearchInputRef.el) {
+    //       this.modelSearchInputRef.el.focus();
+    //     }
+    // });
+  }
+
+  /**
+   * Clear the search query when the model dropdown is hidden.
+   */
+  _onModelDropdownHidden() {
+    this.state.modelSearchQuery = "";
   }
 
   /**
@@ -124,15 +248,21 @@ export class LLMChatThreadHeader extends Component {
   async onToolSelectChange(ev, tool) {
     const checked = ev.target.checked;
 
+    const currentSelectedIds = this.thread.selectedToolIds || [];
     const newSelectedToolIds = checked
-      ? [...this.thread.selectedToolIds, tool.id]
-      : this.thread.selectedToolIds.filter((id) => id !== tool.id);
+      ? [...currentSelectedIds, tool.id]
+      : currentSelectedIds.filter((id) => id !== tool.id);
 
     // Update the thread settings with the new tool IDs
-
     await this.thread.updateLLMChatThreadSettings({
       toolIds: newSelectedToolIds,
     });
+
+    // Optimistically update local state (or rely on fetch/reload)
+    // It might be better to rely on the reload triggered by onClose of the settings modal
+    // or ensure updateLLMChatThreadSettings refreshes the thread record correctly.
+    // Let's assume updateLLMChatThreadSettings handles the refresh or is followed by one.
+    // For immediate UI feedback, an optimistic update can be done:
     this.thread.update({
       selectedToolIds: newSelectedToolIds,
     });
