@@ -127,7 +127,7 @@ export class LLMChatThreadHeader extends Component {
         const dropdownContainer = this.modelDropdownRef.el;
         if (dropdownContainer) {
             // Find the trigger *within* the specific dropdown container
-            const dropdownTrigger = $(dropdownContainer).find('[data-toggle="dropdown"]');
+            const dropdownTrigger = $(dropdownContainer).find('[data-bs-toggle="dropdown"]');
             if (dropdownTrigger.length) {
                 // Use jQuery plugin to show the dropdown
                 dropdownTrigger.dropdown('show');
