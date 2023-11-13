@@ -35,6 +35,7 @@
               class="dropdown-item text-truncate"
               href="#"
               t-on-click="onClearAgent"
+              t-attf-class="{{ !llmChatThreadHeaderView.selectedAgent ? 'active' : '' }}"
             >
                             <i class="fa fa-times me-1" /> No Agent
                         </a>
@@ -47,6 +48,7 @@
                 href="#"
                 t-on-click="() => this.onSelectAgent(agent)"
                 t-att-title="agent.name"
+                t-attf-class="{{ llmChatThreadHeaderView.selectedAgent and llmChatThreadHeaderView.selectedAgent.id === agent.id ? 'active' : '' }}"
               >
                                 <t t-esc="agent.name" />
                             </a>
