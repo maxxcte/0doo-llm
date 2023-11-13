@@ -126,18 +126,22 @@ export class LLMChatThreadHeader extends Component {
       setTimeout(() => {
         const dropdownContainer = this.modelDropdownRef.el;
         if (dropdownContainer) {
-            // Find the trigger *within* the specific dropdown container
-            const dropdownTrigger = $(dropdownContainer).find('[data-bs-toggle="dropdown"]');
-            if (dropdownTrigger.length) {
-                // Use jQuery plugin to show the dropdown
-                dropdownTrigger.dropdown('show');
-            } else {
-                console.warn("Model dropdown trigger element not found for showing.");
-            }
+          // Find the trigger *within* the specific dropdown container
+          const dropdownTrigger = $(dropdownContainer).find(
+            '[data-bs-toggle="dropdown"]'
+          );
+          if (dropdownTrigger.length) {
+            // Use jQuery plugin to show the dropdown
+            dropdownTrigger.dropdown("show");
+          } else {
+            console.warn(
+              "Model dropdown trigger element not found for showing."
+            );
+          }
         } else {
-            console.warn("Model dropdown container element not found.");
+          console.warn("Model dropdown container element not found.");
         }
-    }, 0);
+      }, 0);
     }
   }
 
