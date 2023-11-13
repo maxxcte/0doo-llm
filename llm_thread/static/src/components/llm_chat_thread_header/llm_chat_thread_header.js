@@ -1,9 +1,9 @@
 /** @odoo-module **/
 import { registerMessagingComponent } from "@mail/utils/messaging_component";
 import { useRefToModel } from "@mail/component_hooks/use_ref_to_model";
-import { useComponentToModel } from "@mail/component_hooks/use_component_to_model"; // Needed for state handling
 
-const { Component, useState, useRef, onMounted, onWillUnmount } = owl;
+const { Component, useState, useRef, onMounted, onWillUnmount, onPatched } =
+  owl;
 
 export class LLMChatThreadHeader extends Component {
   /**
@@ -19,6 +19,8 @@ export class LLMChatThreadHeader extends Component {
     // State for model search dropdown
     this.state = useState({
       modelSearchQuery: "",
+      shouldShowDropdown: false,
+      shouldFocusSearch: false,
     });
 
     // Refs for dropdown elements
@@ -57,6 +59,32 @@ export class LLMChatThreadHeader extends Component {
           "hidden.bs.dropdown",
           this._onModelDropdownHidden
         );
+      }
+    });
+    onPatched(() => {
+      if (this.state.shouldShowDropdown) {
+        const dropdownContainer = this.modelDropdownRef.el;
+        if (dropdownContainer) {
+          const dropdownTrigger = $(dropdownContainer).find(
+            '[data-bs-toggle="dropdown"]'
+          );
+          if (dropdownTrigger.length) {
+            dropdownTrigger.dropdown("show");
+          } else {
+            console.warn("Model dropdown trigger element not found on patch.");
+          }
+        } else {
+          console.warn("Model dropdown container element not found on patch.");
+        }
+        // Reset the flag so it doesn't re-show on every patch
+        this.state.shouldShowDropdown = false;
+      }
+      if (this.state.shouldFocusSearch) {
+        if (this.modelSearchInputRef.el) {
+          this.modelSearchInputRef.el.focus();
+          // Reset the flag
+          this.state.shouldFocusSearch = false;
+        }
       }
     });
   }
@@ -123,25 +151,7 @@ export class LLMChatThreadHeader extends Component {
       // Clear search when provider changes
       this.state.modelSearchQuery = "";
 
-      setTimeout(() => {
-        const dropdownContainer = this.modelDropdownRef.el;
-        if (dropdownContainer) {
-          // Find the trigger *within* the specific dropdown container
-          const dropdownTrigger = $(dropdownContainer).find(
-            '[data-bs-toggle="dropdown"]'
-          );
-          if (dropdownTrigger.length) {
-            // Use jQuery plugin to show the dropdown
-            dropdownTrigger.dropdown("show");
-          } else {
-            console.warn(
-              "Model dropdown trigger element not found for showing."
-            );
-          }
-        } else {
-          console.warn("Model dropdown container element not found.");
-        }
-      }, 0);
+      this.state.shouldShowDropdown = true;
     }
   }
 
