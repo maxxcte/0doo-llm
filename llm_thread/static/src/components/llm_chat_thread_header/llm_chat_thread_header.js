@@ -188,12 +188,11 @@ export class LLMChatThreadHeader extends Component {
    * Focus the search input when the model dropdown is shown.
    */
   _onModelDropdownShown() {
-    // // Use owl's nextTick to ensure the element is visible in the DOM
-    // owl.utils.nextTick(() => {
-    //     if (this.modelSearchInputRef.el) {
-    //       this.modelSearchInputRef.el.focus();
-    //     }
-    // });
+    setTimeout(() => {
+      if (this.modelSearchInputRef.el) {
+        this.modelSearchInputRef.el.focus();
+      }
+    }, 0);
   }
 
   /**
