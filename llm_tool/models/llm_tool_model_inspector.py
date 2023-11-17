@@ -42,7 +42,7 @@ class LLMToolModelInspector(models.Model):
             # Search for the model in ir.model
             IrModel = self.env["ir.model"]
             model_info = IrModel.search_read(
-                [("model", "=", model_name)], ["name", "model", "description"], limit=1
+                [("model", "=", model_name)], ["name", "model"], limit=1
             )
 
             if not model_info:
@@ -52,7 +52,6 @@ class LLMToolModelInspector(models.Model):
             result = {
                 "name": model_info[0]["name"],
                 "model": model_info[0]["model"],
-                "description": model_info[0]["description"] or "",
                 "message": f"Model information retrieved successfully for {model_name}",
             }
 
