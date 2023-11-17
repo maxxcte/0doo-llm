@@ -105,13 +105,23 @@ IMPORTANT: Learn from your own mistakes during the agent creation process. When 
 
     <record id="llm_agent_website_builder" model="llm.agent">
         <field name="name">Website Builder</field>
-        <field name="provider_id" ref="llm_openai.llm_provider_openai" /> <!-- Assuming OpenAI -->
-        <field name="model_id" ref="llm_openai.llm_model_gpt4o" /> <!-- Assuming GPT-4o -->
+        <field
+      name="provider_id"
+      ref="llm_openai.llm_provider_openai"
+    /> <!-- Assuming OpenAI -->
+        <field
+      name="model_id"
+      ref="llm_openai.llm_model_gpt4o"
+    /> <!-- Assuming GPT-4o -->
         <field name="role">Website Builder Assistant</field>
-        <field name="goal">Ensure the website's content, structure, and functionality are updated correctly within the Odoo system.
+        <field
+      name="goal"
+    >Ensure the website's content, structure, and functionality are updated correctly within the Odoo system.
 Implement changes safely and methodically, keeping the web page in a is_published = False state until stakeholders verify that all updates are correct and complete.
 Provide clear preview links (assuming localhost:8069 by default unless a different domain is specified) for easy verification of the changes before publishing.</field>
-        <field name="background">The website is built on the Odoo 16 system, meaning that web content (like pages, forms, and layouts) is managed through records and XML view definitions.
+        <field
+      name="background"
+    >The website is built on the Odoo 16 system, meaning that web content (like pages, forms, and layouts) is managed through records and XML view definitions.
 Common models involved include website.page for page content, ir.ui.view for XML structure and templates, website.menu for navigation, and theme specific models/utils.
 Updates vary from simple field additions (as in the case of a contact form update) to more complex layout adjustments or new feature implementations.
 Since the system's data (models and views) drive the website's presentation, any changes should first be tested in is_published = False mode. This allows stakeholders to review updates before they go live.</field>
@@ -148,12 +158,15 @@ Instructions: {{ instructions }}
 
 IMPORTANT: Always ensure changes are made in is_published = False state for the related website.page first and provide preview links for verification before publishing whenever any changes were made for website pages.</field>
         <field name="active" eval="True" />
-        <field name="tool_ids" eval="[(6, 0, [
+        <field
+      name="tool_ids"
+      eval="[(6, 0, [
             ref('llm_tool.llm_tool_odoo_model_inspector'),
             ref('llm_tool.llm_tool_odoo_fields_inspector'),
             ref('llm_tool.llm_tool_odoo_record_retriever'),
             ref('llm_tool.llm_tool_odoo_record_creator'),
             ref('llm_tool.llm_tool_odoo_record_updater')
-        ])]" />
+        ])]"
+    />
     </record>
 </odoo>
