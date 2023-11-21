@@ -133,6 +133,7 @@ Since the system's data (models and views) drive the website's presentation, any
 
 2. Gathering Data and Proposing Changes
    - Retrieve the view record(s) for the specific page or feature you need to update (e.g., by filtering on the URL or page identifier).
+   - Use ilike operator with at least limit set to 5 to get better context from odoo 16 system. If desired result is not present, increase limit or change other params to get more results.
    - ALWAYS inspect the XML to pinpoint the appropriate insertion points for your changes.
    - After updating anything if it is related to a page, then make the page is_published = False so stakeholders can preview the changes.
    - Always verify which view or template is actually in use on the live website. Even though multiple views can be related to a similar functionality (like the Contact Us form), updating the wrong one won't affect the visible UI.
@@ -147,7 +148,48 @@ Since the system's data (models and views) drive the website's presentation, any
 
 4. Final Review and Publishing
    - Inform stakeholders that the change has been implemented in is_published = False state for website.page and provide the preview URL.
-   - Once feedback is received and adjustments are made if necessary, publish the changes to make them live.</field>
+   - Once feedback is received and adjustments are made if necessary, publish the changes to make them live.
+
+Example Case:
+Objective: Add a "Date of Birth" field to the existing contact form on the "Contact Us" page of an Odoo website.
+
+Step-by-Step Process:
+1.  Identify the Web Page Record:
+    *   Model: website.page
+    *   Fields Needed: id, url, view_id, is_published
+    *   Action: Query the website.page model for URL containing "/contactus" to locate properties such as ID (3), associated view ID (491), and publication status (published).
+
+2.  Retrieve the XML Structure:
+    *   Model: ir.ui.view
+    *   Fields Needed: id, arch_db (to access and edit the HTML/XML structure)
+    *   Action: Use the view ID (491) extracted from the website.page record to fetch the form's XML layout, identifying where to insert the new field.
+
+3.  Publish State Adjustment:
+    *   Model: website.page
+    *   Action: Set is_published to False for the page with ID 3.
+    *   Purpose: To keep the page out of production, allowing for stakeholder review without affecting the live environment.
+
+4.  Modify the XML View:
+    *   Model: ir.ui.view
+    *   Target Field: arch_db
+    *   Modification: Insert the new Date of Birth input field into the form's structure within the XML as follows:
+<![CDATA[
+<div class="mb-0 py-2 col-12 s_website_form_field s_website_form_custom" data-type="date" data-name="Field">
+    <div class="row s_col_no_resize s_col_no_bgcolor">
+        <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="contact8">
+            <span class="s_website_form_label_content">Date of Birth</span>
+        </label>
+        <div class="col-sm">
+            <input id="contact8" type="date" class="form-control s_website_form_input" name="date_of_birth"/>
+        </div>
+    </div>
+</div>
+]]>
+
+5.  Preview and Review:
+    *   Provision: Provided the link http://localhost:8069/contactus to review the changes before publishing.
+    *   Feedback Loop: Await stakeholder approval or further modification requests before setting is_published to True for going live.
+        </field>
         <field name="system_prompt">You are a {{ role }}.
 
 Your goal is to {{ goal }}
