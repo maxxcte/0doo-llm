@@ -67,47 +67,59 @@ class LLMDocumentChunk(models.Model):
 
     @api.model
     def search(self, args, offset=0, limit=None, order=None, count=False, **kwargs):
-        if self.env.context.get("search_view_vector_search") and args:
-            # Find the search term in the domain
-            search_term = None
-            for arg in args:
-                if (
-                    isinstance(arg, list)
-                    and len(arg) >= 3
-                    and arg[0] in ["name", "content"]
-                    and arg[1] in ["ilike", "like"]
-                ):
-                    search_term = arg[2]
-                    break
+        # Check if vector search is implicitly requested via the 'embedding' field
+        vector_search_term = None
 
-            if search_term:
-                # Get a default collection to use its embedding model
-                collection = self.env["llm.document.collection"].search([], limit=1)
-                if collection and collection.embedding_model_id:
-                    # Get the embedding model from the collection
-                    embedding_model = collection.embedding_model_id
+        for arg in args:
+            if (
+                isinstance(arg, (list, tuple))
+                and len(arg) == 3
+                and arg[0] == "embedding"
+                # Trigger vector search if any operator is used with a string value
+                and isinstance(arg[2], str)  # Expecting a search term string
+            ):
+                vector_search_term = arg[2]
+                break  # Found our vector search term, no need to continue
 
-                    # Generate embedding for the search term
-                    vector = embedding_model.embedding(search_term.strip())[0]
+        if vector_search_term:
+            # Get a default collection to use its embedding model
+            # TODO: Consider a more robust way to select the embedding model (e.g., config)
+            collection = self.env["llm.document.collection"].search([], limit=1)
+            if collection and collection.embedding_model_id:
+                embedding_model = collection.embedding_model_id
+                vector = embedding_model.embedding(vector_search_term.strip())[0]
 
-                    # # Add collection filter to the domain
-                    # collection_domain = [('collection_ids', '=', collection.id)]
+                kwargs["query_vector"] = vector
+                # Get similarity threshold from context or use default
+                similarity_threshold = self.env.context.get(
+                    "search_similarity_threshold", 0.5
+                )
+                kwargs["query_min_similarity"] = similarity_threshold
+                # Get vector operator from context or use default cosine similarity
+                vector_operator = self.env.context.get("search_vector_operator", "<=>")
+                kwargs["query_operator"] = vector_operator
 
-                    # Use the vector search
-                    kwargs["query_vector"] = vector
-                    kwargs["query_min_similarity"] = 0.5
-                    kwargs["query_operator"] = "<=>"
+                return super().search(
+                    [],  # Empty domain - rely solely on vector similarity, as other domain conditions are irrelevant
+                    offset=offset,
+                    limit=limit,
+                    order=order,
+                    count=count,
+                    **kwargs,
+                )
+            else:
+                # Fallback or raise error if no embedding model found?
+                # For now, fallback to standard search without vector enhancement
+                _logger.warning(
+                    "Vector search requested on 'embedding' field, but no default embedding model found."
+                )
+                # Call super with the original args (including the embedding condition)
+                # This might fail if the ORM doesn't understand the operator for PgVector.
+                return super().search(
+                    args, offset=offset, limit=limit, order=order, count=count, **kwargs
+                )
 
-                    # Use the modified domain
-                    return super().search(
-                        [],
-                        offset=offset,
-                        limit=limit,
-                        order=order,
-                        count=count,
-                        **kwargs,
-                    )
-
+        # If no vector search condition on 'embedding' field, proceed as normal
         return super().search(
             args, offset=offset, limit=limit, order=order, count=count, **kwargs
         )
