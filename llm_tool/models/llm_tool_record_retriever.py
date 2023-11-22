@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -27,8 +28,8 @@ class LLMToolRecordRetriever(models.Model):
             model: str = Field(
                 ..., description="The Odoo model to retrieve records from"
             )
-            domain: list = Field([], description="Domain to filter records")
-            fields: list = Field([], description="Fields to retrieve")
+            domain: list[list[Any]] = Field([], description="Domain to filter records (list of lists/tuples like ['field', 'op', 'value'])")
+            fields: list[str] = Field([], description="List of field names to retrieve")
             limit: int = Field(100, description="Maximum number of records to retrieve")
 
         return RecordRetrieverParams
