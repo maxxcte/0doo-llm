@@ -1,5 +1,6 @@
 import logging
 
+from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from odoo import api, models
@@ -23,7 +24,7 @@ class LLMToolRecordUnlinker(models.Model):
                 title=self.name or "odoo_record_unlinker",
             )
             model: str = Field(..., description="The Odoo model to delete records from")
-            domain: list = Field(
+            domain: list[list[Any]] = Field(
                 ..., description="Domain to identify records to delete"
             )
             limit: int = Field(

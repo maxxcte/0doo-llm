@@ -26,7 +26,7 @@ class LLMToolFieldsInspector(models.Model):
                 ...,
                 description="The Odoo model name to get field information for (example: res.partner)",
             )
-            field_names: list = Field(
+            field_names: list[str] = Field(
                 default=None,
                 description="Optional list of specific field names to retrieve (if empty, all fields will be returned)",
             )
