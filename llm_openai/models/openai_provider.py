@@ -175,7 +175,6 @@ class LLMProvider(models.Model):
         # Add tools if specified
         if tools:
             formatted_tools = self.openai_format_tools(tools)
-            _logger.info(f"Formatted tools: {formatted_tools}")
             if formatted_tools:
                 params["tools"] = formatted_tools
                 params["tool_choice"] = tool_choice
