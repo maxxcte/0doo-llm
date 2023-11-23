@@ -1,5 +1,7 @@
 import json
 import logging
+import time
+import uuid
 
 from openai import OpenAI
 
@@ -279,6 +281,10 @@ class LLMProvider(models.Model):
                                 _logger.warning(f"Empty tool name for index: {index}")
                                 continue
 
+                            # Generate a UUID for id if it's empty, google apis don't give tool call id for example
+                            if not tool_call_chunks[index].get("id"):
+                                tool_call_chunks[index]["id"] = str(uuid.uuid4())
+
                             # Yield the tool call without result
                             yield {
                                 "role": "assistant",
@@ -443,11 +449,13 @@ class LLMProvider(models.Model):
         if not message.author_id and message.tool_calls:
             try:
                 tool_calls_data = json.loads(message.tool_calls)
-                return {
+                result = {
                     "role": "assistant",
-                    "content": message.body or "",  # Ensure content is never null
                     "tool_calls": tool_calls_data,
                 }
+                if message.body:
+                    result["content"] = message.body
+                return result
             except (json.JSONDecodeError, ValueError):
                 # If JSON parsing fails, fall back to default behavior
                 pass
