@@ -1,6 +1,5 @@
 import json
 import logging
-import time
 import uuid
 
 from openai import OpenAI
@@ -72,7 +71,6 @@ class LLMProvider(models.Model):
             }
             return self._create_openai_tool_from_schema(schema, tool)
 
-
     def _recursively_patch_schema_items(self, schema_node):
         """Recursively ensure 'items' dictionaries have a 'type' defined."""
         if not isinstance(schema_node, dict):
@@ -83,7 +81,6 @@ class LLMProvider(models.Model):
             items_dict = schema_node["items"]
             if "type" not in items_dict:
                 items_dict["type"] = "string"  # Default patch type
-                _logger.debug(f"Recursively patched missing 'items.type'")
             # Recurse into items
             self._recursively_patch_schema_items(items_dict)
 
@@ -112,12 +109,14 @@ class LLMProvider(models.Model):
             Dictionary in OpenAI tool format
         """
         if not schema:
-            _logger.warning(f"Could not generate schema for tool {tool.name}, skipping.")
+            _logger.warning(
+                f"Could not generate schema for tool {tool.name}, skipping."
+            )
             return None
 
         # --- Recursively Patch Schema --- START
         # Ensure all nested 'items' have a 'type' for broader compatibility
-        parameters_schema = schema # Modify the schema directly before formatting
+        parameters_schema = schema  # Modify the schema directly before formatting
         self._recursively_patch_schema_items(parameters_schema)
         # --- Recursively Patch Schema --- END
 
@@ -128,7 +127,7 @@ class LLMProvider(models.Model):
                 "name": schema.get("title", tool.name),
                 "description": tool.description
                 if tool.override_tool_description
-                else schema.get("description", ""), # Use original schema desc
+                else schema.get("description", ""),  # Use original schema desc
                 "parameters": {
                     "type": "object",
                     "properties": parameters_schema.get("properties", {}),
