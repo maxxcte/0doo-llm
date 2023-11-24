@@ -1,3 +1,10 @@
+16.0.1.1.2 (2025-04-08)
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* [IMP] Added workaround for Gemini API compatibility (generates placeholder `tool_call_id` if missing)
+* [IMP] Modified message formatting to conditionally include `content` key for Gemini compatibility
+* [FIX] Fixed errors when using Gemini API due to missing `tool_call_id`
+
 16.0.1.1.1 (2025-04-03)
 ~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -1,3 +1,9 @@
+16.0.1.0.1 (2025-04-08)
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* [IMP] Improvements:
+  * Added explicit type hints (`list[str]`, `list[list[Any]]`) to list fields in Pydantic models for `fields_inspector`, `record_unlinker`, and `record_updater` tools to improve schema validation and API compatibility.
+
 16.0.1.0.0 (2025-03-06)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
