@@ -49,8 +49,9 @@ class OpenAIMessageValidator:
         self.build_message_maps()
         self.remove_orphaned_tool_messages()
         self.handle_missing_tool_responses()
+        self._remove_intervening_user_messages()  
 
-        # Remove any messages marked for removal
+        # Remove any messages marked for removal (now includes intervening user messages)
         cleaned_messages = [msg for msg in self.messages if msg is not None]
 
         if self.verbose_logging:
@@ -177,3 +178,59 @@ class OpenAIMessageValidator:
                             self.logger.info(
                                 f"Removed all tool_calls from assistant message {msg_index}"
                             )
+
+    def _remove_intervening_user_messages(self):
+        """
+        Remove user messages that appear between an assistant message with tool_calls
+        and its required tool response messages.
+        """
+        indices_to_remove = set()
+        i = 0
+        while i < len(self.messages):
+            msg = self.messages[i]
+            if not msg:
+                i += 1
+                continue
+
+            if msg.get("role") == "assistant" and msg.get("tool_calls"):
+                expected_tool_ids = {tc.get("id") for tc in msg["tool_calls"] if tc.get("id")}
+                found_tool_ids = set()
+                j = i + 1
+
+                # Look ahead for expected tool responses or intervening user messages
+                while j < len(self.messages) and len(found_tool_ids) < len(expected_tool_ids):
+                    next_msg = self.messages[j]
+                    if not next_msg:
+                        j += 1
+                        continue # Skip already removed messages
+
+                    if next_msg.get("role") == "tool":
+                        tool_call_id = next_msg.get("tool_call_id")
+                        if tool_call_id in expected_tool_ids:
+                            found_tool_ids.add(tool_call_id)
+                        else:
+                            # This tool response doesn't belong here, might be handled
+                            # by remove_orphaned_tool_messages later, but stop looking ahead here.
+                            break
+                    elif next_msg.get("role") == "user":
+                        # Found an intervening user message BEFORE all tool responses were found
+                        self.logger.warning(
+                            f"Removing intervening user message at index {j} found after "
+                            f"assistant tool_calls at index {i}"
+                        )
+                        indices_to_remove.add(j)
+                        # Continue checking subsequent messages in case more user messages intervened
+                    elif next_msg.get("role") == "assistant":
+                        # Another assistant message appeared before tool responses, stop looking ahead
+                        break
+                    # Ignore other message types for this specific check
+
+                    j += 1
+                # Move main loop counter past the block we just examined
+                i = j
+            else:
+                i += 1
+
+        # Mark messages for removal
+        for index in indices_to_remove:
+            self.messages[index] = None
