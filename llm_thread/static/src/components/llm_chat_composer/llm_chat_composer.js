@@ -23,7 +23,8 @@ export class LLMChatComposer extends Component {
    * @returns {Boolean}
    */
   get isDisabled() {
-    return !this.composerView.composer.canPostMessage;
+    // Disable if the standard composer can't post OR if the LLM is currently streaming a response.
+    return !this.composerView.composer.canPostMessage || this.composerView.isStreaming;
   }
 
   // --------------------------------------------------------------------------
