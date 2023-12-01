@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { attr, many } from "@mail/model/model_field";
+import { attr, many, one } from "@mail/model/model_field";
 import { markdownToHtml } from "../utils/markdown_utils";
 import { registerPatch } from "@mail/model/model_core";
 
@@ -46,6 +46,13 @@ registerPatch({
     }),
     pendingToolMessages: many("LLMToolMessage", {
       inverse: "composerView",
+    }),
+    isSendDisabled: attr({
+      compute() {
+        // Disabled if composer can't post (empty, uploading) OR if LLM is streaming
+        return !this.composer?.canPostMessage || this.isStreaming;
+      },
+      default: true, // Assume disabled by default until computed
     }),
   },
   recordMethods: {
@@ -341,6 +348,11 @@ registerPatch({
           break;
         // ENTER: submit the message only if the dropdown mention proposition is not displayed
         case "Enter":
+          // Prevent sending if the composer is disabled (e.g., empty, uploading, or LLM streaming)
+          if (this.isSendDisabled) {
+            ev.preventDefault(); // Prevent default Enter behavior (like newline)
+            return; // Stop processing
+          }
           this.onKeydownTextareaEnterForAi(ev);
           break;
       }
