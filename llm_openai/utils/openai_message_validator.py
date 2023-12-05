@@ -49,7 +49,7 @@ class OpenAIMessageValidator:
         self.build_message_maps()
         self.remove_orphaned_tool_messages()
         self.handle_missing_tool_responses()
-        self._remove_intervening_user_messages()  
+        self._remove_intervening_user_messages()
 
         # Remove any messages marked for removal (now includes intervening user messages)
         cleaned_messages = [msg for msg in self.messages if msg is not None]
@@ -193,16 +193,20 @@ class OpenAIMessageValidator:
                 continue
 
             if msg.get("role") == "assistant" and msg.get("tool_calls"):
-                expected_tool_ids = {tc.get("id") for tc in msg["tool_calls"] if tc.get("id")}
+                expected_tool_ids = {
+                    tc.get("id") for tc in msg["tool_calls"] if tc.get("id")
+                }
                 found_tool_ids = set()
                 j = i + 1
 
                 # Look ahead for expected tool responses or intervening user messages
-                while j < len(self.messages) and len(found_tool_ids) < len(expected_tool_ids):
+                while j < len(self.messages) and len(found_tool_ids) < len(
+                    expected_tool_ids
+                ):
                     next_msg = self.messages[j]
                     if not next_msg:
                         j += 1
-                        continue # Skip already removed messages
+                        continue  # Skip already removed messages
 
                     if next_msg.get("role") == "tool":
                         tool_call_id = next_msg.get("tool_call_id")
