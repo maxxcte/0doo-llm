@@ -17,14 +17,15 @@ class LLMToolRecordCreator(models.Model):
 
     def odoo_record_creator_get_pydantic_model(self):
         class RecordCreatorParams(BaseModel):
-            """This function creates a new record in the specified Odoo model with the provided values."""
+            """This function creates a new record in the specified Odoo model with the provided values. Use the key 'fields' to provide the dictionary of field values."""
 
             model_config = ConfigDict(
                 title=self.name or "odoo_record_creator",
             )
             model: str = Field(..., description="The Odoo model to create a record in")
             fields: dict = Field(
-                ..., description="Dictionary of field values for the new record"
+                ...,
+                description="Dictionary of field values for the new record. Use the key 'fields' for this parameter.",
             )
 
         return RecordCreatorParams
