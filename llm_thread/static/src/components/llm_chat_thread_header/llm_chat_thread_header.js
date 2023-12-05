@@ -32,10 +32,10 @@ export class LLMChatThreadHeader extends Component {
     // Bind Bootstrap event listeners for better UX
     this._onModelDropdownShown = this._onModelDropdownShown.bind(this);
     this._onModelDropdownHidden = this._onModelDropdownHidden.bind(this);
-    this.onSelectModel = this.onSelectModel.bind(this); // <-- Add this line
-    this.onSelectProvider = this.onSelectProvider.bind(this); // <-- Good practice to bind this too
-    this._preventDropdownClose = this._preventDropdownClose.bind(this); // <-- And this
-    this.onModelSearchInput = this.onModelSearchInput.bind(this); // <-- And this
+    this.onSelectModel = this.onSelectModel.bind(this);
+    this.onSelectProvider = this.onSelectProvider.bind(this);
+    this._preventDropdownClose = this._preventDropdownClose.bind(this);
+    this.onModelSearchInput = this.onModelSearchInput.bind(this);
     onMounted(() => {
       if (this.modelDropdownRef.el) {
         this.modelDropdownRef.el.addEventListener(
@@ -124,7 +124,8 @@ export class LLMChatThreadHeader extends Component {
   get filteredModels() {
     const query = this.state.modelSearchQuery.trim().toLowerCase();
     if (!query) {
-      return this.llmModels; // Return all available models if no query
+      // Return all available models if no query
+      return this.llmModels;
     }
     return this.llmModels.filter((model) =>
       model.name.toLowerCase().includes(query)

@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { attr, many, one } from "@mail/model/model_field";
+import { attr, many } from "@mail/model/model_field";
 import { markdownToHtml } from "../utils/markdown_utils";
 import { registerPatch } from "@mail/model/model_core";
 
@@ -52,7 +52,8 @@ registerPatch({
         // Disabled if composer can't post (empty, uploading) OR if LLM is streaming
         return !this.composer?.canPostMessage || this.isStreaming;
       },
-      default: true, // Assume disabled by default until computed
+      // Assume disabled by default until computed
+      default: true,
     }),
   },
   recordMethods: {
@@ -350,8 +351,10 @@ registerPatch({
         case "Enter":
           // Prevent sending if the composer is disabled (e.g., empty, uploading, or LLM streaming)
           if (this.isSendDisabled) {
-            ev.preventDefault(); // Prevent default Enter behavior (like newline)
-            return; // Stop processing
+            // Prevent default Enter behavior (like newline)
+            ev.preventDefault();
+            // Stop processing
+            return;
           }
           this.onKeydownTextareaEnterForAi(ev);
           break;
