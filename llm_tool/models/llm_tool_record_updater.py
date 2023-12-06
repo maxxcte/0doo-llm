@@ -18,7 +18,7 @@ class LLMToolRecordUpdater(models.Model):
 
     def odoo_record_updater_get_pydantic_model(self):
         class RecordUpdaterParams(BaseModel):
-            """This function updates existing records in the specified Odoo model that match the given domain with the provided values."""
+            """This function updates existing records in the specified Odoo model that match the given domain with the provided values. Use the key 'values' to provide the dictionary of field values."""
 
             model_config = ConfigDict(
                 title=self.name or "odoo_record_updater",
@@ -28,7 +28,8 @@ class LLMToolRecordUpdater(models.Model):
                 ..., description="Domain to identify records to update"
             )
             values: dict = Field(
-                ..., description="Dictionary of field values to update"
+                ...,
+                description="Dictionary of field values to update. Use the key 'values' for this parameter.",
             )
             limit: int = Field(
                 1,
