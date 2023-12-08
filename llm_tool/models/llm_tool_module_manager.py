@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 from typing import Literal
 
@@ -38,7 +37,9 @@ class LLMToolModuleManager(models.Model):
             model_config = ConfigDict(
                 title=self.name or "odoo_module_manager",
             )
-            module_name: str = Field(..., description="Technical name of the Odoo module.")
+            module_name: str = Field(
+                ..., description="Technical name of the Odoo module."
+            )
             operation: Literal["install", "upgrade"] = Field(
                 ..., description="Action to perform: 'install' or 'upgrade'."
             )
@@ -68,7 +69,11 @@ class LLMToolModuleManager(models.Model):
 
         # 2. Parameter Validation
         if not module_name or not operation:
-            return {"error": _("Missing required parameters: 'module_name' and 'operation' are required.")}
+            return {
+                "error": _(
+                    "Missing required parameters: 'module_name' and 'operation' are required."
+                )
+            }
         if operation not in ["install", "upgrade"]:
             return {"error": _("Invalid 'operation'. Must be 'install' or 'upgrade'.")}
 
@@ -78,9 +83,14 @@ class LLMToolModuleManager(models.Model):
 
         if not module_record:
             return {"error": _("Module '%s' not found.", module_name)}
-        if len(module_record) > 1: # Should not happen with unique name constraint
+        if len(module_record) > 1:  # Should not happen with unique name constraint
             _logger.error("Found multiple modules with name '%s'.", module_name)
-            return {"error": _("Internal Error: Found multiple modules with name '%s'.", module_name)}
+            return {
+                "error": _(
+                    "Internal Error: Found multiple modules with name '%s'.",
+                    module_name,
+                )
+            }
 
         module_record.ensure_one()
         current_state = module_record.state
@@ -94,15 +104,36 @@ class LLMToolModuleManager(models.Model):
                     # Re-browse to get the updated state
                     module_record.invalidate_recordset()
                     if module_record.state == "installed":
-                        return {"success": _("Module '%s' installed successfully. Refresh the page to see changes.", module_name)}
+                        return {
+                            "success": _(
+                                "Module '%s' installed successfully. Refresh the page to see changes.",
+                                module_name,
+                            )
+                        }
                     else:
                         # This might happen if dependencies fail etc. Odoo usually raises, but check state just in case.
-                        _logger.error("Module '%s' state is '%s' after attempted install.", module_name, module_record.state)
-                        return {"error": _("Installation of module '%s' initiated but final state is '%s'. Check server logs.", module_name, module_record.state)}
+                        _logger.error(
+                            "Module '%s' state is '%s' after attempted install.",
+                            module_name,
+                            module_record.state,
+                        )
+                        return {
+                            "error": _(
+                                "Installation of module '%s' initiated but final state is '%s'. Check server logs.",
+                                module_name,
+                                module_record.state,
+                            )
+                        }
                 elif current_state == "installed":
                     return {"info": _("Module '%s' is already installed.", module_name)}
                 else:
-                    return {"error": _("Cannot install module '%s'. It is in state '%s'.", module_name, current_state)}
+                    return {
+                        "error": _(
+                            "Cannot install module '%s'. It is in state '%s'.",
+                            module_name,
+                            current_state,
+                        )
+                    }
 
             elif operation == "upgrade":
                 if current_state in ["installed", "to upgrade"]:
@@ -111,18 +142,58 @@ class LLMToolModuleManager(models.Model):
                     # Re-browse to get the updated state
                     module_record.invalidate_recordset()
                     if module_record.state == "installed":
-                         return {"success": _("Module '%s' upgraded successfully. Refresh the page to see changes.", module_name)}
+                        return {
+                            "success": _(
+                                "Module '%s' upgraded successfully. Refresh the page to see changes.",
+                                module_name,
+                            )
+                        }
                     else:
-                        _logger.error("Module '%s' state is '%s' after attempted upgrade.", module_name, module_record.state)
-                        return {"error": _("Upgrade of module '%s' initiated but final state is '%s'. Check server logs.", module_name, module_record.state)}
+                        _logger.error(
+                            "Module '%s' state is '%s' after attempted upgrade.",
+                            module_name,
+                            module_record.state,
+                        )
+                        return {
+                            "error": _(
+                                "Upgrade of module '%s' initiated but final state is '%s'. Check server logs.",
+                                module_name,
+                                module_record.state,
+                            )
+                        }
                 elif current_state == "uninstalled":
-                     return {"error": _("Cannot upgrade module '%s'. It needs to be installed first.", module_name)}
+                    return {
+                        "error": _(
+                            "Cannot upgrade module '%s'. It needs to be installed first.",
+                            module_name,
+                        )
+                    }
                 else:
-                    return {"error": _("Cannot upgrade module '%s'. It is in state '%s'.", module_name, current_state)}
+                    return {
+                        "error": _(
+                            "Cannot upgrade module '%s'. It is in state '%s'.",
+                            module_name,
+                            current_state,
+                        )
+                    }
 
         except exceptions.UserError as e:
-            _logger.error("UserError during module operation '%s' for module '%s': %s", operation, module_name, str(e))
+            _logger.error(
+                "UserError during module operation '%s' for module '%s': %s",
+                operation,
+                module_name,
+                str(e),
+            )
             return {"error": _("Operation failed: %s", str(e))}
         except Exception as e:
-            _logger.exception("Unexpected error during module operation '%s' for module '%s': %s", operation, module_name, str(e))
-            return {"error": _("An unexpected error occurred: %s. Check server logs.", str(e))}
+            _logger.exception(
+                "Unexpected error during module operation '%s' for module '%s': %s",
+                operation,
+                module_name,
+                str(e),
+            )
+            return {
+                "error": _(
+                    "An unexpected error occurred: %s. Check server logs.", str(e)
+                )
+            }
