@@ -142,7 +142,8 @@ registerPatch({
       // Close the active EventSource connection if it exists
       if (this.eventSource) {
         this.eventSource.close();
-        this.update({ eventSource: undefined }); // Clear the reference
+        // Clear the reference
+        this.update({ eventSource: undefined });
         console.log("EventSource closed by _stopStreaming");
       }
 
@@ -263,7 +264,8 @@ registerPatch({
 
       this.eventSource.onerror = (error) => {
         console.error("EventSource failed:", error);
-        this.eventSource?.close(); // Safely close if it exists
+        // Safely close if it exists
+        this.eventSource?.close();
         // Ensure state is fully stopped and reference is cleared
         this._stopStreaming();
       };
