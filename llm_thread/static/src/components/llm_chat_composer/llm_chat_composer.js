@@ -46,9 +46,8 @@ export class LLMChatComposer extends Component {
    * Handles click on the stop button.
    *
    * @private
-   * @param {MouseEvent} ev
    */
-  _onClickStop(ev) {
+  _onClickStop() {
     this.composerView._stopStreaming();
   }
 }

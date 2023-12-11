@@ -191,7 +191,11 @@ registerPatch({
       });
 
       // Store the EventSource instance on the model
-      this.update({ eventSource: new EventSource(`/llm/thread/stream_response?thread_id=${composer.thread.id}`) });
+      this.update({
+        eventSource: new EventSource(
+          `/llm/thread/stream_response?thread_id=${composer.thread.id}`
+        ),
+      });
 
       this.eventSource.onmessage = async (event) => {
         const data = JSON.parse(event.data);
