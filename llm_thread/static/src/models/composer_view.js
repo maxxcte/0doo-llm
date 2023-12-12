@@ -139,13 +139,7 @@ registerPatch({
      * Stop streaming response for this thread
      */
     _stopStreaming() {
-      // Close the active EventSource connection if it exists
-      if (this.eventSource) {
-        this.eventSource.close();
-        // Clear the reference
-        this.update({ eventSource: undefined });
-        console.log("EventSource closed by _stopStreaming");
-      }
+      this._closeEventSource();
 
       // Delete all pending tool messages
       for (const toolMessage of this.pendingToolMessages) {
@@ -169,10 +163,7 @@ registerPatch({
      */
     async startStreaming() {
       // Close any existing connection before starting a new one
-      if (this.eventSource) {
-        this.eventSource.close();
-        this.update({ eventSource: undefined });
-      }
+      this._closeEventSource();
 
       const defaultContent = "Thinking...";
       if (this.isStreaming) {
@@ -254,9 +245,7 @@ registerPatch({
             });
             break;
           case "end":
-            this.eventSource.close();
-            // Clear the eventSource reference on natural end
-            this.update({ eventSource: undefined });
+            this._closeEventSource(); // Close connection and clear reference
             this._handleStreamingEnd();
             break;
         }
@@ -265,9 +254,8 @@ registerPatch({
       this.eventSource.onerror = (error) => {
         console.error("EventSource failed:", error);
         // Safely close if it exists
-        this.eventSource?.close();
-        // Ensure state is fully stopped and reference is cleared
-        this._stopStreaming();
+        this._closeEventSource(); // Ensure reference is cleared
+        this._stopStreaming(); // Ensure state is fully stopped
       };
     },
 
@@ -431,6 +419,18 @@ registerPatch({
       }
 
       this._handleSendShortcuts(ev);
+    },
+
+    /**
+     * Safely closes the current EventSource connection and clears the reference.
+     * @private
+     */
+    _closeEventSource() {
+      if (this.eventSource) {
+        this.eventSource.close();
+        this.update({ eventSource: undefined });
+        console.log("EventSource connection closed and reference cleared.");
+      }
     },
   },
 });
