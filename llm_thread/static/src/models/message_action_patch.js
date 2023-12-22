@@ -1,45 +1,42 @@
 /** @odoo-module **/
 
 import { registerPatch } from '@mail/model/model_core';
-import { one, attr, clear } from '@mail/model/model_field'; // Include attr
+import { one } from '@mail/model/model_field'; 
 import { _t } from "@web/core/l10n/translation";
-import { useService } from "@web/core/utils/hooks"; // Keep for fallback
+import { clear } from '@mail/model/model_field_command';
 
 // 1. Patch MessageActionList to add compute fields for our custom actions
 registerPatch({
     name: 'MessageActionList',
     fields: {
-        // Compute field for Thumb Up action
         actionThumbUp: one('MessageAction', {
             compute() {
-                // Only show for assistant messages (no author)
-                if (this.message && !this.message.author) {
-                    return {}; // Create an instance if condition met
+                // Reverted condition based on last successful state - show for assistant messages
+                if (this.message) {
+                    return {};
                 }
-                return clear(); // Clear otherwise
+                return clear();
             },
             inverse: 'messageActionListOwnerAsThumbUp',
         }),
-        // Compute field for Thumb Down action
         actionThumbDown: one('MessageAction', {
             compute() {
-                // Only show for assistant messages (no author)
-                if (this.message && !this.message.author) {
-                    return {}; // Create an instance if condition met
+                // Reverted condition based on last successful state - show for assistant messages
+                 if (this.message) {
+                    return {};
                 }
-                return clear(); // Clear otherwise
+                return clear();
             },
             inverse: 'messageActionListOwnerAsThumbDown',
         }),
-    }
+    },
 });
 
-
-// 2. Patch MessageAction to define the behavior of our specific actions
+// 2. Patch MessageAction for correct owner computation and sequence
 registerPatch({
     name: 'MessageAction',
-    // Add new fields (the inverse relations & computed fields)
     fields: {
+         // === New fields (inverse relations) ===
         messageActionListOwnerAsThumbUp: one('MessageActionList', {
             identifying: true,
             inverse: 'actionThumbUp',
@@ -48,115 +45,143 @@ registerPatch({
             identifying: true,
             inverse: 'actionThumbDown',
         }),
-        // Override computed properties as fields with inline compute functions
-        iconClass: attr({
-            compute() { // Compute function directly here
+
+        // === Patched fields ===
+
+        messageActionListOwner: { 
+            compute() {
+                // Check our custom inverse relations first
                 if (this.messageActionListOwnerAsThumbUp) {
-                    const message = this.messageActionListOwnerAsThumbUp.message;
-                    const isVoted = message && message.user_vote === 1;
-                    return `fa fa-thumbs-up ${isVoted ? 'text-primary fw-bold' : ''}`;
+                    return this.messageActionListOwnerAsThumbUp;
                 }
                 if (this.messageActionListOwnerAsThumbDown) {
-                    const message = this.messageActionListOwnerAsThumbDown.message;
-                    const isVoted = message && message.user_vote === -1;
-                    return `fa fa-thumbs-down ${isVoted ? 'text-primary fw-bold' : ''}`;
+                    return this.messageActionListOwnerAsThumbDown;
                 }
-                // Call super compute if it exists (this structure is complex for attr)
-                // Note: Correctly calling super for attr compute is tricky.
-                // Often, core Odoo doesn't override computed attrs this way,
-                // but rather uses more complex relations or states.
-                // Assuming direct super call isn't standard for attr compute.
-                // If needed, a more complex patch involving inheritance might be required.
-                // For now, let's assume base iconClass is empty if not our actions.
-                 const originalCompute = this._super && this._super.constructor.props.fields.iconClass && this._super.constructor.props.fields.iconClass.compute;
-                 return originalCompute ? originalCompute.call(this) : '';
-            },
-        }),
-        label: attr({
-            compute() { // Compute function directly here
-                if (this.messageActionListOwnerAsThumbUp) {
-                    return _t("Thumb Up");
-                }
-                if (this.messageActionListOwnerAsThumbDown) {
-                    return _t("Thumb Down");
-                }
-                 const originalCompute = this._super && this._super.constructor.props.fields.label && this._super.constructor.props.fields.label.compute;
-                 return originalCompute ? originalCompute.call(this) : '';
-            },
-        }),
-        sequence: attr({
-            compute() { // Compute function directly here
-                 // Position thumbs actions: e.g., Star (10), Thumbs (15, 16), Reply (20)
-                if (this.messageActionListOwnerAsThumbUp) {
-                    return 15;
-                }
-                if (this.messageActionListOwnerAsThumbDown) {
-                    return 16;
-                }
-                 const originalCompute = this._super && this._super.constructor.props.fields.sequence && this._super.constructor.props.fields.sequence.compute;
-                 return originalCompute ? originalCompute.call(this) : 100; // Default high sequence
-            },
-        }),
-        isVisible: attr({ // Added for consistency
-             compute() { // Compute function directly here
-                 if (this.messageActionListOwnerAsThumbUp || this.messageActionListOwnerAsThumbDown) {
-                     return true; // Visibility is handled by compute() in MessageActionList
-                 }
-                  const originalCompute = this._super && this._super.constructor.props.fields.isVisible && this._super.constructor.props.fields.isVisible.compute;
-                 return originalCompute ? originalCompute.call(this) : true; // Default true
-             },
-        }),
-    },
-    // Add/Override record methods
-    recordMethods: {
-        // Override execute to handle voting logic (remains the same)
-        async _execute(ev) {
-            let rpc;
-            // Standard way to get RPC service in models
-            if (this.messaging && this.messaging.rpc) {
-                rpc = this.messaging.rpc;
-            } else {
-                console.warn("RPC service not found via this.messaging.rpc in MessageAction patch.");
-            }
-
-            if (!rpc) {
-                console.error("RPC service not available for MessageAction execute.");
-                return this._super ? this._super(...arguments) : undefined;
-            }
-
-            let message, currentVote, newVote, voteValue;
-
-            if (this.messageActionListOwnerAsThumbUp) {
-                message = this.messageActionListOwnerAsThumbUp.message;
-                if (!message) return;
-                currentVote = message.user_vote;
-                newVote = currentVote === 1 ? 0 : 1;
-                voteValue = 1;
-            } else if (this.messageActionListOwnerAsThumbDown) {
-                message = this.messageActionListOwnerAsThumbDown.message;
-                if (!message) return;
-                currentVote = message.user_vote;
-                newVote = currentVote === -1 ? 0 : -1;
-                voteValue = -1;
-            } else {
-                return this._super ? this._super(...arguments) : undefined;
-            }
-
-            try {
-                await rpc("/llm/message/vote", {
-                    message_id: message.id,
-                    vote_value: newVote,
-                });
-                message.update({ user_vote: newVote });
-            } catch (error) {
-                console.error(`Error voting ${voteValue === 1 ? 'up' : 'down'}:`, error);
-                if (this.env && this.env.services.notification) {
-                    this.env.services.notification.add(_t("Failed to record vote."), { type: 'danger' });
-                } else {
-                     console.warn("Notification service not available to display vote failure.");
-                }
+                // If not our actions, call the original compute logic
+                return this._super();
             }
         },
+
+        sequence: { 
+            compute() {
+                 if (this.messageActionListOwnerAsThumbUp) {
+                     return 15;
+                 }
+                 if (this.messageActionListOwnerAsThumbDown) {
+                     return 16;
+                 }
+                 return this._super();
+            },
+        },
     },
-    // NO computeMethods block needed here
+});
+
+// 3. Patch MessageActionView for visual representation AND CLICK HANDLING
+registerPatch({
+    name: 'MessageActionView',
+    fields: {
+        classNames: { 
+            compute() {
+                const messageAction = this.messageAction;
+                if (!messageAction) return ''; // Safety check
+
+                // Check if it's our thumb actions
+                if (messageAction.messageActionListOwnerAsThumbUp) {
+                    const message = messageAction.messageActionListOwnerAsThumbUp.message;
+                    const isVoted = message && message.user_vote === 1;
+                    // Combine padding (computed by original logic or default) with our icon class
+                    // We must include padding, otherwise alignment breaks. Call padding compute directly.
+                    return `${this.paddingClassNames} fa fa-lg fa-thumbs-up ${isVoted ? 'text-primary fw-bold' : ''}`;
+                }
+                if (messageAction.messageActionListOwnerAsThumbDown) {
+                    const message = messageAction.messageActionListOwnerAsThumbDown.message;
+                    const isVoted = message && message.user_vote === -1;
+                    return `${this.paddingClassNames} fa fa-lg fa-thumbs-down ${isVoted ? 'text-primary fw-bold' : ''}`;
+                }
+
+                // If not our actions, call the original compute
+                // This will handle core icons (delete, edit, star, etc.) AND padding.
+                return this._super();
+            }
+        },
+        title: { 
+             compute() {
+                 const messageAction = this.messageAction;
+                 if (!messageAction) return '';
+
+                 if (messageAction.messageActionListOwnerAsThumbUp) {
+                     return _t("Thumb Up");
+                 }
+                 if (messageAction.messageActionListOwnerAsThumbDown) {
+                     return _t("Thumb Down");
+                 }
+                 // Let original handle others (delete, edit, star, etc.)
+                 return this._super();
+             }
+        }
+    },
+    recordMethods: {
+        async onClick(ev) {
+            const messageAction = this.messageAction;
+            if (!messageAction) return; // Safety check
+
+            let message, currentVote, newVote, voteValue;
+            let isVoteAction = false;
+
+            // Check if it's our thumb actions
+            if (messageAction.messageActionListOwnerAsThumbUp) {
+                message = messageAction.messageActionListOwnerAsThumbUp.message;
+                if (!message) return;
+                currentVote = message.user_vote;
+                newVote = currentVote === 1 ? 0 : 1; // Toggle logic
+                voteValue = 1;
+                isVoteAction = true;
+            } else if (messageAction.messageActionListOwnerAsThumbDown) {
+                message = messageAction.messageActionListOwnerAsThumbDown.message;
+                if (!message) return;
+                currentVote = message.user_vote;
+                newVote = currentVote === -1 ? 0 : -1; // Toggle logic
+                voteValue = -1;
+                isVoteAction = true;
+            }
+
+            // If it was a vote action, perform the RPC
+            if (isVoteAction) {
+                 let rpc;
+                 // Get RPC service (should be available via messaging)
+                 if (this.messaging && this.messaging.rpc) {
+                     rpc = this.messaging.rpc;
+                 } else {
+                     console.warn("RPC service not found via this.messaging.rpc in MessageActionView patch.");
+                     // Optionally show notification if env is available
+                     if (this.env && this.env.services.notification) {
+                         this.env.services.notification.add(_t("Could not contact server."), { type: 'warning' });
+                     }
+                     return; // Cannot proceed without RPC
+                 }
+
+                try {
+                    await rpc("/llm/message/vote", {
+                        message_id: message.id,
+                        vote_value: newVote,
+                    });
+                    // Update local state immediately for responsiveness
+                    message.update({ user_vote: newVote });
+                } catch (error) {
+                    console.error(`Error voting ${voteValue === 1 ? 'up' : 'down'}:`, error);
+                    // Use notification service if available
+                    if (this.env && this.env.services.notification) {
+                        this.env.services.notification.add(_t("Failed to record vote."), { type: 'danger' });
+                    } else {
+                         console.warn("Notification service not available to display vote failure.");
+                    }
+                    // Optionally revert local state on error, or leave it optimistic
+                    // message.update({ user_vote: currentVote }); // Example revert
+                }
+            } else {
+                // Not our action, let the original onClick handle it
+                this._super(ev);
+            }
+        }
+    }
 });
