@@ -93,8 +93,8 @@ class LLMThreadController(http.Controller):
         """ Updates the user vote on a specific message. """
         try:
             vote_value = int(vote_value)
-            if vote_value not in [-1, 1]:
-                return {'error': 'Invalid vote value. Must be 1 or -1.'}
+            if vote_value not in [-1, 1, 0]:
+                return {'error': 'Invalid vote value. Must be 1, -1, or 0.'}
 
             message = request.env['mail.message'].browse(int(message_id))
             # Basic check if the message exists and belongs to a model the user might see
@@ -108,9 +108,6 @@ class LLMThreadController(http.Controller):
             if message.author_id:
                 return {'error': 'Voting is only allowed on assistant messages.'}
 
-            # Allow user to change their vote or reset it by clicking the same vote again?
-            # Current logic: Set directly to 1 or -1. 
-            # Consider toggling: if message.user_vote == vote_value: vote_value = 0
             message.sudo().write({'user_vote': vote_value})
             return {'success': True, 'message_id': message.id, 'new_vote': vote_value}
 
