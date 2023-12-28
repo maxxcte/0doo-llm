@@ -83,20 +83,21 @@ registerPatch({
         classNames: { 
             compute() {
                 const messageAction = this.messageAction;
-                if (!messageAction) return ''; // Safety check
+                if (!messageAction) return '';
 
-                // Check if it's our thumb actions
                 if (messageAction.messageActionListOwnerAsThumbUp) {
                     const message = messageAction.messageActionListOwnerAsThumbUp.message;
                     const isVoted = message && message.user_vote === 1;
-                    // Combine padding (computed by original logic or default) with our icon class
-                    // We must include padding, otherwise alignment breaks. Call padding compute directly.
-                    return `${this.paddingClassNames} fa fa-lg fa-thumbs-up ${isVoted ? 'text-primary fw-bold' : ''}`;
+                    // Use outlined icon if not voted, solid + color if voted
+                    const iconClass = isVoted ? 'fa-thumbs-up text-primary fw-bold' : 'fa-thumbs-o-up';
+                    return `${this.paddingClassNames} fa fa-lg ${iconClass}`;
                 }
                 if (messageAction.messageActionListOwnerAsThumbDown) {
                     const message = messageAction.messageActionListOwnerAsThumbDown.message;
                     const isVoted = message && message.user_vote === -1;
-                    return `${this.paddingClassNames} fa fa-lg fa-thumbs-down ${isVoted ? 'text-primary fw-bold' : ''}`;
+                     // Use outlined icon if not voted, solid + color if voted
+                    const iconClass = isVoted ? 'fa-thumbs-down text-primary fw-bold' : 'fa-thumbs-o-down';
+                    return `${this.paddingClassNames} fa fa-lg ${iconClass}`;
                 }
 
                 // If not our actions, call the original compute
