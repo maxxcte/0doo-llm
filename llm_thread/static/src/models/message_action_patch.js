@@ -147,23 +147,13 @@ registerPatch({
 
             // If it was a vote action, perform the RPC
             if (isVoteAction) {
-                 let rpc;
-                 // Get RPC service (should be available via messaging)
-                 if (this.messaging && this.messaging.rpc) {
-                     rpc = this.messaging.rpc;
-                 } else {
-                     console.warn("RPC service not found via this.messaging.rpc in MessageActionView patch.");
-                     // Optionally show notification if env is available
-                     if (this.env && this.env.services.notification) {
-                         this.env.services.notification.add(_t("Could not contact server."), { type: 'warning' });
-                     }
-                     return; // Cannot proceed without RPC
-                 }
-
                 try {
-                    await rpc("/llm/message/vote", {
-                        message_id: message.id,
-                        vote_value: newVote,
+                    await this.messaging.rpc({
+                        route: "/llm/message/vote",
+                        params: {
+                            message_id: message.id,
+                            vote_value: newVote,
+                        },
                     });
                     // Update local state immediately for responsiveness
                     message.update({ user_vote: newVote });
