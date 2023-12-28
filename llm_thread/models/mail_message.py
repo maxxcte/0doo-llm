@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import fields, models
@@ -10,9 +9,8 @@ class MailMessage(models.Model):
     user_vote = fields.Integer(
         string="User Vote",
         default=0,
-        help="Vote status given by the user. 0: No vote, 1: Upvoted, -1: Downvoted."
+        help="Vote status given by the user. 0: No vote, 1: Upvoted, -1: Downvoted.",
     )
-
 
     def message_format(self, format_reply=True):
         """Override message_format to mark tool messages as notes for proper UI rendering"""
