@@ -11,8 +11,8 @@ registerPatch({
     fields: {
         actionThumbUp: one('MessageAction', {
             compute() {
-                // Reverted condition based on last successful state - show for assistant messages
-                if (this.message) {
+                // Show thumb up only for assistant messages
+                if (this.message && !this.message.author) {
                     return {};
                 }
                 return clear();
@@ -21,8 +21,8 @@ registerPatch({
         }),
         actionThumbDown: one('MessageAction', {
             compute() {
-                // Reverted condition based on last successful state - show for assistant messages
-                 if (this.message) {
+                // Show thumb down only for assistant messages
+                if (this.message && !this.message.author) {
                     return {};
                 }
                 return clear();
