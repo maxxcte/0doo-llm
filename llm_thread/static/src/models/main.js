@@ -12,4 +12,6 @@ import "@llm_thread/models/llm_provider";
 import "@llm_thread/models/thread_view";
 import "@llm_thread/models/llm_chat_thread_header_view";
 import "@llm_thread/models/chatter";
-import "@llm_thread/models/message_action_patch";
+import "@llm_thread/models/message_action";
+import "@llm_thread/models/message_action_list";
+import "@llm_thread/models/message_action_view";

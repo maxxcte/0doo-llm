@@ -1,80 +1,7 @@
 /** @odoo-module **/
 
 import { registerPatch } from '@mail/model/model_core';
-import { one } from '@mail/model/model_field'; 
 import { _t } from "@web/core/l10n/translation";
-import { clear } from '@mail/model/model_field_command';
-
-// 1. Patch MessageActionList to add compute fields for our custom actions
-registerPatch({
-    name: 'MessageActionList',
-    fields: {
-        actionThumbUp: one('MessageAction', {
-            compute() {
-                // Reverted condition based on last successful state - show for assistant messages
-                if (this.message) {
-                    return {};
-                }
-                return clear();
-            },
-            inverse: 'messageActionListOwnerAsThumbUp',
-        }),
-        actionThumbDown: one('MessageAction', {
-            compute() {
-                // Reverted condition based on last successful state - show for assistant messages
-                 if (this.message) {
-                    return {};
-                }
-                return clear();
-            },
-            inverse: 'messageActionListOwnerAsThumbDown',
-        }),
-    },
-});
-
-// 2. Patch MessageAction for correct owner computation and sequence
-registerPatch({
-    name: 'MessageAction',
-    fields: {
-         // === New fields (inverse relations) ===
-        messageActionListOwnerAsThumbUp: one('MessageActionList', {
-            identifying: true,
-            inverse: 'actionThumbUp',
-        }),
-        messageActionListOwnerAsThumbDown: one('MessageActionList', {
-            identifying: true,
-            inverse: 'actionThumbDown',
-        }),
-
-        // === Patched fields ===
-
-        messageActionListOwner: { 
-            compute() {
-                // Check our custom inverse relations first
-                if (this.messageActionListOwnerAsThumbUp) {
-                    return this.messageActionListOwnerAsThumbUp;
-                }
-                if (this.messageActionListOwnerAsThumbDown) {
-                    return this.messageActionListOwnerAsThumbDown;
-                }
-                // If not our actions, call the original compute logic
-                return this._super();
-            }
-        },
-
-        sequence: { 
-            compute() {
-                 if (this.messageActionListOwnerAsThumbUp) {
-                     return 15;
-                 }
-                 if (this.messageActionListOwnerAsThumbDown) {
-                     return 16;
-                 }
-                 return this._super();
-            },
-        },
-    },
-});
 
 // 3. Patch MessageActionView for visual representation AND CLICK HANDLING
 registerPatch({
@@ -134,14 +61,14 @@ registerPatch({
                 message = messageAction.messageActionListOwnerAsThumbUp.message;
                 if (!message) return;
                 currentVote = message.user_vote;
-                newVote = currentVote === 1 ? 0 : 1; // Toggle logic
+                newVote = currentVote === 1 ? 0 : 1;
                 voteValue = 1;
                 isVoteAction = true;
             } else if (messageAction.messageActionListOwnerAsThumbDown) {
                 message = messageAction.messageActionListOwnerAsThumbDown.message;
                 if (!message) return;
                 currentVote = message.user_vote;
-                newVote = currentVote === -1 ? 0 : -1; // Toggle logic
+                newVote = currentVote === -1 ? 0 : -1;
                 voteValue = -1;
                 isVoteAction = true;
             }
@@ -149,25 +76,25 @@ registerPatch({
             // If it was a vote action, perform the RPC
             if (isVoteAction) {
                 try {
-                    await this.messaging.rpc({
+                    const result = await this.messaging.rpc({
                         route: "/llm/message/vote",
                         params: {
                             message_id: message.id,
                             vote_value: newVote,
                         },
                     });
-                    // Update local state immediately for responsiveness
+                    if (result.error) {
+                        throw new Error(result.error);
+                    }
                     message.update({ user_vote: newVote });
                 } catch (error) {
                     console.error(`Error voting ${voteValue === 1 ? 'up' : 'down'}:`, error);
-                    // Use notification service if available
                     if (this.env && this.env.services.notification) {
-                        this.env.services.notification.add(_t("Failed to record vote."), { type: 'danger' });
+                        this.env.services.notification.add(_t("Failed to record vote. " + error), { type: 'danger' });
                     } else {
                          console.warn("Notification service not available to display vote failure.");
                     }
-                    // Optionally revert local state on error, or leave it optimistic
-                    // message.update({ user_vote: currentVote }); // Example revert
+                    message.update({ user_vote: currentVote });
                 }
             } else {
                 // Not our action, let the original onClick handle it
