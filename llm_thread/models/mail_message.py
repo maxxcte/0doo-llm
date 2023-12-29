@@ -13,10 +13,9 @@ class MailMessage(models.Model):
     )
 
     def message_format(self, format_reply=True):
-        """Override message_format to mark tool messages as notes for proper UI rendering"""
+        """Override message_format to support user_vote field for proper UI rendering"""
         vals_list = super().message_format(format_reply=format_reply)
 
-        # Update is_note for tool messages
         for vals in vals_list:
             message_sudo = self.browse(vals["id"]).sudo().with_prefetch(self.ids)
             vals["user_vote"] = message_sudo.user_vote
