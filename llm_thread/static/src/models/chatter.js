@@ -37,7 +37,7 @@ registerPatch({
     /**
      * Toggles AI chat mode, initializing LLMChat and selecting/creating a thread.
      */
-    async toggleAIChat() {
+    async toggleLLMChat() {
       if (!this.thread) return;
 
       const messaging = this.messaging;

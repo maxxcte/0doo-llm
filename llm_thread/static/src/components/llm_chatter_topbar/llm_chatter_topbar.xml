@@ -70,7 +70,7 @@
                             <button
                 class="o_ChatterTopbar_button btn btn-light text-nowrap"
                 type="button"
-                t-on-click="chatterTopbar.chatter.toggleAIChat"
+                t-on-click="chatterTopbar.chatter.toggleLLMChat"
               >
                                 <i class="fa fa-robot me-1" />
                                 <span>AI</span>
@@ -161,7 +161,7 @@
                         <button
               class="o_ChatterTopbar_button btn btn-primary text-nowrap"
               type="button"
-              t-on-click="chatterTopbar.chatter.toggleAIChat"
+              t-on-click="chatterTopbar.chatter.toggleLLMChat"
             >
                             <span>Exit AI Chat</span>
                         </button>

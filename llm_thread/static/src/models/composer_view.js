@@ -245,7 +245,7 @@ registerPatch({
             });
             break;
           case "end":
-            this._closeEventSource();
+            this._closeEventSource(); // Close connection and clear reference
             this._handleStreamingEnd();
             break;
         }
@@ -254,8 +254,8 @@ registerPatch({
       this.eventSource.onerror = (error) => {
         console.error("EventSource failed:", error);
         // Safely close if it exists
-        this._closeEventSource();
-        this._stopStreaming();
+        this._closeEventSource(); // Ensure reference is cleared
+        this._stopStreaming(); // Ensure state is fully stopped
       };
     },
 
