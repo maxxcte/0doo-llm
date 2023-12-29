@@ -3,7 +3,6 @@
 import { one } from "@mail/model/model_field";
 import { registerPatch } from "@mail/model/model_core";
 
-
 // 2. Patch MessageAction for correct owner computation and sequence
 registerPatch({
   name: "MessageAction",

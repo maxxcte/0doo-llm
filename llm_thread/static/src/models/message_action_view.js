@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
-import { registerPatch } from "@mail/model/model_core";
 import { _t } from "@web/core/l10n/translation";
+import { registerPatch } from "@mail/model/model_core";
 
 // 3. Patch MessageActionView for visual representation AND CLICK HANDLING
 registerPatch({
@@ -56,9 +56,12 @@ registerPatch({
   recordMethods: {
     async onClick(ev) {
       const messageAction = this.messageAction;
-      if (!messageAction) return; // Safety check
+      if (!messageAction) return;
 
-      let message, currentVote, newVote, voteValue;
+      let message = null,
+        currentVote = null,
+        newVote = null,
+        voteValue = null;
       let isVoteAction = false;
 
       // Check if it's our thumb actions
