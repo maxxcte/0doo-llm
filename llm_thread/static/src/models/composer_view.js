@@ -60,12 +60,12 @@ registerPatch({
   },
   recordMethods: {
     /**
-     * Post a message to the thread
+     * Post an LLM message to the thread
      * @param {String} content - HTML content to post
      * @param {String} toolCallId - Optional tool call ID for tool messages
      * @private
      */
-    async _postAIMessage(content, toolCallId = false) {
+    async _postLlmResponse(content, toolCallId = false) {
       const threadId = this.composer.thread.id;
       const data = {
         body: content,
@@ -89,7 +89,7 @@ registerPatch({
       const messaging = this.messaging;
       try {
         const messageData = await messaging.rpc(
-          { route: `/llm/thread/post_ai_response`, params: data },
+          { route: `/llm/thread/post_llm_response`, params: data },
           { shadow: true }
         );
 
@@ -268,7 +268,7 @@ registerPatch({
       // Post any regular content if we have some and it's not tool-related content
       if (this.streamingContent && !this.isToolContent) {
         const htmlStreamingContent = this.htmlStreamingContent;
-        await this._postAIMessage(htmlStreamingContent);
+        await this._postLlmResponse(htmlStreamingContent);
       }
 
       // Post all pending tool messages
@@ -279,7 +279,7 @@ registerPatch({
 
         // Post all tool messages in sequence
         for (const toolMessage of this.pendingToolMessages) {
-          await this._postAIMessage(
+          await this._postLlmResponse(
             toolMessage.content,
             toolMessage.toolCallId
           );
@@ -331,7 +331,7 @@ registerPatch({
       console.log("Started interpretation streaming");
     },
 
-    async postUserMessageForAi() {
+    async postUserMessageForLLM() {
       await this.postMessage();
       this.update({
         doFocus: true,
@@ -339,7 +339,7 @@ registerPatch({
       this.startStreaming();
     },
 
-    onKeydownTextareaForAi(ev) {
+    onKeydownTextareaForLLM(ev) {
       if (!this.exists()) {
         return;
       }
@@ -367,7 +367,7 @@ registerPatch({
             // Stop processing
             return;
           }
-          this.onKeydownTextareaEnterForAi(ev);
+          this.onKeydownTextareaEnterForLLM(ev);
           break;
       }
     },
@@ -398,7 +398,7 @@ registerPatch({
     _handleSendShortcuts(ev) {
       for (const shortcut of this.sendShortcuts) {
         if (this._matchesShortcut(ev, shortcut)) {
-          this.postUserMessageForAi();
+          this.postUserMessageForLLM();
           ev.preventDefault();
           return true;
         }
@@ -409,7 +409,7 @@ registerPatch({
     /**
      * @param {KeyboardEvent} ev
      */
-    onKeydownTextareaEnterForAi(ev) {
+    onKeydownTextareaEnterForLLM(ev) {
       if (!this.exists()) {
         return;
       }

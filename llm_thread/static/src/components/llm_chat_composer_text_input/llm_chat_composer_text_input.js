@@ -19,7 +19,7 @@ export class LLMChatComposerTextInput extends ComposerTextInput {
    * @param {KeyboardEvent} ev
    */
   _onKeydown(ev) {
-    this.composerView.onKeydownTextareaForAi(ev);
+    this.composerView.onKeydownTextareaForLLM(ev);
   }
 }
 

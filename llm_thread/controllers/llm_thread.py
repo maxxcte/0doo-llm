@@ -80,10 +80,10 @@ class LLMThreadController(http.Controller):
             headers=headers,
         )
 
-    @http.route("/llm/thread/post_ai_response", type="json", auth="user")
-    def post_ai_response(self, thread_id, **kwargs):
+    @http.route("/llm/thread/post_llm_response", type="json", auth="user")
+    def post_llm_response(self, thread_id, **kwargs):
         """Post a message to the thread"""
         _logger.debug("Posting message - kwargs: %s", kwargs)
         thread = request.env["llm.thread"].browse(int(thread_id))
-        message = thread.post_ai_response(**kwargs)
+        message = thread.post_llm_response(**kwargs)
         return message

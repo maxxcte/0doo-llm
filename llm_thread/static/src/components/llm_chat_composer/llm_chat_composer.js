@@ -40,7 +40,7 @@ export class LLMChatComposer extends Component {
       return;
     }
 
-    this.composerView.postUserMessageForAi();
+    this.composerView.postUserMessageForLLM();
   }
   /**
    * Handles click on the stop button.

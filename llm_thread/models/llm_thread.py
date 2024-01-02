@@ -63,7 +63,7 @@ class LLMThread(models.Model):
                 vals["name"] = f"Chat with {self.model_id.name}"
         return super().create(vals_list)
 
-    def post_ai_response(self, **kwargs):
+    def post_llm_response(self, **kwargs):
         """Post a message to the thread with support for tool messages"""
         body = emoji.demojize(kwargs.get("body"))
 
@@ -238,7 +238,7 @@ class LLMThread(models.Model):
 
             # If we have tool calls, post the assistant message with tool_calls
             if assistant_tool_calls:
-                self.post_ai_response(
+                self.post_llm_response(
                     body=content or "", tool_calls=assistant_tool_calls
                 )
 
