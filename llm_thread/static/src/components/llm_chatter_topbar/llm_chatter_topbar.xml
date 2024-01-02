@@ -15,7 +15,7 @@
         class="o_ChatterTopbar_actions flex-fill d-flex border-transparent"
       >
                 <!-- Normal Mode: Full set of buttons with AI Chat next to Activities -->
-                <t t-if="!chatterTopbar.chatter.is_chatting_with_ai">
+                <t t-if="!chatterTopbar.chatter.is_chatting_with_llm">
                     <div
             class="o_ChatterTopbar_controllers d-flex pe-2"
             t-if="chatterTopbar.chatter.threadView"
@@ -156,7 +156,7 @@
                     </div>
                 </t>
                 <!-- AI Mode: Only the Exit AI Chat button -->
-                <t t-if="chatterTopbar.chatter.is_chatting_with_ai">
+                <t t-if="chatterTopbar.chatter.is_chatting_with_llm">
                     <div class="o_ChatterTopbar_controllers d-flex pe-2">
                         <button
               class="o_ChatterTopbar_button btn btn-primary text-nowrap"

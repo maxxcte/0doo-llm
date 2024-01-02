@@ -7,10 +7,10 @@ import { registerPatch } from "@mail/model/model_core";
 registerPatch({
   name: "Chatter",
   fields: {
-    is_chatting_with_ai: attr({ default: false }),
+    is_chatting_with_llm: attr({ default: false }),
     llmChatThread: one("Thread", {
       compute() {
-        if (!this.is_chatting_with_ai || !this.llmChatThreadView) {
+        if (!this.is_chatting_with_llm || !this.llmChatThreadView) {
           return clear();
         }
         return this.llmChatThreadView.thread;
@@ -18,7 +18,7 @@ registerPatch({
     }),
     llmChatThreadView: one("ThreadView", {
       compute() {
-        if (!this.is_chatting_with_ai || !this.thread) {
+        if (!this.is_chatting_with_llm || !this.thread) {
           return clear();
         }
         const llmChat = this.messaging.llmChat;
@@ -35,15 +35,15 @@ registerPatch({
   },
   recordMethods: {
     /**
-     * Toggles AI chat mode, initializing LLMChat and selecting/creating a thread.
+     * Toggles LLM chat mode, initializing LLMChat and selecting/creating a thread.
      */
     async toggleLLMChat() {
       if (!this.thread) return;
 
       const messaging = this.messaging;
-      if (this.is_chatting_with_ai === true) {
-        // Already chatting with AI
-        this.update({ is_chatting_with_ai: false });
+      if (this.is_chatting_with_llm === true) {
+        // Already chatting with LLM
+        this.update({ is_chatting_with_llm: false });
       } else {
         let llmChat = messaging.llmChat;
         if (!llmChat) {
@@ -64,7 +64,7 @@ registerPatch({
           }
 
           await llmChat.selectThread(thread.id);
-          this.update({ is_chatting_with_ai: true });
+          this.update({ is_chatting_with_llm: true });
         } catch (error) {
           messaging.notify({
             title: "Failed to Start AI Chat",
