@@ -44,45 +44,43 @@ class ModelInspectorWizard(models.TransientModel):
         except KeyError:
             raise UserError(_("Model '%s' not found in Odoo environment.") % model_technical_name)
 
-        lines_vals = []
-        inspected_methods = set() # Keep track to avoid duplicates from inheritance
+        _logger.info(f"Inspecting model: {model_technical_name}")
 
-        # Iterate through the MRO (Method Resolution Order) to catch inherited methods correctly
-        for cls in Model.__class__.__mro__:
-            # Limit inspection to Odoo models (avoiding object, etc.)
-            if not issubclass(cls, models.BaseModel):
+        model_obj = self.env[model_technical_name]
+        model_cls = model_obj.__class__ # Get the actual class object
+        members = inspect.getmembers(model_cls, callable) # Inspect the class
+
+        line_vals_list = []
+        processed_names = set() # Track names to avoid duplicates from inheritance
+
+        # Use reversed to prioritize methods from the current class over inherited ones
+        for name, member in reversed(members):
+            if name.startswith('_') and not self.include_private:
                 continue
-                
-            for name, member in inspect.getmembers(cls):
-                # Avoid duplicates already processed from a subclass
-                if name in inspected_methods:
-                    continue
-                    
-                # Filter 1: Must be callable (function, method, etc.)
-                if not callable(member):
-                    continue
+            if name in processed_names:
+                continue
+            
+            # Skip inherited members that are identical to the parent's version
+            # This helps clean up noise from models like mail.thread
+            # Check if the attribute exists directly on this class's dict
+            # If it does, it's either defined here or specifically overridden.
+            # If it doesn't, it's purely inherited. We might still want it, 
+            # but this check helps if we want to primarily see overrides/new methods.
+            # Let's keep purely inherited for now, but refine later if needed.
+            # is_directly_defined = name in model_cls.__dict__
+            # parent_member = getattr(super(model_cls, model_cls), name, None)
+            # if not is_directly_defined and member == parent_member:
+            #      _logger.debug(f"Skipping identical inherited member: {name}")
+            #      continue
+            
+            details = self._extract_method_details(model_cls, member, name) # Pass model_cls
+            if details:
+                line_vals_list.append(details)
+                processed_names.add(name)
 
-                # Filter 2: Handle private methods based on flag
-                is_private = name.startswith("_")
-                if is_private and not self.include_private:
-                    continue
-                    
-                # Filter 3: Avoid common non-method Python internals 
-                if name in ('__doc__', '__init__', '__module__', '__new__', '__qualname__', '__slots__', '__weakref__'):
-                    continue
-                    
-                # Add to inspected set
-                inspected_methods.add(name)
-
-                # Get details
-                details = self._extract_method_details(member, name)
-                lines_vals.append(details)
-
-        # Sort lines alphabetically by method name for consistency
-        lines_vals.sort(key=lambda x: x['name'])
-        
-        # Create the line records
-        self.method_lines = [(0, 0, vals) for vals in lines_vals]
+        # Create lines if any details were extracted
+        if line_vals_list:
+            self.method_lines = [(0, 0, vals) for vals in line_vals_list]
 
         return {
             "type": "ir.actions.act_window",
@@ -92,10 +90,10 @@ class ModelInspectorWizard(models.TransientModel):
             "target": "new",
         }
 
-    @api.model
-    def _extract_method_details(self, method_obj, name):
-        """Helper function to extract details for a single method object."""
+    # Pass the class object (model_cls) as the first argument now
+    def _extract_method_details(self, model_cls, method_obj, name):
         details = {
+            "wizard_id": self.id, # Link back to the wizard
             "name": name,
             "docstring": "",
             "signature": "(Could not determine signature)",
@@ -113,7 +111,21 @@ class ModelInspectorWizard(models.TransientModel):
 
         # b) Get Detailed Signature
         try:
-            sig = inspect.signature(method_obj)
+            # Check if method_obj itself is callable, or if it wraps a callable
+            target_callable = method_obj
+            # Handle staticmethod/classmethod wrappers
+            if isinstance(method_obj, (staticmethod, classmethod)):
+                target_callable = getattr(method_obj, '__func__', method_obj)
+            
+            # Handle potential Odoo decorators wrapping the function
+            while hasattr(target_callable, '__wrapped__'):
+                target_callable = target_callable.__wrapped__
+
+            # Ensure we have something inspectable
+            if not callable(target_callable):
+                 raise TypeError("Object is not callable after unwrapping")
+
+            sig = inspect.signature(target_callable)
             param_parts = []
             parameter_kinds = inspect.Parameter # Cache for easier access
 
@@ -191,10 +203,28 @@ class ModelInspectorWizard(models.TransientModel):
             # Add more specific logging for unexpected errors during signature inspection
             _logger.warning("Could not get signature for %s (%s): %s", name, type(method_obj), e, exc_info=True)
             details["signature"] = f"(Error inspecting signature: {e})"
-            
+
+        # DEBUG: Log the type of the method object before classification
+        _logger.info(f"Inspecting method: {name}, Type: {type(method_obj)}")
+        # Add specific check for the problematic method for easier spotting
+        if name == 'serialize_model_data':
+            _logger.info(f"DEBUG CHECK for '{name}': Type is {type(method_obj)}, Is staticmethod? {isinstance(method_obj, staticmethod)}")
+
         # c/d) Determine Type and Decorators (Odoo specific checks)
         decorators_list = []
         method_api = getattr(method_obj, '_api', None)
+
+        # --- Reliable check using inspect.getattr_static ---
+        try:
+            # Get the attribute without triggering descriptor protocol
+            static_attr = inspect.getattr_static(model_cls, name)
+            is_staticmethod_static = isinstance(static_attr, staticmethod)
+            is_classmethod_static = isinstance(static_attr, classmethod)
+        except AttributeError:
+            # Should not happen if name came from getmembers, but handle defensively
+            is_staticmethod_static = False
+            is_classmethod_static = False
+        # --- End reliable check ---
 
         # Check specific Odoo API types first
         if method_api == 'model':
@@ -203,22 +233,37 @@ class ModelInspectorWizard(models.TransientModel):
         elif method_api == 'model_create': # Handle both create signatures
             details["method_type"] = "model_create"
             decorators_list.append("@api.model_create_multi or @api.model_create_single")
+        
+        # Now use the reliable getattr_static check
+        elif is_staticmethod_static:
+            details["method_type"] = "static"
+            decorators_list.append("@staticmethod")
+        elif is_classmethod_static:
+            details["method_type"] = "class"
+            decorators_list.append("@classmethod")
 
-        # Check standard Python types if not an Odoo API type
-        elif isinstance(method_obj, staticmethod) or getattr(method_obj, "_is_static", False):
+        # Fallback to previous logic if not detected via dict (less likely needed now)
+        elif isinstance(method_obj, staticmethod):
+            _logger.warning(f"Detected staticmethod '{name}' via isinstance fallback, not getattr_static.")
             details["method_type"] = "static"
             decorators_list.append("@staticmethod")
         elif isinstance(method_obj, classmethod):
+            _logger.warning(f"Detected classmethod '{name}' via isinstance fallback, not getattr_static.")
             details["method_type"] = "class"
             decorators_list.append("@classmethod")
         else:
             # Assume instance method if not otherwise identified
             # Check if it's bound to the class via descriptor protocol typical for instance methods
+            # Needs refinement: A plain function in class is not necessarily instance method
             if hasattr(method_obj, '__get__') and not isinstance(method_obj, (staticmethod, classmethod)):
-                 details["method_type"] = "instance"
-            # Could be a simple function attached to the class namespace
+                 # Check if it's actually a bound method descriptor or just a function
+                 # If it's just a function, __get__ exists but it's not a typical 'instance' method yet
+                 # For now, let's keep classifying it as instance if it has __get__
+                 details["method_type"] = "instance" 
             elif inspect.isfunction(method_obj):
                 details["method_type"] = "function"
+                # Optionally add a note if it's a function found directly on the class
+                # decorators_list.append("(class-level function)") 
 
         # Add other known Odoo decorators by checking their specific attributes
         if hasattr(method_obj, "_depends"):
