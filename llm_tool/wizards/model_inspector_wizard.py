@@ -111,22 +111,100 @@ class ModelInspectorWizard(models.TransientModel):
         except Exception as e:
             _logger.debug("Could not get docstring for %s: %s", name, e)
 
-        # b) Get Signature
+        # b) Get Detailed Signature
         try:
             sig = inspect.signature(method_obj)
-            details["signature"] = str(sig)
+            param_parts = []
+            parameter_kinds = inspect.Parameter # Cache for easier access
+
+            # Detect if positional-only or keyword-only separators are needed
+            has_positional_only = any(p.kind == parameter_kinds.POSITIONAL_ONLY for p in sig.parameters.values())
+            has_keyword_only = any(p.kind == parameter_kinds.KEYWORD_ONLY for p in sig.parameters.values())
+            added_var_positional_marker = False # Track if '*' from *args was added
+
+            for i, param in enumerate(sig.parameters.values()):
+                part = param.name
+                
+                # 1. Handle Kind Prefixes/Separators
+                if param.kind == parameter_kinds.VAR_POSITIONAL:
+                    part = f"*{part}"
+                    added_var_positional_marker = True
+                elif param.kind == parameter_kinds.VAR_KEYWORD:
+                    part = f"**{part}"
+                elif param.kind == parameter_kinds.KEYWORD_ONLY:
+                    # Add '*' separator if not already added by VAR_POSITIONAL and if it's the first KEYWORD_ONLY
+                    if not added_var_positional_marker:
+                         is_first_kwonly = all(p.kind != parameter_kinds.KEYWORD_ONLY for p in list(sig.parameters.values())[:i])
+                         if is_first_kwonly:
+                             param_parts.append('*')
+
+                # 2. Add Annotation
+                if param.annotation is not inspect.Parameter.empty:
+                    try:
+                        # Try common attributes for type names first
+                        annot_repr = getattr(param.annotation, '__name__', None) # For simple types/classes
+                        if annot_repr is None:
+                            annot_repr = getattr(param.annotation, '_name', None) # For typing._GenericAlias like List, Union
+                        if annot_repr is None:
+                             # Fallback for complex reprs or other types
+                             annot_repr = repr(param.annotation).replace('typing.','') 
+                        part += f": {annot_repr}"
+                    except Exception:
+                         part += ": ?" # Fallback if repr/name fails
+
+                # 3. Add Default Value
+                if param.default is not inspect.Parameter.empty:
+                    part += f" = {repr(param.default)}"
+                    
+                param_parts.append(part)
+
+                # 4. Handle Positional-Only Separator ('/')
+                if param.kind == parameter_kinds.POSITIONAL_ONLY:
+                    # Check if this is the *last* positional-only parameter
+                    is_last_posonly = all(p.kind != parameter_kinds.POSITIONAL_ONLY for p in list(sig.parameters.values())[i+1:])
+                    if is_last_posonly:
+                        param_parts.append('/')
+
+
+            signature_str = f"({', '.join(param_parts)})"
+
+            # 5. Add Return Annotation
+            if sig.return_annotation is not inspect.Signature.empty:
+                 try:
+                    ret_annot_repr = getattr(sig.return_annotation, '__name__', None)
+                    if ret_annot_repr is None:
+                         ret_annot_repr = getattr(sig.return_annotation, '_name', None)
+                    if ret_annot_repr is None:
+                         ret_annot_repr = repr(sig.return_annotation).replace('typing.','')
+                    signature_str += f" -> {ret_annot_repr}"
+                 except Exception:
+                    signature_str += " -> ?"
+
+            details["signature"] = signature_str
+
         except ValueError:
+            # Handles built-ins or other non-introspectable callables
             details["signature"] = "(Signature inspection not supported)"
         except TypeError: # Handle cases like built-in methods or slots
             details["signature"] = "(Signature inspection not applicable)"
         except Exception as e:
-            _logger.warning("Could not get signature for %s: %s", name, e)
+            # Add more specific logging for unexpected errors during signature inspection
+            _logger.warning("Could not get signature for %s (%s): %s", name, type(method_obj), e, exc_info=True)
+            details["signature"] = f"(Error inspecting signature: {e})"
             
         # c/d) Determine Type and Decorators (Odoo specific checks)
         decorators_list = []
-        if hasattr(method_obj, "_api_model"): 
+        method_api = getattr(method_obj, '_api', None)
+
+        # Check specific Odoo API types first
+        if method_api == 'model':
             details["method_type"] = "model"
             decorators_list.append("@api.model")
+        elif method_api == 'model_create': # Handle both create signatures
+            details["method_type"] = "model_create"
+            decorators_list.append("@api.model_create_multi or @api.model_create_single")
+
+        # Check standard Python types if not an Odoo API type
         elif isinstance(method_obj, staticmethod) or getattr(method_obj, "_is_static", False):
             details["method_type"] = "static"
             decorators_list.append("@staticmethod")
@@ -141,30 +219,49 @@ class ModelInspectorWizard(models.TransientModel):
             # Could be a simple function attached to the class namespace
             elif inspect.isfunction(method_obj):
                 details["method_type"] = "function"
-        
-        # Add other known Odoo decorators
-        if hasattr(method_obj, "_api_depends"):
-             # Attempt to get actual dependencies, otherwise use placeholder
-            try:
-                deps = getattr(method_obj, "_api_depends_args", "...")
-                decorators_list.append(f"@api.depends({deps})")
-            except Exception:
-                 decorators_list.append("@api.depends(...)")
-        if hasattr(method_obj, "_returns_model"):
-            decorators_list.append(f"@api.returns('{getattr(method_obj, '_returns_model')}')")
-        if hasattr(method_obj, "_api_constrains"):
-             try:
-                cons = getattr(method_obj, "_api_constrains_args", "...")
-                decorators_list.append(f"@api.constrains({cons})")
-             except Exception:
-                decorators_list.append("@api.constrains(...)")
-        if hasattr(method_obj, "_api_onchange"):
-             try:
-                onch = getattr(method_obj, "_api_onchange_args", "...")
-                decorators_list.append(f"@api.onchange({onch})")
-             except Exception:
-                decorators_list.append("@api.onchange(...)")
 
+        # Add other known Odoo decorators by checking their specific attributes
+        if hasattr(method_obj, "_depends"):
+            try:
+                # Arguments are stored directly in _depends
+                deps = getattr(method_obj, "_depends", "...")
+                # Ensure deps are formatted correctly for display (might be tuple)
+                deps_repr = repr(deps) if isinstance(deps, tuple) else str(deps)
+                decorators_list.append(f"@api.depends({deps_repr})")
+            except Exception as e:
+                 _logger.warning(f"Error getting @api.depends args for {name}: {e}")
+                 decorators_list.append("@api.depends(...)")
+
+        if hasattr(method_obj, "_returns"):
+            try:
+                # Model name is the first element of the _returns tuple
+                model_name = getattr(method_obj, "_returns", (None,))[0]
+                if model_name:
+                    decorators_list.append(f"@api.returns('{model_name}')")
+            except Exception as e:
+                 _logger.warning(f"Error getting @api.returns model for {name}: {e}")
+                 decorators_list.append("@api.returns(...)")
+
+        if hasattr(method_obj, "_constrains"):
+             try:
+                # Arguments are stored directly in _constrains
+                cons = getattr(method_obj, "_constrains", "...")
+                cons_repr = repr(cons) if isinstance(cons, tuple) else str(cons)
+                decorators_list.append(f"@api.constrains({cons_repr})")
+             except Exception as e:
+                 _logger.warning(f"Error getting @api.constrains args for {name}: {e}")
+                 decorators_list.append("@api.constrains(...)")
+
+        if hasattr(method_obj, "_onchange"):
+             try:
+                # Arguments are stored directly in _onchange
+                onch = getattr(method_obj, "_onchange", "...")
+                onch_repr = repr(onch) if isinstance(onch, tuple) else str(onch)
+                decorators_list.append(f"@api.onchange({onch_repr})")
+             except Exception as e:
+                 _logger.warning(f"Error getting @api.onchange args for {name}: {e}")
+                 decorators_list.append("@api.onchange(...)")
+            
         details["decorators"] = ", ".join(decorators_list)
 
         return details
