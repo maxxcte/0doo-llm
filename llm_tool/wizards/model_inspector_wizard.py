@@ -1,139 +1,185 @@
 # -*- coding: utf-8 -*-
 import inspect
-import os
 import logging
-from odoo import models, fields, api, _, tools
+
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
+
 class ModelInspectorWizard(models.TransientModel):
-    _name = 'model.inspector.wizard'
-    _description = 'Model Inspector Wizard'
+    _name = "llm_tool.model.inspector.wizard"
+    _description = "Model Inspector Wizard"
 
-    model_name = fields.Char(string='Model Name', required=True)
-    method_info = fields.Text(string='Method Information', readonly=True)
-    file_paths = fields.Text(string='Source Files', readonly=True)
-    selected_file_path = fields.Char(string='File Path to View')
-    file_content = fields.Text(string='File Content', readonly=True)
-    state = fields.Selection([
-        ('start', 'Start'),
-        ('inspected', 'Inspected'),
-        ('file_view', 'File Viewed'),
-    ], default='start', readonly=True)
-
-    @api.model
-    def _get_available_models(self):
-        # Helper to potentially get a list of models, though not used in this simple version
-        return [(name, name) for name in self.env.registry.keys()]
+    model_id = fields.Many2one(
+        comodel_name="ir.model",
+        string="Model",
+        required=True,
+        help="Select the Odoo model you want to inspect.",
+        # No specific ondelete needed as ir.model records are protected
+    )
+    include_private = fields.Boolean(
+        string="Include Private Methods",
+        default=True,
+        help="Check this to include methods starting with '_'",
+    )
+    method_lines = fields.One2many(
+        "llm_tool.model.inspector.wizard.line",
+        "wizard_id",
+        string="Methods",
+        readonly=True,
+    )
 
     def action_inspect_model(self):
         self.ensure_one()
-        if not self.model_name:
-            raise UserError(_("Please enter a model name."))
+        self.method_lines.unlink()  # Clear previous results
 
+        if not self.model_id:
+            raise UserError(_("Please select a model to inspect."))
+
+        model_technical_name = self.model_id.model # Get technical name here
         try:
-            model_obj = self.env[self.model_name]
+            Model = self.env[model_technical_name]
         except KeyError:
-            raise UserError(_("Model '%s' not found in the registry.") % self.model_name)
+            raise UserError(_("Model '%s' not found in Odoo environment.") % model_technical_name)
 
-        methods = []
-        files = set() # Use a set to store unique file paths
+        lines_vals = []
+        inspected_methods = set() # Keep track to avoid duplicates from inheritance
 
-        # Inspect methods directly defined or overridden in the final class
-        for name, member in inspect.getmembers(model_obj.__class__):
-            if inspect.isfunction(member) or inspect.ismethod(member):
-                docstring = inspect.getdoc(member) or "No description."
-                signature = "N/A"
-                source_file = "N/A"
-                try:
-                    sig = inspect.signature(member)
-                    signature = str(sig)
-                except (ValueError, TypeError):
-                    pass # Cannot get signature
-                try:
-                    file_path = inspect.getsourcefile(member)
-                    if file_path and os.path.exists(file_path):
-                         # Store absolute path for later reading
-                        files.add(os.path.abspath(file_path))
-                        source_file = os.path.relpath(file_path) # Display relative path if possible
-                except (OSError, TypeError):
-                     pass # Cannot get source file
+        # Iterate through the MRO (Method Resolution Order) to catch inherited methods correctly
+        for cls in Model.__class__.__mro__:
+            # Limit inspection to Odoo models (avoiding object, etc.)
+            if not issubclass(cls, models.BaseModel):
+                continue
+                
+            for name, member in inspect.getmembers(cls):
+                # Avoid duplicates already processed from a subclass
+                if name in inspected_methods:
+                    continue
+                    
+                # Filter 1: Must be callable (function, method, etc.)
+                if not callable(member):
+                    continue
 
-                methods.append(f"- {name}{signature}: {docstring} (Defined in: {source_file})")
+                # Filter 2: Handle private methods based on flag
+                is_private = name.startswith("_")
+                if is_private and not self.include_private:
+                    continue
+                    
+                # Filter 3: Avoid common non-method Python internals 
+                if name in ('__doc__', '__init__', '__module__', '__new__', '__qualname__', '__slots__', '__weakref__'):
+                    continue
+                    
+                # Add to inspected set
+                inspected_methods.add(name)
 
-        method_output = "\n".join(methods) if methods else "No specific methods found (check inherited methods)."
-        file_output = "\n".join(sorted(list(files))) if files else "No source files found (might be built-in or only inherited)."
+                # Get details
+                details = self._extract_method_details(member, name)
+                lines_vals.append(details)
 
-        self.write({
-            'method_info': method_output,
-            'file_paths': file_output,
-            'state': 'inspected',
-            'selected_file_path': '', # Clear previous selection
-            'file_content': '',       # Clear previous content
-        })
+        # Sort lines alphabetically by method name for consistency
+        lines_vals.sort(key=lambda x: x['name'])
+        
+        # Create the line records
+        self.method_lines = [(0, 0, vals) for vals in lines_vals]
 
         return {
-            'type': 'ir.actions.act_window',
-            'res_model': self._name,
-            'view_mode': 'form',
-            'res_id': self.id,
-            'target': 'new',
+            "type": "ir.actions.act_window",
+            "res_model": self._name,
+            "res_id": self.id,
+            "view_mode": "form",
+            "target": "new",
         }
 
-    def action_view_file(self):
-        self.ensure_one()
-        if not self.selected_file_path:
-            raise UserError(_("Please enter a file path from the list above to view."))
+    @api.model
+    def _extract_method_details(self, method_obj, name):
+        """Helper function to extract details for a single method object."""
+        details = {
+            "name": name,
+            "docstring": "",
+            "signature": "(Could not determine signature)",
+            "method_type": "unknown", # instance, model, static
+            "decorators": "",
+        }
 
-        # Basic security check: ensure the path is within the addons paths
-        # This is NOT foolproof, but a basic sanity check for research
-        allowed_paths_str = tools.config['addons_path']
-        allowed_paths = [os.path.abspath(p) for p in allowed_paths_str.split(',')]
-
-        absolute_path = os.path.abspath(self.selected_file_path)
-
-        is_allowed = False
-        for addons_path in allowed_paths:
-            if os.path.commonpath([absolute_path, addons_path]) == addons_path:
-                 is_allowed = True
-                 break
-
-        if not is_allowed or not os.path.exists(absolute_path) or not os.path.isfile(absolute_path):
-             raise UserError(_("Invalid or disallowed file path: %s") % self.selected_file_path)
-
+        # a) Get Docstring
         try:
-            with open(absolute_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            self.write({
-                'file_content': content,
-                'state': 'file_view',
-            })
+            doc = inspect.getdoc(method_obj)
+            if doc:
+                details["docstring"] = doc.strip()
         except Exception as e:
-            _logger.error("Error reading file %s: %s", absolute_path, e)
-            raise UserError(_("Could not read file content: %s") % e)
+            _logger.debug("Could not get docstring for %s: %s", name, e)
 
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': self._name,
-            'view_mode': 'form',
-            'res_id': self.id,
-            'target': 'new',
-        }
+        # b) Get Signature
+        try:
+            sig = inspect.signature(method_obj)
+            details["signature"] = str(sig)
+        except ValueError:
+            details["signature"] = "(Signature inspection not supported)"
+        except TypeError: # Handle cases like built-in methods or slots
+            details["signature"] = "(Signature inspection not applicable)"
+        except Exception as e:
+            _logger.warning("Could not get signature for %s: %s", name, e)
+            
+        # c/d) Determine Type and Decorators (Odoo specific checks)
+        decorators_list = []
+        if hasattr(method_obj, "_api_model"): 
+            details["method_type"] = "model"
+            decorators_list.append("@api.model")
+        elif isinstance(method_obj, staticmethod) or getattr(method_obj, "_is_static", False):
+            details["method_type"] = "static"
+            decorators_list.append("@staticmethod")
+        elif isinstance(method_obj, classmethod):
+            details["method_type"] = "class"
+            decorators_list.append("@classmethod")
+        else:
+            # Assume instance method if not otherwise identified
+            # Check if it's bound to the class via descriptor protocol typical for instance methods
+            if hasattr(method_obj, '__get__') and not isinstance(method_obj, (staticmethod, classmethod)):
+                 details["method_type"] = "instance"
+            # Could be a simple function attached to the class namespace
+            elif inspect.isfunction(method_obj):
+                details["method_type"] = "function"
+        
+        # Add other known Odoo decorators
+        if hasattr(method_obj, "_api_depends"):
+             # Attempt to get actual dependencies, otherwise use placeholder
+            try:
+                deps = getattr(method_obj, "_api_depends_args", "...")
+                decorators_list.append(f"@api.depends({deps})")
+            except Exception:
+                 decorators_list.append("@api.depends(...)")
+        if hasattr(method_obj, "_returns_model"):
+            decorators_list.append(f"@api.returns('{getattr(method_obj, '_returns_model')}')")
+        if hasattr(method_obj, "_api_constrains"):
+             try:
+                cons = getattr(method_obj, "_api_constrains_args", "...")
+                decorators_list.append(f"@api.constrains({cons})")
+             except Exception:
+                decorators_list.append("@api.constrains(...)")
+        if hasattr(method_obj, "_api_onchange"):
+             try:
+                onch = getattr(method_obj, "_api_onchange_args", "...")
+                decorators_list.append(f"@api.onchange({onch})")
+             except Exception:
+                decorators_list.append("@api.onchange(...)")
 
-    def action_reset(self):
-        self.write({
-            'model_name': '',
-            'method_info': '',
-            'file_paths': '',
-            'selected_file_path': '',
-            'file_content': '',
-            'state': 'start',
-        })
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': self._name,
-            'view_mode': 'form',
-            'res_id': self.id,
-            'target': 'new',
-        }
+        details["decorators"] = ", ".join(decorators_list)
+
+        return details
+
+
+class ModelInspectorWizardLine(models.TransientModel):
+    _name = "llm_tool.model.inspector.wizard.line"
+    _description = "Model Inspector Wizard Line"
+    _order = "name asc" # Ensure alphabetical order in the view
+
+    wizard_id = fields.Many2one(
+        "llm_tool.model.inspector.wizard", string="Wizard", required=True, ondelete="cascade"
+    )
+    name = fields.Char(string="Method Name", readonly=True)
+    signature = fields.Char(string="Signature", readonly=True)
+    docstring = fields.Text(string="Docstring", readonly=True)
+    method_type = fields.Char(string="Type", readonly=True) # e.g., instance, model, static
+    decorators = fields.Char(string="Decorators", readonly=True)

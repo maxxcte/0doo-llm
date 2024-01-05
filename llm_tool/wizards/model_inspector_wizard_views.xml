@@ -1,61 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data>
 
-        <record id="view_model_inspector_wizard_form" model="ir.ui.view">
-            <field name="name">model.inspector.wizard.form</field>
-            <field name="model">model.inspector.wizard</field>
-            <field name="arch" type="xml">
-                <form string="Model Inspector">
-                    <header>
-                        <button name="action_inspect_model" string="Inspect Model" type="object" class="btn-primary" states="start"/>
-                        <button name="action_view_file" string="View Selected File" type="object" class="btn-primary" states="inspected,file_view" context="{'allow_secondary': True}"/>
-                         <button name="action_reset" string="Reset" type="object" states="inspected,file_view"/>
-                         <field name="state" widget="statusbar" statusbar_visible="start,inspected,file_view"/>
-                    </header>
-                    <sheet>
-                        <group>
-                            <group>
-                                <field name="model_name" attrs="{'readonly': [('state', '!=', 'start')]}"/>
-                            </group>
-                        </group>
-                        <notebook>
-                             <page string="Inspection Results" attrs="{'invisible': [('state', '=', 'start')]}">
+    <record id="model_inspector_wizard_form_view" model="ir.ui.view">
+        <field name="name">llm_tool.model.inspector.wizard.form</field>
+        <field name="model">llm_tool.model.inspector.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Model Inspector">
+                <group>
+                    <field name="model_id"/>
+                    <field name="include_private"/>
+                </group>
+                <footer>
+                    <button name="action_inspect_model" string="Inspect" type="object" class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="z"/>
+                </footer>
+                <notebook>
+                    <page string="Methods" name="methods_page">
+                         <field name="method_lines" nolabel="1">
+                            <tree string="Methods" editable="bottom">
+                                <field name="name"/>
+                                <field name="signature"/>
+                                <field name="docstring" optional="hide"/>
+                                <field name="method_type"/>
+                                <field name="decorators"/>
+                             </tree>
+                             <form string="Method Details">
                                 <group>
-                                    <field name="method_info" nolabel="1" readonly="1" placeholder="Methods and their signatures/docstrings..."/>
+                                    <field name="name"/>
+                                    <field name="method_type"/>
+                                    <field name="signature"/>
+                                    <field name="decorators"/>
+                                    <field name="docstring"/>
                                 </group>
-                                <separator string="Source Files Found"/>
-                                <field name="file_paths" nolabel="1" readonly="1" placeholder="List of potential source files..."/>
-                             </page>
-                             <page string="File Content Viewer" attrs="{'invisible': [('state', '=', 'start')]}">
-                                <group>
-                                    <field name="selected_file_path" placeholder="Copy/paste a file path from 'Source Files Found' above..."/>
-                                </group>
-                                <field name="file_content" nolabel="1" readonly="1" widget="ace" options="{'mode': 'python'}" placeholder="Select a file path and click 'View Selected File' to see content..."/>
-                             </page>
-                        </notebook>
-                    </sheet>
-                    <footer>
-                         <button string="Close" class="btn-secondary" special="cancel"/>
-                    </footer>
-                </form>
-            </field>
-        </record>
+                             </form>
+                         </field>
+                    </page>
+                </notebook>
+            </form>
+        </field>
+    </record>
 
-        <record id="action_model_inspector_wizard" model="ir.actions.act_window">
-            <field name="name">Model Inspector</field>
-            <field name="res_model">model.inspector.wizard</field>
-            <field name="view_mode">form</field>
-            <field name="target">new</field>
-        </record>
+    <record id="action_model_inspector_wizard" model="ir.actions.act_window">
+        <field name="name">Inspect Model Methods</field>
+        <field name="res_model">llm_tool.model.inspector.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
 
-        <!-- Add a menu item, e.g., under Settings/Technical -->
-        <menuitem
-            id="menu_model_inspector_wizard"
-            name="Model Inspector (Research)"
-            action="action_model_inspector_wizard"
-            parent="base.menu_custom"
-            sequence="99"/>
-
-    </data>
+    <!-- Add a menu item, e.g., under Developer or a custom LLM menu -->
+    <menuitem 
+        id="menu_model_inspector_wizard"
+        name="Model Inspector (Research)"
+        action="action_model_inspector_wizard"
+        parent="base.menu_custom" 
+        sequence="50"/>
+        
 </odoo>
