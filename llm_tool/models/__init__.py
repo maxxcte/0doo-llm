@@ -10,3 +10,5 @@ from . import llm_tool_record_unlinker
 from . import llm_tool_model_inspector
 from . import llm_tool_fields_inspector
 from . import llm_tool_module_manager
+from . import llm_tool_model_method_inspector
+from . import llm_tool_model_method_executor
