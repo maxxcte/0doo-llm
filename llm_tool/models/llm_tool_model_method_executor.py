@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
-import logging
 import json
-from typing import List, Optional, Dict, Any, Tuple
+import logging
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from odoo import api, models, _
-from odoo.exceptions import UserError, AccessError, ValidationError
-
+from odoo import api, models
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -16,7 +14,7 @@ class LLMToolModelMethodExecutor(models.Model):
     _inherit = "llm.tool"
 
     @api.model
-    def _get_available_implementations(self) -> List[Tuple[str, str]]:
+    def _get_available_implementations(self) -> list[tuple[str, str]]:
         implementations = super()._get_available_implementations()
         return implementations + [
             ("odoo_model_method_executor", "Odoo Model Method Executor"),
@@ -24,12 +22,14 @@ class LLMToolModelMethodExecutor(models.Model):
 
     def odoo_model_method_executor_get_pydantic_model(self):
         """Returns the Pydantic model for the method executor tool parameters."""
+
         class MethodExecutorParams(BaseModel):
             """
             **HIGH RISK TOOL:** Executes a specified method on an Odoo model or specific records.
             Can modify data, trigger actions, or cause errors if used improperly.
             Requires explicit user confirmation.
             """
+
             model_config = ConfigDict(
                 title=self.name or "odoo_model_method_executor",
             )
@@ -41,28 +41,32 @@ class LLMToolModelMethodExecutor(models.Model):
                 ...,
                 description="The name of the method to execute on the model or records.",
             )
-            record_ids: Optional[List[int]] = Field(
+            record_ids: list[int] | None = Field(
                 None,
                 description="Optional list of database IDs of the records to execute the method on. If null/empty, the method is called on the model itself (for static/model methods, search, create, etc.).",
             )
-            args: Optional[List[Any]] = Field(
+            args: list[Any] | None = Field(
                 default_factory=list,
                 description="Positional arguments to pass to the method.",
             )
-            kwargs: Optional[Dict[str, Any]] = Field(
+            kwargs: dict[str, Any] | None = Field(
                 default_factory=dict,
                 description="Keyword arguments to pass to the method.",
             )
             allow_private: bool = Field(
                 False,
-                description="Set to true to explicitly allow calling methods starting with an underscore ('_'). Use with extreme caution."
+                description="Set to true to explicitly allow calling methods starting with an underscore ('_'). Use with extreme caution.",
             )
 
         return MethodExecutorParams
 
-    def odoo_model_method_executor_execute(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    def odoo_model_method_executor_execute(
+        self, parameters: dict[str, Any]
+    ) -> dict[str, Any]:
         """Executes the specified method on the model or records."""
-        _logger.info(f"Executing Odoo Model Method Executor with parameters: {parameters}")
+        _logger.info(
+            f"Executing Odoo Model Method Executor with parameters: {parameters}"
+        )
 
         model_name = parameters.get("model")
         method_name = parameters.get("method")
@@ -77,8 +81,10 @@ class LLMToolModelMethodExecutor(models.Model):
         if model_name not in self.env:
             return {"error": f"Model '{model_name}' does not exist in the environment."}
 
-        if method_name.startswith('_') and not allow_private:
-            return {"error": f"Execution of private method '{method_name}' is not allowed by default. Set 'allow_private' to true to override."}
+        if method_name.startswith("_") and not allow_private:
+            return {
+                "error": f"Execution of private method '{method_name}' is not allowed by default. Set 'allow_private' to true to override."
+            }
 
         try:
             # Get the model
@@ -88,36 +94,57 @@ class LLMToolModelMethodExecutor(models.Model):
             if record_ids:
                 target = model_obj.browse(record_ids)
                 if not target.exists() and len(record_ids) > 0:
-                     return {"warning": f"Provided Record IDs {record_ids} do not exist for model {model_name}. Method not executed."}
-                elif not target.exists(): # record_ids was empty list
-                     target = model_obj # Fallback to model if empty list provided
+                    return {
+                        "warning": f"Provided Record IDs {record_ids} do not exist for model {model_name}. Method not executed."
+                    }
+                elif not target.exists():  # record_ids was empty list
+                    target = model_obj  # Fallback to model if empty list provided
             else:
                 target = model_obj
-            
+
             # Get the method function
             method_func = getattr(target, method_name)
 
             # Execute the method
-            _logger.info(f"Attempting to call {model_name}.{method_name} on {target} with args: {args}, kwargs: {kwargs}")
+            _logger.info(
+                f"Attempting to call {model_name}.{method_name} on {target} with args: {args}, kwargs: {kwargs}"
+            )
             result = method_func(*args, **kwargs)
             _logger.info(f"Method {model_name}.{method_name} executed successfully.")
 
             # Attempt to serialize the result
             serialized_result = self._serialize_result(result)
-            
-            return {"result": serialized_result, "message": f"Method '{method_name}' executed successfully."}
+
+            return {
+                "result": serialized_result,
+                "message": f"Method '{method_name}' executed successfully.",
+            }
 
         except AttributeError:
-            _logger.warning(f"Method '{method_name}' not found on model '{model_name}' or target '{target}'.")
-            return {"error": f"Method '{method_name}' not found on model '{model_name}'"}
+            _logger.warning(
+                f"Method '{method_name}' not found on model '{model_name}' or target '{target}'."
+            )
+            return {
+                "error": f"Method '{method_name}' not found on model '{model_name}'"
+            }
         except (TypeError, ValidationError) as e:
-             _logger.warning(f"Type error executing {method_name} on {model_name}: {e}", exc_info=True)
-             return {"error": f"Incorrect arguments provided for method '{method_name}': {str(e)}"}
+            _logger.warning(
+                f"Type error executing {method_name} on {model_name}: {e}",
+                exc_info=True,
+            )
+            return {
+                "error": f"Incorrect arguments provided for method '{method_name}': {str(e)}"
+            }
         except (UserError, AccessError) as e:
-            _logger.warning(f"Odoo User/Access Error executing {method_name} on {model_name}: {e}", exc_info=False) # Avoid stack trace for expected errors
+            _logger.warning(
+                f"Odoo User/Access Error executing {method_name} on {model_name}: {e}",
+                exc_info=False,
+            )  # Avoid stack trace for expected errors
             return {"error": f"Odoo execution error: {str(e)}"}
         except Exception as e:
-            _logger.exception(f"Unexpected error executing {method_name} on {model_name}: {str(e)}")
+            _logger.exception(
+                f"Unexpected error executing {method_name} on {model_name}: {str(e)}"
+            )
             return {"error": f"An unexpected error occurred: {str(e)}"}
 
     def _serialize_result(self, result: Any) -> Any:
@@ -130,8 +157,10 @@ class LLMToolModelMethodExecutor(models.Model):
             # Try standard JSON serialization
             # This won't work for complex types like datetime, recordsets etc.
             # We might need a more robust serializer or just return repr()
-            json.dumps(result) # Test if serializable
+            json.dumps(result)  # Test if serializable
             return result
         except (TypeError, OverflowError):
-            _logger.warning(f"Result of type {type(result)} is not directly JSON serializable. Returning string representation.")
-            return repr(result) # Fallback to string representation
+            _logger.warning(
+                f"Result of type {type(result)} is not directly JSON serializable. Returning string representation."
+            )
+            return repr(result)  # Fallback to string representation

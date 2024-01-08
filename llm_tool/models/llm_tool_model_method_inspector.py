@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
-import logging
 import inspect
-from typing import List, Optional, Dict, Any, Tuple
+import logging
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from odoo import api, models, _
+from odoo import _, api, models
 from odoo.exceptions import UserError
-
 
 _logger = logging.getLogger(__name__)
 
@@ -16,7 +14,7 @@ class LLMToolModelMethodInspector(models.Model):
     _inherit = "llm.tool"
 
     @api.model
-    def _get_available_implementations(self) -> List[Tuple[str, str]]:
+    def _get_available_implementations(self) -> list[tuple[str, str]]:
         implementations = super()._get_available_implementations()
         return implementations + [
             ("odoo_model_method_inspector", "Odoo Model Method Inspector (Detailed)"),
@@ -24,6 +22,7 @@ class LLMToolModelMethodInspector(models.Model):
 
     def odoo_model_method_inspector_get_pydantic_model(self):
         """Returns the Pydantic model for the method inspector tool parameters."""
+
         class MethodInspectorParams(BaseModel):
             """Retrieves detailed information about methods of a specific Odoo model, with filtering options."""
 
@@ -34,19 +33,19 @@ class LLMToolModelMethodInspector(models.Model):
                 ...,
                 description="The technical Odoo model name (e.g., res.partner)",
             )
-            method_name_filter: Optional[str] = Field(
+            method_name_filter: str | None = Field(
                 None,
                 description="Filter methods where the name contains this string (case-insensitive).",
             )
-            method_type_filter: Optional[List[str]] = Field(
+            method_type_filter: list[str] | None = Field(
                 None,
                 description="Filter methods by type. Allowed values: 'instance', 'static', 'class', 'model', 'model_create', 'function'.",
             )
-            decorator_filter: Optional[List[str]] = Field(
+            decorator_filter: list[str] | None = Field(
                 None,
                 description="Filter methods by decorator. Example values: '@staticmethod', '@api.model', '@api.depends', '@api.constrains', '@api.onchange'.",
             )
-            docstring_filter: Optional[str] = Field(
+            docstring_filter: str | None = Field(
                 None,
                 description="Filter methods where the docstring contains this string (case-insensitive).",
             )
@@ -54,21 +53,25 @@ class LLMToolModelMethodInspector(models.Model):
                 False, description="Include methods starting with an underscore ('_')."
             )
             limit: int = Field(
-                20, 
+                20,
                 description="Maximum number of methods to return (must be 1 or greater). Defaults to 20. Set explicitly higher for more results, respecting system limits.",
-                ge=1 # Limit must be at least 1 if provided
+                ge=1,  # Limit must be at least 1 if provided
             )
             offset: int = Field(
-                0, 
+                0,
                 description="Number of methods to skip before returning results.",
-                ge=0
+                ge=0,
             )
 
         return MethodInspectorParams
 
-    def odoo_model_method_inspector_execute(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    def odoo_model_method_inspector_execute(
+        self, parameters: dict[str, Any]
+    ) -> dict[str, Any]:
         """Execute the detailed Odoo Model Method Inspector tool"""
-        _logger.info(f"Executing Odoo Model Method Inspector with parameters: {parameters}")
+        _logger.info(
+            f"Executing Odoo Model Method Inspector with parameters: {parameters}"
+        )
 
         model_name = parameters.get("model")
         if not model_name:
@@ -78,15 +81,15 @@ class LLMToolModelMethodInspector(models.Model):
             return {"error": f"Model '{model_name}' does not exist in the environment."}
 
         try:
-            limit = parameters.get("limit") # Can be None
+            limit = parameters.get("limit")  # Can be None
             offset = parameters.get("offset", 0)
-            
+
             total_found, method_details = self._perform_method_inspection(
                 model_name,
                 parameters.get("method_name_filter"),
                 parameters.get("method_type_filter"),
                 parameters.get("decorator_filter"),
-                parameters.get("docstring_filter"), # Pass the new filter
+                parameters.get("docstring_filter"),  # Pass the new filter
                 parameters.get("include_private", False),
                 limit,
                 offset,
@@ -97,7 +100,7 @@ class LLMToolModelMethodInspector(models.Model):
                 "offset": offset,
                 "returned_count": len(method_details),
                 "methods": method_details,
-                "message": f"Method inspection complete for {model_name}. Found {total_found} methods matching criteria. Returning {len(method_details)} methods (limit={limit}, offset={offset})."
+                "message": f"Method inspection complete for {model_name}. Found {total_found} methods matching criteria. Returning {len(method_details)} methods (limit={limit}, offset={offset}).",
             }
 
         except Exception as e:
@@ -109,14 +112,14 @@ class LLMToolModelMethodInspector(models.Model):
     def _perform_method_inspection(
         self,
         model_name: str,
-        name_filter: Optional[str],
-        type_filter: Optional[List[str]],
-        decorator_filter: Optional[List[str]],
-        docstring_filter: Optional[str], # Add parameter here
+        name_filter: str | None,
+        type_filter: list[str] | None,
+        decorator_filter: list[str] | None,
+        docstring_filter: str | None,  # Add parameter here
         include_private: bool,
-        limit: Optional[int],
+        limit: int | None,
         offset: int,
-    ) -> Tuple[int, List[Dict[str, Any]]]:
+    ) -> tuple[int, list[dict[str, Any]]]:
         """Inspects a model, returns total count and a sliced list of method details."""
         try:
             model_obj = self.env[model_name]
@@ -128,11 +131,11 @@ class LLMToolModelMethodInspector(models.Model):
         method_details_list = []
         processed_names = set()
 
-        for name, member in reversed(members): # Prioritize subclass methods
+        for name, member in reversed(members):  # Prioritize subclass methods
             if name in processed_names:
                 continue
 
-            is_private_method = name.startswith('_')
+            is_private_method = name.startswith("_")
             if is_private_method and not include_private:
                 continue
 
@@ -141,8 +144,8 @@ class LLMToolModelMethodInspector(models.Model):
                 continue
 
             details = self._extract_method_details_for_tool(model_cls, member, name)
-            if not details: # Skip if extraction failed somehow
-                 continue
+            if not details:  # Skip if extraction failed somehow
+                continue
 
             # Type filter
             if type_filter and details.get("method_type") not in type_filter:
@@ -153,23 +156,28 @@ class LLMToolModelMethodInspector(models.Model):
                 found_decorator = False
                 current_decorators = details.get("decorators", [])
                 for dec_filter in decorator_filter:
-                     # Simple check, might need refinement for args like @api.depends('field')
-                    if any(dec_filter in actual_dec for actual_dec in current_decorators):
+                    # Simple check, might need refinement for args like @api.depends('field')
+                    if any(
+                        dec_filter in actual_dec for actual_dec in current_decorators
+                    ):
                         found_decorator = True
                         break
                 if not found_decorator:
                     continue
-            
+
             # Docstring filter (case-insensitive)
-            if docstring_filter and docstring_filter.lower() not in details.get("docstring", "").lower():
+            if (
+                docstring_filter
+                and docstring_filter.lower() not in details.get("docstring", "").lower()
+            ):
                 continue
 
             method_details_list.append(details)
             processed_names.add(name)
-            
+
         # Sort alphabetically for consistent output
-        method_details_list.sort(key=lambda x: x['name'])
-        
+        method_details_list.sort(key=lambda x: x["name"])
+
         total_found = len(method_details_list)
 
         # Apply limit and offset
@@ -179,14 +187,16 @@ class LLMToolModelMethodInspector(models.Model):
 
         return total_found, sliced_results
 
-    def _extract_method_details_for_tool(self, model_cls, method_obj, name) -> Optional[Dict[str, Any]]:
+    def _extract_method_details_for_tool(
+        self, model_cls, method_obj, name
+    ) -> dict[str, Any] | None:
         """Extracts details for a single method, adapted for tool output."""
         details = {
             "name": name,
             "docstring": "",
             "signature": "(Could not determine signature)",
             "method_type": "unknown",
-            "decorators": [], # List to store decorator strings
+            "decorators": [],  # List to store decorator strings
         }
 
         # a) Docstring
@@ -202,17 +212,23 @@ class LLMToolModelMethodInspector(models.Model):
             sig = inspect.signature(method_obj)
             signature_str = f"{name}{sig}"
             details["signature"] = signature_str
-        except ValueError: # Handles built-ins etc.
+        except ValueError:  # Handles built-ins etc.
             details["signature"] = "(Signature inspection not supported)"
-        except TypeError: # Handle slots, etc.
+        except TypeError:  # Handle slots, etc.
             details["signature"] = "(Signature inspection not applicable)"
         except Exception as e:
-            _logger.warning("Could not get signature for %s (%s): %s", name, type(method_obj), e, exc_info=False)
+            _logger.warning(
+                "Could not get signature for %s (%s): %s",
+                name,
+                type(method_obj),
+                e,
+                exc_info=False,
+            )
             details["signature"] = f"(Error inspecting signature: {e})"
 
         # c/d) Determine Type and Decorators
         decorators_list = []
-        method_api = getattr(method_obj, '_api', None)
+        method_api = getattr(method_obj, "_api", None)
 
         try:
             static_attr = inspect.getattr_static(model_cls, name)
@@ -222,10 +238,10 @@ class LLMToolModelMethodInspector(models.Model):
             is_staticmethod_static = False
             is_classmethod_static = False
 
-        if method_api == 'model':
+        if method_api == "model":
             details["method_type"] = "model"
             decorators_list.append("@api.model")
-        elif method_api == 'model_create':
+        elif method_api == "model_create":
             details["method_type"] = "model_create"
             decorators_list.append("@api.model_create_multi/_single")
         elif is_staticmethod_static:
@@ -234,16 +250,16 @@ class LLMToolModelMethodInspector(models.Model):
         elif is_classmethod_static:
             details["method_type"] = "class"
             decorators_list.append("@classmethod")
-        elif isinstance(method_obj, staticmethod): # Fallback
+        elif isinstance(method_obj, staticmethod):  # Fallback
             details["method_type"] = "static"
             decorators_list.append("@staticmethod")
-        elif isinstance(method_obj, classmethod): # Fallback
+        elif isinstance(method_obj, classmethod):  # Fallback
             details["method_type"] = "class"
             decorators_list.append("@classmethod")
         else:
             # Default assumption
-            if hasattr(method_obj, '__get__'):
-                 details["method_type"] = "instance" 
+            if hasattr(method_obj, "__get__"):
+                details["method_type"] = "instance"
             elif inspect.isfunction(method_obj):
                 details["method_type"] = "function"
 
@@ -251,19 +267,19 @@ class LLMToolModelMethodInspector(models.Model):
         if hasattr(method_obj, "_depends"):
             depends_info = getattr(method_obj, "_depends", {})
             if isinstance(depends_info, dict):
-                 # New style @api.depends
-                 deps_str = ', '.join(f"'{f}'" for f in depends_info.keys())
-            else: 
-                 # Old style (less common now)
-                 deps_str = repr(depends_info) # Fallback representation
+                # New style @api.depends
+                deps_str = ", ".join(f"'{f}'" for f in depends_info.keys())
+            else:
+                # Old style (less common now)
+                deps_str = repr(depends_info)  # Fallback representation
             decorators_list.append(f"@api.depends({deps_str})")
         if hasattr(method_obj, "_constrains"):
             # Similar logic could be added for depends args if needed
-            decorators_list.append("@api.constrains(...)") 
+            decorators_list.append("@api.constrains(...)")
         if hasattr(method_obj, "_onchange"):
             decorators_list.append("@api.onchange(...)")
         if getattr(method_obj, "deprecated", False):
-             decorators_list.append("@api.deprecated")
+            decorators_list.append("@api.deprecated")
         # Add more decorator checks here if needed (e.g., returns, specific RPC types)
 
         details["decorators"] = decorators_list
