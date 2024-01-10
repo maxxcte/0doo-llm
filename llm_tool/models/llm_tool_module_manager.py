@@ -1,7 +1,5 @@
 import logging
-from typing import Literal
-
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Any, Dict, Literal
 
 from odoo import _, api, exceptions, models
 from odoo.tools import config
@@ -17,38 +15,23 @@ class LLMToolModuleManager(models.Model):
         implementations = super()._get_available_implementations()
         # Add check to only enable this tool if not in 'test mode without demo'
         # as module operations might be restricted or undesired in that context.
-        # You might refine this check based on your specific deployment needs.
         if config.get("test_enable") and not config.get("demo"):
             return implementations
         return implementations + [("odoo_module_manager", "Odoo Module Manager")]
 
-    def odoo_module_manager_get_pydantic_model(self):
-        class ModuleManagerParams(BaseModel):
-            """
-            **HIGH RISK TOOL:** This tool manages Odoo modules (installs or upgrades).
-            It requires Administrator privileges and can cause significant system changes.
-            **IMPORTANT:** Before calling this tool, you MUST:
-            1. Clearly state which module you intend to install or upgrade.
-            2. Explain the reason for this operation.
-            3. Explicitly ask the user for confirmation to proceed.
-            Only call this tool if the user explicitly confirms.
-            """
+    def odoo_module_manager_execute(
+            self,
+            module_name: str,
+            operation: Literal["install", "upgrade"]
+    ) -> Dict[str, Any]:
+        """
+        Manage Odoo modules (install or upgrade)
 
-            model_config = ConfigDict(
-                title=self.name or "odoo_module_manager",
-            )
-            module_name: str = Field(
-                ..., description="Technical name of the Odoo module."
-            )
-            operation: Literal["install", "upgrade"] = Field(
-                ..., description="Action to perform: 'install' or 'upgrade'."
-            )
-
-        return ModuleManagerParams
-
-    def odoo_module_manager_execute(self, parameters):
-        """Execute the Odoo Module Manager tool"""
-        _logger.info(f"Executing Odoo Module Manager with parameters: {parameters}")
+        Parameters:
+            module_name: Technical name of the Odoo module
+            operation: Action to perform: 'install' or 'upgrade'
+        """
+        _logger.info(f"Executing Odoo Module Manager with: module_name={module_name}, operation={operation}")
 
         # 1. Security Check: Ensure user has System Administrator rights
         if not self.env.user.has_group("base.group_system"):
@@ -64,16 +47,7 @@ class LLMToolModuleManager(models.Model):
                 )
             }
 
-        module_name = parameters.get("module_name")
-        operation = parameters.get("operation")
-
-        # 2. Parameter Validation
-        if not module_name or not operation:
-            return {
-                "error": _(
-                    "Missing required parameters: 'module_name' and 'operation' are required."
-                )
-            }
+        # 2. Parameter Validation (additional validation beyond type checking)
         if operation not in ["install", "upgrade"]:
             return {"error": _("Invalid 'operation'. Must be 'install' or 'upgrade'.")}
 

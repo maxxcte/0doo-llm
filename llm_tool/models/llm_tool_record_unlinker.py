@@ -1,7 +1,5 @@
 import logging
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Any, Dict, List
 
 from odoo import api, models
 
@@ -16,47 +14,31 @@ class LLMToolRecordUnlinker(models.Model):
         implementations = super()._get_available_implementations()
         return implementations + [("odoo_record_unlinker", "Odoo Record Unlinker")]
 
-    def odoo_record_unlinker_get_pydantic_model(self):
-        class RecordUnlinkerParams(BaseModel):
-            """This function deletes records from the specified Odoo model based on the provided domain."""
+    def odoo_record_unlinker_execute(
+            self,
+            model: str,
+            domain: List[List[Any]],
+            limit: int = 1
+    ) -> Dict[str, Any]:
+        """
+        Delete records from the specified Odoo model based on the provided domain
 
-            model_config = ConfigDict(
-                title=self.name or "odoo_record_unlinker",
-            )
-            model: str = Field(..., description="The Odoo model to delete records from")
-            domain: list[list[Any]] = Field(
-                ..., description="Domain to identify records to delete"
-            )
-            limit: int = Field(
-                1,
-                description="Maximum number of records to delete (default: 1 for safety)",
-            )
-
-        return RecordUnlinkerParams
-
-    def odoo_record_unlinker_execute(self, parameters):
-        """Execute the Odoo Record Unlinker tool"""
-        _logger.info(f"Executing Odoo Record Unlinker with parameters: {parameters}")
-
-        model_name = parameters.get("model")
-        domain = parameters.get("domain", [])
-        limit = parameters.get("limit", 1)
-
-        if not model_name:
-            return {"error": "Model name is required"}
-
-        if not domain:
-            return {"error": "Domain is required to identify records to delete"}
+        Parameters:
+            model: The Odoo model to delete records from
+            domain: Domain to identify records to delete
+            limit: Maximum number of records to delete (default: 1 for safety)
+        """
+        _logger.info(f"Executing Odoo Record Unlinker with: model={model}, domain={domain}, limit={limit}")
 
         try:
-            model = self.env[model_name]
+            model_obj = self.env[model]
 
             # Find records to delete
-            records = model.search(domain, limit=limit)
+            records = model_obj.search(domain, limit=limit)
 
             if not records:
                 return {
-                    "message": f"No records found matching the domain in {model_name}"
+                    "message": f"No records found matching the domain in {model}"
                 }
 
             # Store record info before deletion for reporting
@@ -75,13 +57,13 @@ class LLMToolRecordUnlinker(models.Model):
             result = {
                 "deleted_count": count,
                 "deleted_records": record_info,
-                "message": f"{count} record(s) deleted successfully from {model_name}",
+                "message": f"{count} record(s) deleted successfully from {model}"
             }
 
             return result
 
         except KeyError:
-            return {"error": f"Model '{model_name}' not found"}
+            return {"error": f"Model '{model}' not found"}
         except Exception as e:
             _logger.exception(f"Error executing Odoo Record Unlinker: {str(e)}")
             return {"error": str(e)}

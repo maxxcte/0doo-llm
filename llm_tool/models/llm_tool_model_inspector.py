@@ -1,6 +1,5 @@
 import logging
-
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Any, Dict
 
 from odoo import api, models
 
@@ -15,44 +14,33 @@ class LLMToolModelInspector(models.Model):
         implementations = super()._get_available_implementations()
         return implementations + [("odoo_model_inspector", "Odoo Model Inspector")]
 
-    def odoo_model_inspector_get_pydantic_model(self):
-        class ModelInfoParams(BaseModel):
-            """This function retrieves basic information about an Odoo model."""
+    def odoo_model_inspector_execute(
+            self,
+            model: str
+    ) -> Dict[str, Any]:
+        """
+        Retrieve basic information about an Odoo model
 
-            model_config = ConfigDict(
-                title=self.name or "odoo_model_inspector",
-            )
-            model: str = Field(
-                ...,
-                description="The Odoo model name to get information about (example: res.partner)",
-            )
-
-        return ModelInfoParams
-
-    def odoo_model_inspector_execute(self, parameters):
-        """Execute the Odoo Model Inspector tool"""
-        _logger.info(f"Executing Odoo Model Inspector with parameters: {parameters}")
-
-        model_name = parameters.get("model")
-
-        if not model_name:
-            return {"error": "Model name is required"}
+        Parameters:
+            model: The Odoo model name to get information about (example: res.partner)
+        """
+        _logger.info(f"Executing Odoo Model Inspector with model: {model}")
 
         try:
             # Search for the model in ir.model
             IrModel = self.env["ir.model"]
             model_info = IrModel.search_read(
-                [("model", "=", model_name)], ["name", "model"], limit=1
+                [("model", "=", model)], ["name", "model"], limit=1
             )
 
             if not model_info:
-                return {"error": f"Model '{model_name}' not found in ir.model"}
+                return {"error": f"Model '{model}' not found in ir.model"}
 
             # Get basic model information
             result = {
                 "name": model_info[0]["name"],
                 "model": model_info[0]["model"],
-                "message": f"Model information retrieved successfully for {model_name}",
+                "message": f"Model information retrieved successfully for {model}"
             }
 
             return result

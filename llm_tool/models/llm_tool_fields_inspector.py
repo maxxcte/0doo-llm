@@ -1,6 +1,5 @@
 import logging
-
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Any, Dict, List, Optional
 
 from odoo import api, models
 
@@ -15,51 +14,34 @@ class LLMToolFieldsInspector(models.Model):
         implementations = super()._get_available_implementations()
         return implementations + [("odoo_fields_inspector", "Odoo Fields Inspector")]
 
-    def odoo_fields_inspector_get_pydantic_model(self):
-        class ModelFieldsParams(BaseModel):
-            """This function retrieves detailed field information for an Odoo model."""
+    def odoo_fields_inspector_execute(
+            self,
+            model: str,
+            field_names: Optional[List[str]] = None,
+            limit: int = 0
+    ) -> Dict[str, Any]:
+        """
+        Retrieve detailed field information for an Odoo model
 
-            model_config = ConfigDict(
-                title=self.name or "odoo_fields_inspector",
-            )
-            model: str = Field(
-                ...,
-                description="The Odoo model name to get field information for (example: res.partner)",
-            )
-            field_names: list[str] = Field(
-                default=None,
-                description="Optional list of specific field names to retrieve (if empty, all fields will be returned)",
-            )
-            limit: int = Field(
-                default=0,
-                description="Maximum number of fields to return (0 means no limit). Can be useful as some odoo models have massive amount of fields",
-            )
-
-        return ModelFieldsParams
-
-    def odoo_fields_inspector_execute(self, parameters):
-        """Execute the Odoo Fields Inspector tool"""
-        _logger.info(f"Executing Odoo Fields Inspector with parameters: {parameters}")
-
-        model_name = parameters.get("model")
-        field_names = parameters.get("field_names", None)
-        limit = parameters.get("limit", 0)
-
-        if not model_name:
-            return {"error": "Model name is required"}
+        Parameters:
+            model: The Odoo model name to get field information for (example: res.partner)
+            field_names: Optional list of specific field names to retrieve (if None, all fields will be returned)
+            limit: Maximum number of fields to return (0 means no limit)
+        """
+        _logger.info(f"Executing Odoo Fields Inspector with: model={model}, field_names={field_names}, limit={limit}")
 
         try:
             # Check if model exists
-            if model_name not in self.env:
-                return {"error": f"Model '{model_name}' not found"}
+            if model not in self.env:
+                return {"error": f"Model '{model}' not found"}
 
-            model = self.env[model_name]
+            model_obj = self.env[model]
 
             # Get field information using fields_get method
             if field_names:
-                fields_info = model.fields_get(field_names)
+                fields_info = model_obj.fields_get(field_names)
             else:
-                fields_info = model.fields_get()
+                fields_info = model_obj.fields_get()
 
             # Process field information to make it more readable
             processed_fields = {}
@@ -101,17 +83,17 @@ class LLMToolFieldsInspector(models.Model):
                 processed_fields[field_name] = processed_field
 
             result = {
-                "model": model_name,
+                "model": model,
                 "fields": processed_fields,
                 "field_count": len(processed_fields),
                 "total_fields": total_fields,
                 "limited": limit > 0 and total_fields > limit,
-                "message": f"Field information retrieved successfully for {model_name}"
-                + (
-                    f" (limited to {limit} fields)"
-                    if limit > 0 and total_fields > limit
-                    else ""
-                ),
+                "message": f"Field information retrieved successfully for {model}"
+                           + (
+                               f" (limited to {limit} fields)"
+                               if limit > 0 and total_fields > limit
+                               else ""
+                           ),
             }
 
             return result
