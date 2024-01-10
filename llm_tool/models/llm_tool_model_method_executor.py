@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any
+from typing import Any, List, Optional, Dict, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -14,7 +14,7 @@ class LLMToolModelMethodExecutor(models.Model):
     _inherit = "llm.tool"
 
     @api.model
-    def _get_available_implementations(self) -> list[tuple[str, str]]:
+    def _get_available_implementations(self) -> List[Tuple[str, str]]:
         implementations = super()._get_available_implementations()
         return implementations + [
             ("odoo_model_method_executor", "Odoo Model Method Executor"),
@@ -41,15 +41,15 @@ class LLMToolModelMethodExecutor(models.Model):
                 ...,
                 description="The name of the method to execute on the model or records.",
             )
-            record_ids: list[int] | None = Field(
+            record_ids: Optional[List[int]] = Field(
                 None,
                 description="Optional list of database IDs of the records to execute the method on. If null/empty, the method is called on the model itself (for static/model methods, search, create, etc.).",
             )
-            args: list[Any] | None = Field(
+            args: Optional[List[Any]] = Field(
                 default_factory=list,
                 description="Positional arguments to pass to the method.",
             )
-            kwargs: dict[str, Any] | None = Field(
+            kwargs: Optional[Dict[str, Any]] = Field(
                 default_factory=dict,
                 description="Keyword arguments to pass to the method.",
             )
@@ -61,8 +61,8 @@ class LLMToolModelMethodExecutor(models.Model):
         return MethodExecutorParams
 
     def odoo_model_method_executor_execute(
-        self, parameters: dict[str, Any]
-    ) -> dict[str, Any]:
+        self, parameters: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Executes the specified method on the model or records."""
         _logger.info(
             f"Executing Odoo Model Method Executor with parameters: {parameters}"

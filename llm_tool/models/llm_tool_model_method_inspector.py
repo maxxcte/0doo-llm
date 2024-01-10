@@ -1,6 +1,6 @@
 import inspect
 import logging
-from typing import Any
+from typing import Any, List, Optional, Dict, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -14,7 +14,7 @@ class LLMToolModelMethodInspector(models.Model):
     _inherit = "llm.tool"
 
     @api.model
-    def _get_available_implementations(self) -> list[tuple[str, str]]:
+    def _get_available_implementations(self) -> List[Tuple[str, str]]:
         implementations = super()._get_available_implementations()
         return implementations + [
             ("odoo_model_method_inspector", "Odoo Model Method Inspector (Detailed)"),
@@ -33,19 +33,19 @@ class LLMToolModelMethodInspector(models.Model):
                 ...,
                 description="The technical Odoo model name (e.g., res.partner)",
             )
-            method_name_filter: str | None = Field(
+            method_name_filter: Optional[str] = Field(
                 None,
                 description="Filter methods where the name contains this string (case-insensitive).",
             )
-            method_type_filter: list[str] | None = Field(
+            method_type_filter: Optional[List[str]] = Field(
                 None,
                 description="Filter methods by type. Allowed values: 'instance', 'static', 'class', 'model', 'model_create', 'function'.",
             )
-            decorator_filter: list[str] | None = Field(
+            decorator_filter: Optional[List[str]] = Field(
                 None,
                 description="Filter methods by decorator. Example values: '@staticmethod', '@api.model', '@api.depends', '@api.constrains', '@api.onchange'.",
             )
-            docstring_filter: str | None = Field(
+            docstring_filter: Optional[str] = Field(
                 None,
                 description="Filter methods where the docstring contains this string (case-insensitive).",
             )
@@ -66,8 +66,8 @@ class LLMToolModelMethodInspector(models.Model):
         return MethodInspectorParams
 
     def odoo_model_method_inspector_execute(
-        self, parameters: dict[str, Any]
-    ) -> dict[str, Any]:
+        self, parameters: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute the detailed Odoo Model Method Inspector tool"""
         _logger.info(
             f"Executing Odoo Model Method Inspector with parameters: {parameters}"
@@ -112,14 +112,14 @@ class LLMToolModelMethodInspector(models.Model):
     def _perform_method_inspection(
         self,
         model_name: str,
-        name_filter: str | None,
-        type_filter: list[str] | None,
-        decorator_filter: list[str] | None,
-        docstring_filter: str | None,  # Add parameter here
+        name_filter: Optional[str],
+        type_filter: Optional[List[str]],
+        decorator_filter: Optional[List[str]],
+        docstring_filter: Optional[str],  # Add parameter here
         include_private: bool,
-        limit: int | None,
+        limit: Optional[int],
         offset: int,
-    ) -> tuple[int, list[dict[str, Any]]]:
+    ) -> Tuple[int, List[Dict[str, Any]]]:
         """Inspects a model, returns total count and a sliced list of method details."""
         try:
             model_obj = self.env[model_name]
@@ -189,7 +189,7 @@ class LLMToolModelMethodInspector(models.Model):
 
     def _extract_method_details_for_tool(
         self, model_cls, method_obj, name
-    ) -> dict[str, Any] | None:
+    ) -> Optional[Dict[str, Any]]:
         """Extracts details for a single method, adapted for tool output."""
         details = {
             "name": name,
