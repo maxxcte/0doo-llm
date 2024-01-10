@@ -2,8 +2,6 @@ import json
 import logging
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from odoo import api, models
 
 _logger = logging.getLogger(__name__)
@@ -17,58 +15,43 @@ class LLMToolRecordRetriever(models.Model):
         implementations = super()._get_available_implementations()
         return implementations + [("odoo_record_retriever", "Odoo Record Retriever")]
 
-    def odoo_record_retriever_get_pydantic_model(self):
-        # the docstring is used as default description for the tool
-        class RecordRetrieverParams(BaseModel):
-            """This function takes the parameters required for record retriever, including model, domain, fields, and limit."""
+    def odoo_record_retriever_execute(
+        self,
+        model: str,
+        domain: list[list[Any]] = [],
+        fields: list[str] = [],
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        """
+        Execute the Odoo Record Retriever tool
 
-            model_config = ConfigDict(
-                title=self.name or "odoo_record_retriever",
-            )
-            model: str = Field(
-                ..., description="The Odoo model to retrieve records from"
-            )
-            domain: list[list[Any]] = Field(
-                [],
-                description="Domain to filter records (list of lists/tuples like ['field', 'op', 'value'])",
-            )
-            fields: list[str] = Field([], description="List of field names to retrieve")
-            limit: int = Field(100, description="Maximum number of records to retrieve")
-
-        return RecordRetrieverParams
-
-    # Implementation of the Odoo Record Retriever tool
-    def odoo_record_retriever_execute(self, parameters):
-        """Execute the Odoo Record Retriever tool"""
-        _logger.info(f"Executing Odoo Record Retriever with parameters: {parameters}")
-
-        model_name = parameters.get("model")
-        domain = parameters.get("domain", [])
-        fields = parameters.get("fields", [])
-        limit = parameters.get("limit", 100)
-
-        if not model_name:
-            return {"error": "Model name is required"}
+        Parameters:
+            model: The Odoo model to retrieve records from
+            domain: Domain to filter records (list of lists/tuples like ['field', 'op', 'value'])
+            fields: List of field names to retrieve
+            limit: Maximum number of records to retrieve
+        """
+        _logger.info(
+            f"Executing Odoo Record Retriever with: model={model}, domain={domain}, fields={fields}, limit={limit}"
+        )
 
         try:
-            model = self.env[model_name]
-
-            # Validate domain structure
-            if not isinstance(domain, list):
-                return {"error": "Domain must be a list of criteria"}
+            model_obj = self.env[model]
 
             # Using search_read for efficiency
             if fields:
-                result = model.search_read(domain=domain, fields=fields, limit=limit)
+                result = model_obj.search_read(
+                    domain=domain, fields=fields, limit=limit
+                )
             else:
-                records = model.search(domain=domain, limit=limit)
+                records = model_obj.search(domain=domain, limit=limit)
                 result = records.read()
 
             # Convert to serializable format
             return json.loads(json.dumps(result, default=str))
 
         except KeyError:
-            return {"error": f"Model '{model_name}' not found"}
+            return {"error": f"Model '{model}' not found"}
         except Exception as e:
             _logger.exception(f"Error executing Odoo Record Retriever: {str(e)}")
             return {"error": str(e)}
