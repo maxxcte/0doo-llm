@@ -77,30 +77,4 @@
         <field name="active" eval="True" />
         <field name="requires_user_consent" eval="True" />
     </record>
-
-    <record id="llm_tool_odoo_model_method_inspector" model="llm.tool">
-        <field name="name">odoo_model_method_inspector</field>
-        <field name="implementation">odoo_model_method_inspector</field>
-        <field name="description">
-Retrieves detailed information about methods of a specific Odoo model. Specify the model's technical name. Optionally, filter by method name (containing text, case-insensitive), type ('instance', 'static', 'class', 'model', 'model_create', 'function'), or decorators ('@staticmethod', '@api.model', '@api.depends', etc.). Can also include private methods (starting with '_'). Returns a list of methods with their name, signature, docstring, type, and decorators.
-        </field>
-        <field name="default" eval="True" />
-        <field name="active" eval="True" />
-        <field name="requires_user_consent" eval="False" />
-    </record>
-
-    <record id="llm_tool_odoo_model_method_executor" model="llm.tool">
-        <field name="name">odoo_model_method_executor</field>
-        <field name="implementation">odoo_model_method_executor</field>
-        <field name="description">
-**VERY HIGH RISK TOOL:** Executes a specified method on an Odoo model or specific records. Provide the model's technical name, the method name, and optionally a list of record IDs, positional arguments ('args'), and keyword arguments ('kwargs'). If record_ids is null/empty, the method is called on the model itself (e.g., for `search`, `create`, `@api.model`, `@staticmethod`).
-**WARNING:** This tool can modify or delete data, trigger complex actions, or cause system errors if used improperly. It bypasses standard UI workflows.
-**IMPORTANT:** The LLM using this tool MUST explicitly ask the user for confirmation before EVERY execution, clearly stating the model, method, records (if any), and arguments being used.
-Private methods (starting with '_') are disallowed by default unless 'allow_private' is explicitly set to true (use with extreme caution).
-Returns a JSON representation of the method's result or an error message.
-        </field>
-        <field name="default" eval="False" />
-        <field name="active" eval="True" />
-        <field name="requires_user_consent" eval="True" />
-    </record>
 </odoo>
