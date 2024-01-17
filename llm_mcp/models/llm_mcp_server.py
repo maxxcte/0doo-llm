@@ -48,10 +48,12 @@ class LLMMCPServer(models.Model):
             return None
 
         try:
-            return PipeManager(self.command, self.args)
+            pipe_manager = PipeManager(self.command, self.args)
+            return pipe_manager
         except Exception as e:
-            _logger.error(f"Failed to get pipe manager for server {self.name}: {str(e)}")
-            return None
+            error_msg = f"Failed to get pipe manager for server {self.name}: {str(e)}"
+            _logger.error(error_msg)
+            raise UserError(error_msg)
 
     def start_server(self):
         """Start the server and connect to it"""
@@ -63,23 +65,36 @@ class LLMMCPServer(models.Model):
             try:
                 pipe_manager = self._get_pipe_manager()
                 if not pipe_manager:
-                    return False
+                    raise UserError(f"Failed to create pipe manager for server {self.name}")
 
-                # MCP initialization is handled by the pipe manager
+                # Start the process explicitly
+                if not pipe_manager.start_process():
+                    raise UserError(f"Failed to start process for server {self.name}")
+
+                # Ensure MCP is initialized
                 if not pipe_manager._initialized:
-                    return False
+                    if not pipe_manager._initialize_mcp():
+                        raise UserError(f"Failed to initialize MCP protocol for server {self.name}")
 
                 # Test connection by asking for tools
                 tools = pipe_manager.list_tools()
-                if tools is not None:
-                    self.is_connected = True
-                    self._update_tools(tools)
-                    return True
-                else:
-                    return False
+                if tools is None:
+                    raise UserError(f"Failed to retrieve tools from server {self.name}")
+
+                self.is_connected = True
+                self._update_tools(tools)
+
+                # Update protocol information
+                if hasattr(pipe_manager, 'protocol_version'):
+                    self.protocol_version = pipe_manager.protocol_version
+                if hasattr(pipe_manager, 'server_info'):
+                    self.server_info = json.dumps(pipe_manager.server_info or {})
+
+                return True
             except Exception as e:
-                _logger.error(f"Failed to start MCP server {self.name}: {str(e)}")
-                return False
+                error_msg = f"Failed to start MCP server {self.name}: {str(e)}"
+                _logger.error(error_msg)
+                raise UserError(error_msg)
         elif self.transport == 'internal':
             # For internal transport, no process to start
             self.is_connected = True
@@ -97,7 +112,9 @@ class LLMMCPServer(models.Model):
                 if pipe_manager:
                     pipe_manager.close()
             except Exception as e:
-                _logger.error(f"Error stopping MCP server {self.name}: {str(e)}")
+                error_msg = f"Error stopping MCP server {self.name}: {str(e)}"
+                _logger.error(error_msg)
+                # We don't raise an error here as we want to ensure is_connected is set to False
 
         self.is_connected = False
         return True
@@ -106,20 +123,29 @@ class LLMMCPServer(models.Model):
         """Fetch and update tools from the MCP server"""
         self.ensure_one()
 
-        if not self.is_connected and not self.start_server():
-            raise UserError(f"Could not connect to MCP server {self.name}")
+        if not self.is_connected:
+            try:
+                if not self.start_server():
+                    raise UserError(f"Could not connect to MCP server {self.name}")
+            except Exception as e:
+                raise UserError(f"Could not connect to MCP server {self.name}: {str(e)}")
 
         if self.transport == 'stdio':
-            pipe_manager = self._get_pipe_manager()
-            if not pipe_manager:
-                raise UserError(f"Could not connect to MCP server {self.name}")
+            try:
+                pipe_manager = self._get_pipe_manager()
+                if not pipe_manager:
+                    raise UserError(f"Could not connect to MCP server {self.name}")
 
-            tools = pipe_manager.list_tools()
-            if tools:
+                tools = pipe_manager.list_tools()
+                if tools is None:
+                    raise UserError(f"Failed to fetch tools from MCP server {self.name}")
+
                 self._update_tools(tools)
                 return self.tool_ids
-            else:
-                raise UserError(f"Failed to fetch tools from MCP server {self.name}")
+            except Exception as e:
+                error_msg = f"Error listing tools from server {self.name}: {str(e)}"
+                _logger.error(error_msg)
+                raise UserError(error_msg)
         elif self.transport == 'internal':
             # For internal, just return the tools already defined
             return self.tool_ids
@@ -186,18 +212,26 @@ class LLMMCPServer(models.Model):
         """Execute a tool on the MCP server"""
         self.ensure_one()
 
-        if not self.is_connected and not self.start_server():
-            raise UserError(f"Could not connect to MCP server {self.name}")
+        if not self.is_connected:
+            try:
+                if not self.start_server():
+                    raise UserError(f"Could not connect to MCP server {self.name}")
+            except Exception as e:
+                raise UserError(f"Could not connect to MCP server {self.name}: {str(e)}")
 
         if self.transport == 'stdio':
             try:
                 pipe_manager = self._get_pipe_manager()
                 if not pipe_manager:
-                    return {"error": f"Could not connect to MCP server {self.name}"}
+                    raise UserError(f"Could not connect to MCP server {self.name}")
 
-                return pipe_manager.call_tool(tool_name, parameters)
+                result = pipe_manager.call_tool(tool_name, parameters)
+                if result is None:
+                    raise UserError(f"Failed to execute tool {tool_name} on server {self.name}")
+                return result
             except Exception as e:
-                _logger.error(f"Error executing tool on MCP server: {str(e)}")
+                error_msg = f"Error executing tool {tool_name} on MCP server: {str(e)}"
+                _logger.error(error_msg)
                 return {"error": str(e)}
         elif self.transport == 'internal':
             # For internal transport, we don't have a real execute mechanism
