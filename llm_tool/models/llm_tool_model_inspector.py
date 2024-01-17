@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from odoo import api, models
 
@@ -14,10 +14,7 @@ class LLMToolModelInspector(models.Model):
         implementations = super()._get_available_implementations()
         return implementations + [("odoo_model_inspector", "Odoo Model Inspector")]
 
-    def odoo_model_inspector_execute(
-            self,
-            model: str
-    ) -> Dict[str, Any]:
+    def odoo_model_inspector_execute(self, model: str) -> dict[str, Any]:
         """
         Retrieve basic information about an Odoo model
 
@@ -40,7 +37,7 @@ class LLMToolModelInspector(models.Model):
             result = {
                 "name": model_info[0]["name"],
                 "model": model_info[0]["model"],
-                "message": f"Model information retrieved successfully for {model}"
+                "message": f"Model information retrieved successfully for {model}",
             }
 
             return result

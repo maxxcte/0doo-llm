@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from odoo import api, models
 
@@ -15,12 +15,12 @@ class LLMToolRecordUpdater(models.Model):
         return implementations + [("odoo_record_updater", "Odoo Record Updater")]
 
     def odoo_record_updater_execute(
-            self,
-            model: str,
-            domain: List[List[Any]],
-            values: Dict[str, Any],
-            limit: int = 1
-    ) -> Dict[str, Any]:
+        self,
+        model: str,
+        domain: list[list[Any]],
+        values: dict[str, Any],
+        limit: int = 1,
+    ) -> dict[str, Any]:
         """
         Update existing records in the specified Odoo model that match the given domain
 
@@ -30,7 +30,9 @@ class LLMToolRecordUpdater(models.Model):
             values: Dictionary of field values to update
             limit: Maximum number of records to update (default: 1 for safety)
         """
-        _logger.info(f"Executing Odoo Record Updater with: model={model}, domain={domain}, values={values}, limit={limit}")
+        _logger.info(
+            f"Executing Odoo Record Updater with: model={model}, domain={domain}, values={values}, limit={limit}"
+        )
 
         try:
             model_obj = self.env[model]
@@ -48,7 +50,7 @@ class LLMToolRecordUpdater(models.Model):
             result = {
                 "count": len(records),
                 "ids": records.ids,
-                "message": f"Successfully updated {len(records)} record(s) in {model}"
+                "message": f"Successfully updated {len(records)} record(s) in {model}",
             }
 
             return result

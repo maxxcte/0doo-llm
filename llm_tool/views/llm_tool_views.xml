@@ -8,11 +8,12 @@
             <tree>
                 <field name="name" />
                 <field name="implementation" />
+                <field name="title" optional="show" />
                 <field name="default" />
                 <field name="active" />
                 <field name="requires_user_consent" />
-                <field name="override_tool_description" optional="hide" />
-                <field name="override_tool_schema" optional="hide" />
+                <field name="read_only_hint" optional="hide" />
+                <field name="destructive_hint" optional="hide" />
             </tree>
         </field>
     </record>
@@ -32,13 +33,34 @@
               /></h1>
                     </div>
                     <group>
-                        <group>
+                        <group string="Basic Configuration">
                             <field name="implementation" />
+                            <field
+                name="title"
+                placeholder="Human-readable title for the tool"
+              />
                             <field name="default" />
                             <field name="active" />
                             <field name="requires_user_consent" />
-                            <field name="override_tool_description" />
-                            <field name="override_tool_schema" />
+                            <field
+                name="server_action_id"
+                attrs="{'invisible': [('implementation', '!=', 'server_action')],
+                                          'required': [('implementation', '=', 'server_action')]}"
+                options="{'no_create': True}"
+                domain="[('state', '!=', False)]"
+              />
+                        </group>
+                        <group string="Tool Annotations">
+                            <field name="read_only_hint" />
+                            <field
+                name="idempotent_hint"
+                attrs="{'invisible': [('read_only_hint', '=', True)]}"
+              />
+                            <field
+                name="destructive_hint"
+                attrs="{'invisible': [('read_only_hint', '=', True)]}"
+              />
+                            <field name="open_world_hint" />
                         </group>
                     </group>
                     <notebook>
@@ -48,23 +70,29 @@
                 placeholder="Describe what this tool does and when to use it"
               />
                         </page>
-                        <page string="Schema">
+                        <page string="Input Schema">
                             <field
-                name="schema"
-                widget="text"
-                placeholder="{...}"
-                readonly="1"
+                name="input_schema"
+                widget="ace"
+                options="{'mode': 'json'}"
+                placeholder="{
+  'type': 'object',
+  'properties': {
+    'param1': {
+      'type': 'string',
+      'description': 'Description of parameter 1'
+    }
+  },
+  'required': ['param1']
+}"
               />
-                            <separator
-                string="Override Schema"
-                attrs="{'invisible': [('override_tool_schema', '=', False)]}"
-              />
-                            <field
-                name="overriden_schema"
-                widget="text"
-                placeholder="Enter custom JSON schema here"
-                attrs="{'invisible': [('override_tool_schema', '=', False)], 'required': [('override_tool_schema', '=', True)]}"
-              />
+                            <div class="alert alert-info" role="alert">
+                                <p><strong>About the Input Schema:</strong></p>
+                                <p
+                >This JSON schema defines the parameters accepted by this tool. If left empty, the schema will be automatically generated from the implementation's execute method signature and type hints.</p>
+                                <p
+                >Use this field when you want to override the automatic schema generation or provide a more detailed schema with examples, enums, or other constraints.</p>
+                            </div>
                         </page>
                     </notebook>
                 </sheet>
@@ -84,6 +112,7 @@
             <search string="Search LLM Tools">
                 <field name="name" />
                 <field name="implementation" />
+                <field name="title" />
                 <filter
           string="Default Tools"
           name="default"
@@ -95,25 +124,20 @@
           domain="[('active', '=', True)]"
         />
                 <filter
-          string="Override Description"
-          name="override_desc"
-          domain="[('override_tool_description', '=', True)]"
+          string="Read-Only"
+          name="read_only"
+          domain="[('read_only_hint', '=', True)]"
         />
                 <filter
-          string="Override Schema"
-          name="override_schema"
-          domain="[('override_tool_schema', '=', True)]"
+          string="Requires Consent"
+          name="requires_consent"
+          domain="[('requires_user_consent', '=', True)]"
         />
                 <group expand="0" string="Group By">
                     <filter
             string="Implementation"
             name="group_by_implementation"
             context="{'group_by': 'implementation'}"
-          />
-                    <filter
-            string="Override Schema"
-            name="group_by_override_schema"
-            context="{'group_by': 'override_tool_schema'}"
           />
                 </group>
             </search>

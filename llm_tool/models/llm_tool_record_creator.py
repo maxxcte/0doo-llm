@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from odoo import api, models
 
@@ -15,10 +15,8 @@ class LLMToolRecordCreator(models.Model):
         return implementations + [("odoo_record_creator", "Odoo Record Creator")]
 
     def odoo_record_creator_execute(
-            self,
-            model: str,
-            fields: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, model: str, fields: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Create a new record in the specified Odoo model
 
@@ -26,7 +24,9 @@ class LLMToolRecordCreator(models.Model):
             model: The Odoo model to create a record in
             fields: Dictionary of field values for the new record
         """
-        _logger.info(f"Executing Odoo Record Creator with: model={model}, fields={fields}")
+        _logger.info(
+            f"Executing Odoo Record Creator with: model={model}, fields={fields}"
+        )
 
         try:
             model_obj = self.env[model]
@@ -38,7 +38,7 @@ class LLMToolRecordCreator(models.Model):
             result = {
                 "id": new_record.id,
                 "display_name": new_record.display_name,
-                "message": f"Record created successfully in {model}"
+                "message": f"Record created successfully in {model}",
             }
 
             return result

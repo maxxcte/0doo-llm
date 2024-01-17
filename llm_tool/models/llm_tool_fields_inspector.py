@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from odoo import api, models
 
@@ -15,11 +15,8 @@ class LLMToolFieldsInspector(models.Model):
         return implementations + [("odoo_fields_inspector", "Odoo Fields Inspector")]
 
     def odoo_fields_inspector_execute(
-            self,
-            model: str,
-            field_names: Optional[List[str]] = None,
-            limit: int = 0
-    ) -> Dict[str, Any]:
+        self, model: str, field_names: list[str] | None = None, limit: int = 0
+    ) -> dict[str, Any]:
         """
         Retrieve detailed field information for an Odoo model
 
@@ -28,7 +25,9 @@ class LLMToolFieldsInspector(models.Model):
             field_names: Optional list of specific field names to retrieve (if None, all fields will be returned)
             limit: Maximum number of fields to return (0 means no limit)
         """
-        _logger.info(f"Executing Odoo Fields Inspector with: model={model}, field_names={field_names}, limit={limit}")
+        _logger.info(
+            f"Executing Odoo Fields Inspector with: model={model}, field_names={field_names}, limit={limit}"
+        )
 
         try:
             # Check if model exists
@@ -89,11 +88,11 @@ class LLMToolFieldsInspector(models.Model):
                 "total_fields": total_fields,
                 "limited": limit > 0 and total_fields > limit,
                 "message": f"Field information retrieved successfully for {model}"
-                           + (
-                               f" (limited to {limit} fields)"
-                               if limit > 0 and total_fields > limit
-                               else ""
-                           ),
+                + (
+                    f" (limited to {limit} fields)"
+                    if limit > 0 and total_fields > limit
+                    else ""
+                ),
             }
 
             return result

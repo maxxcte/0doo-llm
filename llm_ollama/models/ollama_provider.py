@@ -38,37 +38,36 @@ class LLMProvider(models.Model):
         Returns:
             Dictionary in Ollama tool format
         """
-        # First try to use overridden schema if available
-        if tool.override_tool_schema and tool.overriden_schema:
-            try:
-                schema = json.loads(tool.overriden_schema)
+        try:
+            # First use the explicit input_schema if available
+            if tool.input_schema:
+                try:
+                    schema = json.loads(tool.input_schema)
+                    return self._create_ollama_tool_from_schema(schema, tool)
+                except json.JSONDecodeError:
+                    _logger.error(f"Invalid JSON schema for tool {tool.name}")
+                    # Continue to next approach
+
+            # Next generate schema from the tool's method signature
+            schema = tool.get_input_schema()
+            if schema:
                 return self._create_ollama_tool_from_schema(schema, tool)
-            except json.JSONDecodeError:
-                _logger.error(f"Invalid JSON schema for tool {tool.name}")
-                # Continue to next approach
 
-        # Next try to use Pydantic model
-        try:
-            pydantic_model = tool.get_pydantic_model()
-            if pydantic_model:
-                # Get schema directly from Pydantic model
-                model_schema = pydantic_model.model_json_schema()
-                return self._create_ollama_tool_from_schema(model_schema, tool)
-        except Exception as e:
-            _logger.error(f"Error using Pydantic model for {tool.name}: {str(e)}")
-            # Continue to fallback approach
-
-        # Fallback to using the stored schema
-        try:
-            schema = json.loads(tool.schema)
+            # If we still don't have a schema, use minimal fallback
+            _logger.warning(
+                f"Could not get schema for tool {tool.name}, using fallback"
+            )
+            schema = {"type": "object", "properties": {}, "required": []}
             return self._create_ollama_tool_from_schema(schema, tool)
-        except json.JSONDecodeError:
-            _logger.error(f"Invalid JSON schema for tool {tool.name}")
+
+        except Exception as e:
+            _logger.error(f"Error formatting tool {tool.name}: {str(e)}")
             # Use minimal fallback schema
             schema = {
                 "title": tool.name,
                 "description": tool.description,
                 "properties": {},
+                "required": [],
             }
             return self._create_ollama_tool_from_schema(schema, tool)
 
@@ -85,10 +84,8 @@ class LLMProvider(models.Model):
         formatted_tool = {
             "type": "function",
             "function": {
-                "name": schema.get("title", tool.name),
-                "description": tool.description
-                if tool.override_tool_description
-                else schema.get("description", ""),
+                "name": tool.name,
+                "description": tool.description,
                 "parameters": {
                     "type": "object",
                     "properties": schema.get("properties", {}),

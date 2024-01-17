@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from odoo import api, models
 
@@ -15,11 +15,8 @@ class LLMToolRecordUnlinker(models.Model):
         return implementations + [("odoo_record_unlinker", "Odoo Record Unlinker")]
 
     def odoo_record_unlinker_execute(
-            self,
-            model: str,
-            domain: List[List[Any]],
-            limit: int = 1
-    ) -> Dict[str, Any]:
+        self, model: str, domain: list[list[Any]], limit: int = 1
+    ) -> dict[str, Any]:
         """
         Delete records from the specified Odoo model based on the provided domain
 
@@ -28,7 +25,9 @@ class LLMToolRecordUnlinker(models.Model):
             domain: Domain to identify records to delete
             limit: Maximum number of records to delete (default: 1 for safety)
         """
-        _logger.info(f"Executing Odoo Record Unlinker with: model={model}, domain={domain}, limit={limit}")
+        _logger.info(
+            f"Executing Odoo Record Unlinker with: model={model}, domain={domain}, limit={limit}"
+        )
 
         try:
             model_obj = self.env[model]
@@ -37,9 +36,7 @@ class LLMToolRecordUnlinker(models.Model):
             records = model_obj.search(domain, limit=limit)
 
             if not records:
-                return {
-                    "message": f"No records found matching the domain in {model}"
-                }
+                return {"message": f"No records found matching the domain in {model}"}
 
             # Store record info before deletion for reporting
             record_info = [
@@ -57,7 +54,7 @@ class LLMToolRecordUnlinker(models.Model):
             result = {
                 "deleted_count": count,
                 "deleted_records": record_info,
-                "message": f"{count} record(s) deleted successfully from {model}"
+                "message": f"{count} record(s) deleted successfully from {model}",
             }
 
             return result

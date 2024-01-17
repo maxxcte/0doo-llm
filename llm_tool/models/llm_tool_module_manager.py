@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Literal
+from typing import Any, Literal
 
 from odoo import _, api, exceptions, models
 from odoo.tools import config
@@ -20,10 +20,8 @@ class LLMToolModuleManager(models.Model):
         return implementations + [("odoo_module_manager", "Odoo Module Manager")]
 
     def odoo_module_manager_execute(
-            self,
-            module_name: str,
-            operation: Literal["install", "upgrade"]
-    ) -> Dict[str, Any]:
+        self, module_name: str, operation: Literal["install", "upgrade"]
+    ) -> dict[str, Any]:
         """
         Manage Odoo modules (install or upgrade)
 
@@ -31,7 +29,9 @@ class LLMToolModuleManager(models.Model):
             module_name: Technical name of the Odoo module
             operation: Action to perform: 'install' or 'upgrade'
         """
-        _logger.info(f"Executing Odoo Module Manager with: module_name={module_name}, operation={operation}")
+        _logger.info(
+            f"Executing Odoo Module Manager with: module_name={module_name}, operation={operation}"
+        )
 
         # 1. Security Check: Ensure user has System Administrator rights
         if not self.env.user.has_group("base.group_system"):
