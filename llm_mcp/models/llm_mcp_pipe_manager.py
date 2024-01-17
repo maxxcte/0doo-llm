@@ -4,6 +4,10 @@ import logging
 import json
 import time
 import traceback
+import select
+import queue
+import os
+import signal
 
 _logger = logging.getLogger(__name__)
 
@@ -38,12 +42,22 @@ class PipeManager:
         self._max_start_attempts = 3
         self._process_start_timeout = 10  # seconds
 
+        # Response queue and reader thread for non-blocking reads
+        self._response_queue = queue.Queue()
+        self._reader_thread = None
+        self._stop_reader = threading.Event()
+
     def start_process(self):
         """Start or restart the subprocess. Returns True if successful."""
         with self._lock:
+            # Stop any existing reader thread
+            self._stop_reader_thread()
+
             if self.process is not None and self.process.poll() is None:
                 # Process is already running
                 _logger.info(f"MCP process for '{self.command}' is already running")
+                # Start reader thread if not running
+                self._start_reader_thread()
                 return True
 
             # Clear any previous process state
@@ -73,6 +87,7 @@ class PipeManager:
 
                 _logger.info(f"Starting MCP process with command: {cmd}")
 
+                # Use non-blocking process communication
                 self.process = subprocess.Popen(
                     cmd,
                     stdin=subprocess.PIPE,
@@ -80,6 +95,7 @@ class PipeManager:
                     stderr=subprocess.PIPE,
                     text=True,  # Use text mode for string I/O
                     bufsize=1,  # Line buffering
+                    start_new_session=True,  # Put in a new process group to avoid parent signals
                 )
                 self.stdin = self.process.stdin
                 self.stdout = self.process.stdout
@@ -97,15 +113,8 @@ class PipeManager:
                     # Process is still running, which is good
                     if self.stdin and self.stdout:
                         _logger.info(f"MCP process started successfully for '{self.command}'")
-                        # Check if there's any initial output
-                        if self.stdout.readable() and not self.process.poll():
-                            try:
-                                # Non-blocking read if possible
-                                initial_output = self.process.stderr.read(1024)
-                                if initial_output:
-                                    _logger.info(f"Initial stderr output: {initial_output}")
-                            except Exception as e:
-                                _logger.warning(f"Error reading initial stderr: {e}")
+                        # Start the reader thread
+                        self._start_reader_thread()
                         return True
 
                     # Wait a bit before checking again
@@ -122,92 +131,61 @@ class PipeManager:
                 self.stdout = None
                 return False
 
-    def check_server_health(self):
-        """Check if the MCP server is responding correctly and debug issues"""
-        _logger.info(f"Checking health of MCP server '{self.command}'")
+    def _start_reader_thread(self):
+        """Start a background thread to read from stdout non-blockingly"""
+        if self._reader_thread is not None and self._reader_thread.is_alive():
+            return  # Thread already running
 
-        # First make sure the process is running
-        if self.process is None or self.process.poll() is not None:
-            _logger.warning("Server process not running, trying to restart")
-            if not self.start_process():
-                return {"status": "error", "message": "Failed to start process"}
+        self._stop_reader.clear()
+        self._reader_thread = threading.Thread(
+            target=self._reader_loop,
+            name=f"mcp-reader-{self.command}"
+        )
+        self._reader_thread.daemon = True
+        self._reader_thread.start()
+        _logger.info(f"Started reader thread for '{self.command}'")
 
-        # Try to read any pending output
-        pending_output = []
-        try:
-            import select
-            while select.select([self.stdout], [], [], 0.1)[0]:  # Check if stdout has data
-                line = self.stdout.readline()
-                if not line:
-                    break
-                pending_output.append(line.strip())
-        except Exception as e:
-            _logger.warning(f"Error reading pending output: {e}")
+    def _stop_reader_thread(self):
+        """Signal the reader thread to stop and wait for it"""
+        if self._reader_thread is not None and self._reader_thread.is_alive():
+            _logger.info(f"Stopping reader thread for '{self.command}'")
+            self._stop_reader.set()
+            self._reader_thread.join(timeout=2)
+            if self._reader_thread.is_alive():
+                _logger.warning(f"Reader thread for '{self.command}' did not stop cleanly")
+            else:
+                _logger.info(f"Reader thread for '{self.command}' stopped")
+        self._reader_thread = None
 
-        if pending_output:
-            _logger.info(f"Found pending output: {pending_output}")
+    def _reader_loop(self):
+        """Background thread to continually read from stdout and queue responses"""
+        _logger.info(f"Reader thread started for '{self.command}'")
 
-        # Check stderr for any error messages
-        stderr_content = ""
-        try:
-            if self.process.stderr.readable():
-                # Try non-blocking read
-                import io
-                stderr_content = self.process.stderr.read(1024)
-        except Exception as e:
-            _logger.warning(f"Error reading stderr: {e}")
+        while not self._stop_reader.is_set():
+            # Check if process is still running
+            if self.process is None or self.process.poll() is not None:
+                _logger.warning(f"Process '{self.command}' has terminated, reader thread exiting")
+                break
 
-        if stderr_content:
-            _logger.warning(f"Server stderr output: {stderr_content}")
-
-        # Try a simple echo request to test communication
-        try:
-            echo_request = {
-                "jsonrpc": "2.0",
-                "id": self._get_next_request_id(),
-                "method": "echo",  # This might not be part of MCP, but many RPC servers support it
-                "params": {"message": "ping"}
-            }
-
-            _logger.info(f"Sending echo test request: {json.dumps(echo_request)}")
-
-            # Write directly to stdin to avoid circular dependency
             try:
-                echo_json = json.dumps(echo_request)
-                self.stdin.write(f"{echo_json}\n")
-                self.stdin.flush()
+                # Check if stdout has data with a short timeout
+                if select.select([self.stdout], [], [], 0.1)[0]:
+                    line = self.stdout.readline().strip()
+                    if line:
+                        _logger.debug(f"Reader thread read: {line}")
+                        try:
+                            # Parse and queue the response
+                            response = json.loads(line)
+                            self._response_queue.put(response)
+                            _logger.debug(f"Queued response with id: {response.get('id')}")
+                        except json.JSONDecodeError as e:
+                            _logger.warning(f"Reader thread: Invalid JSON: {e}. Data: {line}")
             except Exception as e:
-                return {"status": "error", "message": f"Failed to write to server: {str(e)}"}
+                if not self._stop_reader.is_set():  # Only log if we're not deliberately stopping
+                    _logger.error(f"Error in reader thread: {e}")
+                time.sleep(0.1)  # Avoid tight loop in case of repeated errors
 
-            # Try to read response with timeout
-            import select
-            ready_to_read, _, _ = select.select([self.stdout], [], [], 2)
-            if not ready_to_read:
-                return {"status": "error", "message": "Server not responding to echo request"}
-
-            response_line = self.stdout.readline().strip()
-            if not response_line:
-                return {"status": "error", "message": "Server returned empty response to echo"}
-
-            _logger.info(f"Received echo response: {response_line}")
-
-            try:
-                response = json.loads(response_line)
-                return {
-                    "status": "ok" if "result" in response else "error",
-                    "response": response,
-                    "stderr": stderr_content
-                }
-            except json.JSONDecodeError:
-                return {
-                    "status": "error",
-                    "message": "Server returned invalid JSON",
-                    "response": response_line,
-                    "stderr": stderr_content
-                }
-
-        except Exception as e:
-            return {"status": "error", "message": f"Error during health check: {str(e)}"}
+        _logger.info(f"Reader thread for '{self.command}' exiting")
 
     def _initialize_mcp(self):
         """Initialize the MCP protocol with the server. Returns True if successful."""
@@ -215,17 +193,18 @@ class PipeManager:
             _logger.info("MCP protocol already initialized")
             return True
 
-        # First check if there's any pending output that could interfere with communication
-        health_check = self.check_server_health()
-        if health_check.get("status") == "error":
-            _logger.warning(f"Health check failed before initialization: {health_check.get('message')}")
-            # Continue anyway, as the health check might fail for servers not supporting echo
-
         try:
-            # Make sure process is running
+            # Make sure process is running and reader thread is active
             if not self.start_process():
                 _logger.error("Failed to start process for MCP initialization")
                 return False
+
+            # Clear the response queue in case there are old messages
+            while not self._response_queue.empty():
+                try:
+                    self._response_queue.get_nowait()
+                except queue.Empty:
+                    break
 
             # Send initialize request according to MCP protocol
             initialize_request = {
@@ -244,66 +223,46 @@ class PipeManager:
                 }
             }
 
-            _logger.info(f"Initializing MCP protocol with request: {json.dumps(initialize_request)}")
+            request_id = initialize_request["id"]
+            _logger.info(f"Initializing MCP protocol with request id {request_id}")
 
-            # Direct write to avoid any potential circular issues
-            initialize_json = json.dumps(initialize_request)
-            self.stdin.write(f"{initialize_json}\n")
-            self.stdin.flush()
+            # Send the request
+            self._write_json(initialize_request)
 
-            # Read with timeout and retry
+            # Wait for response with timeout
+            timeout = 5  # seconds
+            start_time = time.time()
             response = None
-            max_attempts = 3
-            attempt = 0
 
-            while response is None and attempt < max_attempts:
-                attempt += 1
-                _logger.info(f"Reading initialization response (attempt {attempt}/{max_attempts})")
-
-                # Check if the process is still alive
+            while time.time() - start_time < timeout:
+                # Check if process is still alive
                 if self.process.poll() is not None:
                     exit_code = self.process.returncode
-                    stderr_output = self.process.stderr.read()
+                    stderr_output = "N/A"
+                    try:
+                        stderr_output = self.process.stderr.read()
+                    except:
+                        pass
                     _logger.error(f"Process exited during initialization with code {exit_code} and error: {stderr_output}")
                     return False
 
-                # Try to read with timeout
-                import select
-                ready_to_read, _, _ = select.select([self.stdout], [], [], 3)
-                if not ready_to_read:
-                    _logger.warning(f"No data received after 3 seconds (attempt {attempt})")
-                    # Check stderr for any clues
-                    try:
-                        stderr_content = self.process.stderr.read(1024)
-                        if stderr_content:
-                            _logger.warning(f"Stderr content: {stderr_content}")
-                    except:
-                        pass
-                    continue
-
-                line = self.stdout.readline().strip()
-                if not line:
-                    _logger.warning(f"Empty line received (attempt {attempt})")
-                    # Wait a bit before retrying
-                    time.sleep(1)
-                    continue
-
-                _logger.info(f"Received raw data: {line}")
-
                 try:
-                    response = json.loads(line)
-                except json.JSONDecodeError as e:
-                    _logger.error(f"Invalid JSON received: {e}. Data: '{line}'")
-                    # If it's not valid JSON, it might be some startup message
-                    # Wait a bit and try the next line
-                    time.sleep(0.5)
-                    continue
+                    # Try to get a response with a short timeout
+                    response = self._response_queue.get(timeout=0.5)
+
+                    # Check if this is the response we're waiting for
+                    if response.get("id") == request_id:
+                        _logger.info(f"Received initialization response for id {request_id}")
+                        break
+                    else:
+                        _logger.warning(f"Received response for different id: {response.get('id')}, expecting {request_id}")
+                except queue.Empty:
+                    # No response yet, continue waiting
+                    pass
 
             if response is None:
-                _logger.error("Failed to get valid response after multiple attempts")
+                _logger.error(f"Timeout waiting for initialization response after {timeout} seconds")
                 return False
-
-            _logger.info(f"Received initialization response: {json.dumps(response)}")
 
             if response and "result" in response:
                 self._initialized = True
@@ -320,7 +279,7 @@ class PipeManager:
                     "method": "notifications/initialized",
                     "params": {}
                 }
-                _logger.info(f"Sending initialized notification: {json.dumps(initialized_notification)}")
+                _logger.info(f"Sending initialized notification")
                 self._write_json(initialized_notification)
 
                 _logger.info(f"MCP server initialized successfully with protocol version {self.protocol_version}")
@@ -335,6 +294,7 @@ class PipeManager:
         except Exception as e:
             _logger.error(f"Error initializing MCP server: {str(e)}\n{traceback.format_exc()}")
             return False
+
     def _get_next_request_id(self):
         """Get a unique request ID for JSON-RPC requests"""
         with self._lock:
@@ -365,54 +325,39 @@ class PipeManager:
                     raise IOError(f"Failed to restart process after write error: {e}")
                 raise IOError(f"Error communicating with MCP server: {e}")
 
-    def _read_json(self, timeout=None):
-        """Read and parse JSON from the process stdout"""
-        with self._lock:
-            # Ensure process is running
-            if self.process is None or self.process.poll() is not None:
-                _logger.warning("Process not running before read, attempting to start")
-                if not self.start_process():
-                    error_msg = "Failed to start process for reading"
-                    _logger.error(error_msg)
-                    raise IOError(error_msg)
+    def _read_response_with_timeout(self, request_id, timeout=5):
+        """Read a response for a specific request ID with timeout"""
+        start_time = time.time()
+
+        while time.time() - start_time < timeout:
+            # Check if process is still alive
+            if self.process.poll() is not None:
+                exit_code = self.process.returncode
+                stderr_output = "N/A"
+                try:
+                    stderr_output = self.process.stderr.read()
+                except:
+                    pass
+                _logger.error(f"Process exited while waiting for response {request_id} with code {exit_code} and error: {stderr_output}")
+                return None
 
             try:
-                # Handle timeout if specified
-                if timeout:
-                    import select
-                    ready_to_read, _, _ = select.select([self.stdout], [], [], timeout)
-                    if not ready_to_read:
-                        _logger.warning(f"Read timeout after {timeout} seconds")
-                        return None
+                # Try to get a response with a short timeout
+                response = self._response_queue.get(timeout=0.5)
 
-                line = self.stdout.readline().strip()
-                if not line:
-                    stderr_content = "N/A"
-                    try:
-                        if self.process.poll() is not None:
-                            stderr_content = self.process.stderr.read(1024)
-                        else:
-                            stderr_content = "Process still running, no stderr available"
-                    except:
-                        pass
-                    _logger.warning(f"Read empty line from MCP server. stderr: {stderr_content}")
-                    return None
+                # Check if this is the response we're waiting for
+                if response.get("id") == request_id:
+                    return response
+                else:
+                    _logger.warning(f"Received response for id {response.get('id')}, expecting {request_id}")
+                    # Put it back in the queue in case someone else is waiting for it
+                    self._response_queue.put(response)
+            except queue.Empty:
+                # No response yet, continue waiting
+                pass
 
-                _logger.info(f"Read from MCP server: {line}")
-                try:
-                    return json.loads(line)
-                except json.JSONDecodeError as e:
-                    _logger.error(f"Invalid JSON received from server: {e}. Data: {line}")
-                    return None
-            except json.JSONDecodeError as e:
-                _logger.error(f"Invalid JSON received from server: {e}")
-                return None
-            except Exception as e:
-                _logger.error(f"Error reading JSON from pipe: {e}\n{traceback.format_exc()}")
-                # Try to restart process
-                if not self.start_process():
-                    raise IOError(f"Failed to restart process after read error: {e}")
-                raise IOError(f"Error communicating with MCP server: {e}")
+        _logger.error(f"Timeout waiting for response to request {request_id} after {timeout} seconds")
+        return None
 
     def list_tools(self):
         """Send a tools/list request to the server"""
@@ -430,15 +375,15 @@ class PipeManager:
                 "params": {}
             }
 
-            _logger.info(f"Sending tools/list request: {json.dumps(request)}")
+            _logger.info(f"Sending tools/list request with id {request_id}")
             self._write_json(request)
-            response = self._read_json()
+
+            # Wait for response with timeout
+            response = self._read_response_with_timeout(request_id)
 
             if response is None:
                 _logger.error("No response received for tools/list request")
                 return None
-
-            _logger.info(f"Received tools/list response: {json.dumps(response)}")
 
             if response and "result" in response and "tools" in response["result"]:
                 _logger.info(f"Successfully listed {len(response['result']['tools'])} tools from MCP server")
@@ -473,15 +418,15 @@ class PipeManager:
                 }
             }
 
-            _logger.info(f"Sending tools/call request for tool '{tool_name}': {json.dumps(request)}")
+            _logger.info(f"Sending tools/call request for tool '{tool_name}' with id {request_id}")
             self._write_json(request)
-            response = self._read_json()
+
+            # Wait for response with timeout (tool execution might take longer)
+            response = self._read_response_with_timeout(request_id, timeout=30)
 
             if response is None:
                 _logger.error(f"No response received for tools/call request for tool '{tool_name}'")
                 return {"error": "No response from MCP server"}
-
-            _logger.info(f"Received tools/call response for tool '{tool_name}': {json.dumps(response)}")
 
             if response and "result" in response:
                 # Handle tool call result according to MCP protocol
@@ -521,18 +466,81 @@ class PipeManager:
             _logger.error(f"Exception calling tool {tool_name}: {str(e)}\n{traceback.format_exc()}")
             return {"error": str(e)}
 
+    def check_server_health(self):
+        """Check if the MCP server is responding correctly and debug issues"""
+        _logger.info(f"Checking health of MCP server '{self.command}'")
+
+        # First make sure the process is running
+        if self.process is None or self.process.poll() is not None:
+            _logger.warning("Server process not running, trying to restart")
+            if not self.start_process():
+                return {"status": "error", "message": "Failed to start process"}
+
+        # Check stderr for any error messages
+        stderr_content = ""
+        try:
+            if select.select([self.process.stderr], [], [], 0.1)[0]:
+                stderr_content = self.process.stderr.read(1024)
+        except Exception as e:
+            _logger.warning(f"Error reading stderr: {e}")
+
+        if stderr_content:
+            _logger.warning(f"Server stderr output: {stderr_content}")
+
+        # Try a simple echo request to test communication
+        try:
+            echo_request = {
+                "jsonrpc": "2.0",
+                "id": self._get_next_request_id(),
+                "method": "echo",  # This might not be part of MCP, but many RPC servers support it
+                "params": {"message": "ping"}
+            }
+
+            _logger.info(f"Sending echo test request: {json.dumps(echo_request)}")
+
+            # Write the request
+            self._write_json(echo_request)
+
+            # Try to read response with timeout
+            response = self._read_response_with_timeout(echo_request["id"], timeout=2)
+
+            if response is None:
+                return {"status": "error", "message": "Server not responding to echo request"}
+
+            _logger.info(f"Received echo response: {json.dumps(response)}")
+
+            return {
+                "status": "ok" if "result" in response else "error",
+                "response": response,
+                "stderr": stderr_content
+            }
+
+        except Exception as e:
+            return {"status": "error", "message": f"Error during health check: {str(e)}"}
+
     def close(self):
         """Clean up the process."""
         with self._lock:
+            # Stop reader thread first
+            self._stop_reader_thread()
+
             if self.process:
                 _logger.info(f"Closing MCP process for '{self.command}'")
                 try:
+                    # Try to gracefully terminate the process
                     self.process.terminate()
                     try:
                         self.process.wait(timeout=5)
                     except subprocess.TimeoutExpired:
                         _logger.warning("Process did not terminate, killing it")
-                        self.process.kill()
+                        # If on Unix, try SIGKILL
+                        if hasattr(signal, 'SIGKILL'):
+                            try:
+                                os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
+                            except:
+                                self.process.kill()
+                        else:
+                            self.process.kill()
                         self.process.wait(timeout=2)
                 except Exception as e:
                     _logger.error(f"Error terminating process: {e}")
@@ -544,3 +552,10 @@ class PipeManager:
                     # not process state
 
             _logger.info("MCP pipe manager closed")
+
+    def __del__(self):
+        """Destructor to ensure process is closed when object is garbage collected"""
+        try:
+            self.close()
+        except:
+            pass
