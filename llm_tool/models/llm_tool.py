@@ -230,3 +230,24 @@ class LLMTool(models.Model):
         }
 
         return tool_def
+
+    @api.onchange('implementation')
+    def _onchange_implementation(self):
+        """When implementation changes and input_schema is empty, populate it with the implementation schema"""
+        if self.implementation and not self.input_schema:
+            schema = self.get_input_schema()
+            if schema:
+                self.input_schema = json.dumps(schema, indent=2)
+
+    def action_reset_input_schema(self):
+        """Reset the input schema to the implementation schema"""
+        for record in self:
+            schema = record.get_input_schema()
+            if schema:
+                record.input_schema = json.dumps(schema, indent=2)
+        # Return an action to reload the view
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'reload',
+        }
+

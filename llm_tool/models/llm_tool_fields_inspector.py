@@ -15,7 +15,7 @@ class LLMToolFieldsInspector(models.Model):
         return implementations + [("odoo_fields_inspector", "Odoo Fields Inspector")]
 
     def odoo_fields_inspector_execute(
-        self, model: str, field_names: list[str] | None = None, limit: int = 0
+        self, model: str, field_names: list[str] = [], limit: int = 0
     ) -> dict[str, Any]:
         """
         Retrieve detailed field information for an Odoo model

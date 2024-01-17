@@ -36,6 +36,7 @@
         "data/mail_message_subtype.xml",
         "data/llm_tool_data.xml",
         "data/llm_tool_consent_config_data.xml",
+        "data/server_actions.xml",
         "views/llm_menu_views.xml",
     ],
     "images": [

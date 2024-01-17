@@ -35,10 +35,6 @@
                     <group>
                         <group string="Basic Configuration">
                             <field name="implementation" />
-                            <field
-                name="title"
-                placeholder="Human-readable title for the tool"
-              />
                             <field name="default" />
                             <field name="active" />
                             <field name="requires_user_consent" />
@@ -51,6 +47,11 @@
               />
                         </group>
                         <group string="Tool Annotations">
+                            <field
+                                    name="title"
+                                    placeholder="Human-readable title for the tool"
+                            />
+
                             <field name="read_only_hint" />
                             <field
                 name="idempotent_hint"
