@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM MCP - Model Context Protocol Integration for Odoo | AI Extensions</title>
+    <meta name="description" content="Connect your Odoo AI chat with external tools and services using the Model Context Protocol. Enable your LLMs to interact with any MCP-compliant server for enhanced functionality.">
+    <meta name="keywords" content="Odoo MCP integration, Model Context Protocol, AI tool integration, LLM tools, ChatGPT tools, Claude tool execution, AI function calling, external AI tools, Odoo automation, MCP server, JSON-RPC protocol">
+    <meta name="author" content="Apexive Solutions LLC">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #663399;
+            --secondary-color: #9370DB;
+            --accent-color: #FF6B6B;
+            --light-bg: #f8f9fa;
+            --dark-bg: #212529;
+        }
+
+        .bg-primary-gradient {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            position: relative;
+            margin-bottom: 2rem;
+            color: var(--primary-color);
+        }
+
+        .section-title:after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -10px;
+            width: 50px;
+            height: 3px;
+            background: var(--accent-color);
+        }
+
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: var(--primary-color);
+        }
+
+        .nav-pills .nav-link {
+            color: var(--dark-bg);
+        }
+
+        .nav-pills .nav-link.active {
+            color: white;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+
+        .code-block {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+
+        .hero-section {
+            background-size: cover;
+            background-position: center;
+            padding: 5rem 0;
+            position: relative;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .faq-item {
+            margin-bottom: 1.5rem;
+        }
+
+        .faq-question {
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background-color: var(--light-bg);
+            border-radius: 5px;
+        }
+
+        .faq-answer {
+            padding: 1rem;
+            border: 1px solid #eee;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            display: none;
+        }
+
+        .testimonial-card {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .testimonial-content {
+            font-style: italic;
+            margin-bottom: 1rem;
+        }
+
+        .testimonial-author {
+            font-weight: 600;
+        }
+
+        .screenshot {
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            max-width: 100%;
+        }
+
+        .protocol-diagram {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin: 1.5rem 0;
+        }
+    </style>
+</head>
+<body data-bs-spy="scroll" data-bs-target="#navbar" data-bs-offset="100">
+<!-- Navigation -->
+<nav id="navbar" class="navbar navbar-expand-lg navbar-dark bg-primary-gradient sticky-top">
+    <div class="container">
+        <a class="navbar-brand" href="#">
+            <img src="icon.svg" alt="LLM MCP Logo" width="40"> LLM MCP
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="#overview">Overview</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#features">Features</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#installation">Installation</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#usage">Usage</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#technical">Technical</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#faq">FAQ</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero Banner -->
+<header class="bg-primary-gradient text-white text-center py-5">
+    <div class="container">
+        <h1 class="display-3 fw-bold mb-3">LLM MCP</h1>
+        <p class="lead fs-4 mb-4">Model Context Protocol Integration for Odoo AI</p>
+        <p class="w-75 mx-auto mb-5">Connect your Odoo LLM chatbots with external tools and services using the standardized Model Context Protocol</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="#installation" class="btn btn-light btn-lg px-4">Installation Guide</a>
+            <a href="https://github.com/apexive/odoo-llm" target="_blank" class="btn btn-outline-light btn-lg px-4">View on GitHub</a>
+        </div>
+    </div>
+</header>
+
+<!-- Overview Section -->
+<section id="overview" class="py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h2 class="section-title">What is Model Context Protocol?</h2>
+                <p class="lead">The Model Context Protocol (MCP) is a standardized way for AI systems to discover and interact with external tools and services.</p>
+                <p>This module extends Odoo's LLM capabilities by adding support for the Model Context Protocol, enabling AI assistants in Odoo to connect with and use tools provided by external MCP-compliant servers.</p>
+                <p>By supporting this protocol, your Odoo instance becomes part of a growing ecosystem of AI tools, allowing your LLM models to execute external functions seamlessly through a standardized JSON-RPC 2.0 based protocol.</p>
+            </div>
+            <div class="col-lg-6">
+                <div class="bg-light p-4 rounded shadow-sm">
+                    <img src="/api/placeholder/700/400" alt="MCP Architecture Diagram" class="img-fluid rounded">
+                    <p class="text-center mt-2 text-muted"><small>Model Context Protocol Architecture</small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Key Features Section -->
+<section id="features" class="py-5 bg-light">
+    <div class="container">
+        <h2 class="section-title text-center mb-5">Key Features</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 p-4 text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h3 class="h4">Auto-Discovery</h3>
+                    <p>Automatically discover and register tools exposed by MCP servers without manual configuration.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 p-4 text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-terminal"></i>
+                    </div>
+                    <h3 class="h4">Seamless Execution</h3>
+                    <p>Execute external tools through your LLM conversations without additional user intervention.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 p-4 text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <h3 class="h4">Standardized Protocol</h3>
+                    <p>Full compliance with the JSON-RPC 2.0 based Model Context Protocol specification.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 p-4 text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-stream"></i>
+                    </div>
+                    <h3 class="h4">Standard I/O Transport</h3>
+                    <p>Connect to external processes using standard input/output pipes for secure communication.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 p-4 text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h3 class="h4">Simple Management</h3>
+                    <p>Easy-to-use interface for managing MCP server connections and monitoring tool availability.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 p-4 text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-plug"></i>
+                    </div>
+                    <h3 class="h4">Integration with LLM Tools</h3>
+                    <p>Works with existing LLM Tool module for a consistent experience across all AI tools.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Use Cases Section -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="section-title text-center mb-5">Use Cases</h2>
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="card-title"><i class="fas fa-code text-primary me-2"></i> Code Execution</h3>
+                        <p class="card-text">Connect to Python, JavaScript, or other code execution environments to let your LLM process data, perform calculations, or create visualizations based on user requests.</p>
+                        <div class="code-block">
+                                <pre>User: Can you analyze our sales data?
+LLM: I'll analyze that for you using Python.
+[Executes external Python tool via MCP]
+Here's a breakdown of your sales trends...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="card-title"><i class="fas fa-database text-primary me-2"></i> Database Operations</h3>
+                        <p class="card-text">Give your AI the ability to query external databases or data services, analyzing information beyond what's available in Odoo.</p>
+                        <div class="code-block">
+                                <pre>User: Find market data for our competitors
+LLM: Let me check the market database.
+[Calls external database tool via MCP]
+Based on the market data, your competitors...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="card-title"><i class="fas fa-robot text-primary me-2"></i> Custom AI Capabilities</h3>
+                        <p class="card-text">Extend your LLM with specialized AI models for image recognition, document processing, or other domain-specific tasks.</p>
+                        <div class="code-block">
+                                <pre>User: What's in this product image?
+LLM: Let me analyze that for you.
+[Calls external image recognition via MCP]
+The image shows a product with...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="card-title"><i class="fas fa-globe text-primary me-2"></i> External API Integration</h3>
+                        <p class="card-text">Connect to weather services, mapping tools, or any other external API through a standardized interface without additional development.</p>
+                        <div class="code-block">
+                                <pre>User: How's the weather at our delivery location?
+LLM: Let me check that for you.
+[Calls weather service via MCP]
+The weather at the delivery location is...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Installation Section -->
+<section id="installation" class="py-5 bg-light">
+    <div class="container">
+        <h2 class="section-title text-center mb-5">Installation Guide</h2>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <h3 class="mb-4">Prerequisites</h3>
+                        <ul class="list-group list-group-flush mb-4">
+                            <li class="list-group-item bg-transparent"><i class="fas fa-check-circle text-success me-2"></i> Odoo v16.0 or newer</li>
+                            <li class="list-group-item bg-transparent"><i class="fas fa-check-circle text-success me-2"></i> <code>llm</code> module installed</li>
+                            <li class="list-group-item bg-transparent"><i class="fas fa-check-circle text-success me-2"></i> <code>llm_tool</code> module installed</li>
+                        </ul>
+
+                        <h3 class="mb-4">Installation Steps</h3>
+                        <ol class="list-group list-group-numbered mb-4">
+                            <li class="list-group-item bg-transparent d-flex">
+                                <div>
+                                    <strong>Download the module</strong>
+                                    <p class="mb-0">Get the module from the Odoo App Store or GitHub repository.</p>
+                                </div>
+                            </li>
+                            <li class="list-group-item bg-transparent d-flex">
+                                <div>
+                                    <strong>Upload to your Odoo instance</strong>
+                                    <p class="mb-0">Extract the module to your Odoo addons directory.</p>
+                                </div>
+                            </li>
+                            <li class="list-group-item bg-transparent d-flex">
+                                <div>
+                                    <strong>Install the module</strong>
+                                    <p class="mb-0">Go to Apps menu, remove the apps filter, and search for "LLM MCP". Click Install.</p>
+                                </div>
+                            </li>
+                            <li class="list-group-item bg-transparent d-flex">
+                                <div>
+                                    <strong>Configure MCP servers</strong>
+                                    <p class="mb-0">Navigate to LLM Configuration → MCP Servers to set up your connections.</p>
+                                </div>
+                            </li>
+                        </ol>
+
+                        <h3 class="mb-4">Module Dependencies</h3>
+                        <div class="code-block mb-4">
+                                <pre>- base
+- mail
+- llm
+- llm_tool</pre>
+                        </div>
+
+                        <div class="alert alert-info d-flex">
+                            <i class="fas fa-info-circle me-3 fs-4 align-self-center"></i>
+                            <div>
+                                <strong>Note:</strong> You need to have at least one MCP-compliant server available to use this module effectively. You can develop your own or use available open-source implementations.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Usage Guide Section -->
+<section id="usage" class="py-5">
+    <div class="container">
+        <h2 class="section-title text-center mb-5">Usage Guide</h2>
+
+        <div class="row align-items-center mb-5">
+            <div class="col-lg-6 order-lg-2">
+                <img src="/api/placeholder/600/400" alt="MCP Server Configuration" class="img-fluid screenshot">
+            </div>
+            <div class="col-lg-6 order-lg-1">
+                <h3>1. Configure an MCP Server</h3>
+                <p>Start by setting up a connection to your MCP-compliant server:</p>
+                <ol>
+                    <li>Navigate to <strong>LLM Configuration → MCP Servers</strong></li>
+                    <li>Click <strong>Create</strong> to add a new server</li>
+                    <li>Fill in the server details:
+                        <ul>
+                            <li><strong>Name:</strong> A descriptive name for the server</li>
+                            <li><strong>Transport Type:</strong> Select "Standard IO"</li>
+                            <li><strong>Command:</strong> The command to execute (e.g., <code>python mcp_server.py</code>)</li>
+                            <li><strong>Arguments:</strong> Any command line arguments required</li>
+                        </ul>
+                    </li>
+                    <li>Click <strong>Save</strong> to create the server configuration</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="row align-items-center mb-5">
+            <div class="col-lg-6">
+                <img src="/api/placeholder/600/400" alt="Starting the MCP Server" class="img-fluid screenshot">
+            </div>
+            <div class="col-lg-6">
+                <h3>2. Start the Server and Discover Tools</h3>
+                <p>Once you've configured the server, start it and discover available tools:</p>
+                <ol>
+                    <li>Click the <strong>Start Server</strong> button to establish the connection</li>
+                    <li>The module will automatically discover and register tools exposed by the server</li>
+                    <li>View the discovered tools in the <strong>Tools</strong> tab</li>
+                    <li>You can click <strong>Refresh Tools</strong> anytime to update the tool list</li>
+                </ol>
+                <div class="alert alert-warning d-flex">
+                    <i class="fas fa-exclamation-triangle me-3 fs-4 align-self-center"></i>
+                    <div>
+                        <strong>Important:</strong> The external process must be MCP-compliant and respond to the initialization protocol. Non-compliant processes will fail to connect.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row align-items-center">
+            <div class="col-lg-6 order-lg-2">
+                <img src="/api/placeholder/600/400" alt="Using MCP Tools in Chat" class="img-fluid screenshot">
+            </div>
+            <div class="col-lg-6 order-lg-1">
+                <h3>3. Use MCP Tools in LLM Conversations</h3>
+                <p>Once tools are registered, they can be used in LLM conversations:</p>
+                <ol>
+                    <li>Navigate to any LLM conversation interface in Odoo</li>
+                    <li>The MCP tools will be available alongside other LLM tools</li>
+                    <li>When the LLM determines a tool should be used, it will:
+                        <ul>
+                            <li>Select the appropriate tool</li>
+                            <li>Provide the necessary parameters</li>
+                            <li>Execute the tool via the MCP server</li>
+                            <li>Use the results in its response</li>
+                        </ul>
+                    </li>
+                </ol>
+                <p>The entire process is seamless from the user's perspective - they simply interact with the LLM assistant naturally, and the appropriate tools are invoked as needed.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Technical Details Section -->
+<section id="technical" class="py-5 bg-light">
+    <div class="container">
+        <h2 class="section-title text-center mb-5">Technical Details</h2>
+
+        <div class="row justify-content-center mb-5">
+            <div class="col-lg-10">
+                <h3 class="mb-4">Model Context Protocol Overview</h3>
+                <p>The Model Context Protocol (MCP) is a JSON-RPC 2.0 based protocol that standardizes how AI systems discover and interact with external tools. Here's how it works:</p>
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h4>Protocol Flow</h4>
+                        <ol>
+                            <li><strong>Initialization:</strong> The client (Odoo) sends an initialization request to the server</li>
+                            <li><strong>Tool Discovery:</strong> The client requests a list of available tools</li>
+                            <li><strong>Tool Registration:</strong> Tools are registered in Odoo's tool registry</li>
+                            <li><strong>Tool Execution:</strong> When needed, the client sends tool execution requests</li>
+                            <li><strong>Result Processing:</strong> Results are returned to the LLM for incorporation in responses</li>
+                        </ol>
+                        <img src="/api/placeholder/800/400" alt="MCP Protocol Flow" class="protocol-diagram">
+                    </div>
+                </div>
+
+                <h3 class="mb-4">Implementation Details</h3>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary-gradient text-white">
+                                <h4 class="card-title mb-0">PipeManager</h4>
+                            </div>
+                            <div class="card-body">
+                                <p>The core component that manages communication with external processes:</p>
+                                <ul>
+                                    <li>Creates and manages subprocess connections</li>
+                                    <li>Handles non-blocking I/O with external processes</li>
+                                    <li>Manages the JSON-RPC protocol communication</li>
+                                    <li>Implements connection pooling and error recovery</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary-gradient text-white">
+                                <h4 class="card-title mb-0">LLM Tool Integration</h4>
+                            </div>
+                            <div class="card-body">
+                                <p>Extensions to the standard LLM Tool model:</p>
+                                <ul>
+                                    <li>Adds MCP as a new tool implementation type</li>
+                                    <li>Handles tool parameter validation</li>
+                                    <li>Manages tool execution via MCP servers</li>
+                                    <li>Processes and formats execution results</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="mb-4">Developing MCP Servers</h3>
+                <p>To create your own MCP-compliant server, you need to implement the following endpoints:</p>
+
+                <div class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                    <button class="nav-link active" id="pills-initialize-tab" data-bs-toggle="pill" data-bs-target="#pills-initialize" type="button" role="tab" aria-controls="pills-initialize" aria-selected="true">Initialize</button>
+                    <button class="nav-link" id="pills-tools-list-tab" data-bs-toggle="pill" data-bs-target="#pills-tools-list" type="button" role="tab" aria-controls="pills-tools-list" aria-selected="false">Tools List</button>
+                    <button class="nav-link" id="pills-tools-call-tab" data-bs-toggle="pill" data-bs-target="#pills-tools-call" type="button" role="tab" aria-controls="pills-tools-call" aria-selected="false">Tools Call</button>
+                </div>
+                <div class="tab-content mb-4" id="pills-tabContent">
+                    <div class="tab-pane fade show active" id="pills-initialize" role="tabpanel" aria-labelledby="pills-initialize-tab">
+                        <div class="code-block">
+<pre>{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {
+    "clientInfo": {
+      "name": "odoo-llm-mcp",
+      "version": "1.0.0"
+    },
+    "protocolVersion": "0.1.0",
+    "capabilities": {
+      "tools": {}
+    }
+  }
+}</pre>
+                        </div>
+                        <p>Server should respond with:</p>
+                        <div class="code-block">
+<pre>{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "protocolVersion": "0.1.0",
+    "serverInfo": {
+      "name": "example-mcp-server",
+      "version": "1.0.0"
+    },
+    "capabilities": {
+      "tools": {}
+    }
+  }
+}</pre>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="pills-tools-list" role="tabpanel" aria-labelledby="pills-tools-list-tab">
+                        <div class="code-block">
+<pre>{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/list",
+  "params": {}
+}</pre>
+                        </div>
+                        <p>Server should respond with:</p>
+                        <div class="code-block">
+<pre>{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "tools": [
+      {
+        "name": "calculator",
+        "description": "Performs mathematical calculations",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string",
+              "description": "Mathematical expression to evaluate"
+            }
+          },
+          "required": ["expression"]
+        },
+        "annotations": {
+          "title": "Calculator",
+          "idempotentHint": true
+        }
+      }
+    ]
+  }
+}</pre>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="pills-tools-call" role="tabpanel" aria-labelledby="pills-tools-call-tab">
+                        <div class="code-block">
+<pre>{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "tools/call",
+  "params": {
+    "name": "calculator",
+    "arguments": {
+      "expression": "2 + 2 * 3"
+    }
+  }
+}</pre>
+                        </div>
+                        <p>Server should respond with:</p>
+                        <div class="code-block">
+<pre>{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "result": {
+    "isError": false,
+    "content": [
+      {
+        "type": "text",
+        "text": "8"
+      }
+    ]
+  }
+}</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <p class="mb-1">For complete MCP specification, please visit:</p>
+                    <a href="https://github.com/llm-tools/model-context-protocol" target="_blank" class="alert-link">https://github.com/llm-tools/model-context-protocol</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section id="faq" class="py-5">
+    <div class="container">
+        <h2 class="section-title text-center mb-5">Frequently Asked Questions</h2>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="accordion" id="faqAccordion">
+                    <div class="accordion-item mb-3 border rounded">
+                        <h2 class="accordion-header" id="faqOne">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                What is the difference between MCP and other tool frameworks?
+                            </button>
+                        </h2>
+                        <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="faqOne" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                MCP provides a standardized protocol for tool discovery and execution, allowing any compatible server to expose tools to Odoo's LLM capabilities. Unlike custom integrations, MCP follows a JSON-RPC 2.0 based specification that makes it easy to integrate with a wide variety of external services without custom development for each one.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item mb-3 border rounded">
+                        <h2 class="accordion-header" id="faqTwo">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                Is this module secure for production use?
+                            </button>
+                        </h2>
+                        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="faqTwo" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                The module is designed with security in mind, but you should carefully evaluate any external MCP servers you connect to. The Standard I/O transport provides process isolation, and tools are executed with the permissions of the Odoo server. Always verify the source and security of external MCP servers before connecting them to your production environment.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item mb-3 border rounded">
+                        <h2 class="accordion-header" id="faqThree">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                Can I restrict which tools are available to specific users?
+                            </button>
+                        </h2>
+                        <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="faqThree" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Yes. Once MCP tools are registered in Odoo, they become standard LLM tools that can be configured with access controls. You can use Odoo's permission system to restrict which users or groups can access specific tools.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item mb-3 border rounded">
+                        <h2 class="accordion-header" id="faqFour">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                                What happens if an MCP server becomes unavailable?
+                            </button>
+                        </h2>
+                        <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="faqFour" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                The module includes error handling for server disconnections. If a server becomes unavailable, tool execution will fail gracefully with an appropriate error message. The module also includes automatic reconnection capabilities when servers become available again.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item mb-3 border rounded">
+                        <h2 class="accordion-header" id="faqFive">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
+                                Are there any ready-to-use MCP servers available?
+                            </button>
+                        </h2>
+                        <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="faqFive" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                The MCP ecosystem is growing, and several open-source implementations are available. Check the <a href="https://github.com/llm-tools/model-context-protocol" target="_blank">official MCP repository</a> for a list of compliant servers and tools. You can also create your own MCP server by implementing the protocol specification.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Module Information -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary-gradient text-white">
+                        <h3 class="mb-0">Module Information</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ul class="list-unstyled">
+                                    <li class="mb-2"><strong>Name:</strong> LLM MCP</li>
+                                    <li class="mb-2"><strong>Version:</strong> 16.0.1.0.0</li>
+                                    <li class="mb-2"><strong>Category:</strong> Technical</li>
+                                    <li class="mb-2"><strong>Author:</strong> Apexive Solutions LLC</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="list-unstyled">
+                                    <li class="mb-2"><strong>Website:</strong> <a href="https://github.com/apexive/odoo-llm" target="_blank">GitHub</a></li>
+                                    <li class="mb-2"><strong>License:</strong> LGPL-3</li>
+                                    <li class="mb-2"><strong>Dependencies:</strong> base, mail, llm, llm_tool</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action -->
+<section class="py-5 bg-primary-gradient text-white text-center">
+    <div class="container">
+        <h2 class="mb-4">Ready to enhance your Odoo AI capabilities?</h2>
+        <p class="lead mb-4">Connect your Odoo instance to the growing ecosystem of AI tools with Model Context Protocol</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="https://github.com/apexive/odoo-llm" target="_blank" class="btn btn-light btn-lg px-4">Download Now</a>
+            <a href="#installation" class="btn btn-outline-light btn-lg px-4">Installation Guide</a>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="py-4 bg-dark text-white">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <h5>LLM MCP</h5>
+                <p>Model Context Protocol Integration for Odoo AI</p>
+                <p>&copy; 2025 Apexive Solutions LLC. All rights reserved.</p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <h5>Resources</h5>
+                <ul class="list-unstyled">
+                    <li><a href="https://github.com/apexive/odoo-llm" target="_blank" class="text-white">GitHub Repository</a></li>
+                    <li><a href="https://github.com/llm-tools/model-context-protocol" target="_blank" class="text-white">MCP Specification</a></li>
+                    <li><a href="https://www.odoo.com/documentation/16.0/" target="_blank" class="text-white">Odoo Documentation</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.1/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // Toggle FAQ answers
+    document.querySelectorAll('.faq-question').forEach(question => {
+        question.addEventListener('click', () => {
+            const answer = question.nextElementSibling;
+            if (answer.style.display === 'block') {
+                answer.style.display = 'none';
+            } else {
+                answer.style.display = 'block';
+            }
+        });
+    });
+
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            document.querySelector(this.getAttribute('href')).scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+    });
+</script>
+</body>
+</html>
