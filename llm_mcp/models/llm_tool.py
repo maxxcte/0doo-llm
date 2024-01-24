@@ -38,3 +38,16 @@ class LLMTool(models.Model):
             if not isinstance(e, UserError):
                 raise UserError(f"Error executing tool '{self.name}' on MCP server '{self.mcp_server_id.name}': {str(e)}") from e
             raise
+
+    def execute(self, parameters):
+        self.ensure_one()
+        # if mcp tool, then we don't need to construct method signature to execute the tool
+        # as it is handled by mcp server via mcp_execute
+        if self.implementation == 'mcp':
+            try:
+                result = self.mcp_execute(**parameters)
+                return result
+            except Exception as e:
+                return {"error": str(e)}
+        else:
+            return super().execute(parameters)
