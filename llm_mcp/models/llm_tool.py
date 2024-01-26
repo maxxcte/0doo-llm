@@ -44,10 +44,7 @@ class LLMTool(models.Model):
         # if mcp tool, then we don't need to construct method signature to execute the tool
         # as it is handled by mcp server via mcp_execute
         if self.implementation == 'mcp':
-            try:
-                result = self.mcp_execute(**parameters)
-                return result
-            except Exception as e:
-                return {"error": str(e)}
+            result = self.mcp_execute(**parameters)
+            return result
         else:
             return super().execute(parameters)
