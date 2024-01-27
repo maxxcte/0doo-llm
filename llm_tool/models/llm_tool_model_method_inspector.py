@@ -156,7 +156,6 @@ class LLMToolModelMethodInspector(models.Model):
             doc = inspect.getdoc(method_obj)
             details["docstring"] = doc.strip() if doc else "(No docstring)"
         except Exception as e:
-            _logger.debug("Could not get docstring for %s: %s", name, e)
             details["docstring"] = f"(Error getting docstring: {e})"
 
         try:
@@ -168,13 +167,6 @@ class LLMToolModelMethodInspector(models.Model):
         except TypeError:
             details["signature"] = "(Signature inspection not applicable)"
         except Exception as e:
-            _logger.warning(
-                "Could not get signature for %s (%s): %s",
-                name,
-                type(method_obj),
-                e,
-                exc_info=False,
-            )
             details["signature"] = f"(Error inspecting signature: {e})"
 
         decorators_list = []
