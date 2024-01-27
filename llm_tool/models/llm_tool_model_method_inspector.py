@@ -7,6 +7,22 @@ from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
+# Constants defining the checks (can be placed at module level or within the class)
+METHOD_TYPE_CHECKS = [
+    (lambda mo, ma, iss, isc: ma == "model", "model", "@api.model"),
+    (lambda mo, ma, iss, isc: ma == "model_create", "model_create", "@api.model_create_multi/_single"),
+    (lambda mo, ma, iss, isc: iss, "static", "@staticmethod"),
+    (lambda mo, ma, iss, isc: isc, "class", "@classmethod"),
+    (lambda mo, ma, iss, isc: isinstance(mo, staticmethod), "static", "@staticmethod"),
+    (lambda mo, ma, iss, isc: isinstance(mo, classmethod), "class", "@classmethod"),
+]
+
+OTHER_DECORATOR_CHECKS = [
+    (lambda mo: hasattr(mo, "_depends"), lambda self, mo: f"@api.depends({self._format_depends_info(mo)})" ),
+    (lambda mo: hasattr(mo, "_constrains"), lambda self, mo: "@api.constrains(...)"),
+    (lambda mo: hasattr(mo, "_onchange"), lambda self, mo: "@api.onchange(...)"),
+    (lambda mo: getattr(mo, "deprecated", False), lambda self, mo: "@api.deprecated"),
+]
 
 class LLMToolModelMethodInspector(models.Model):
     _inherit = "llm.tool"
@@ -141,6 +157,19 @@ class LLMToolModelMethodInspector(models.Model):
 
         return total_found, sliced_results
 
+    def _format_depends_info(self, method_obj):
+        """Helper to format the @api.depends decorator string."""
+        depends_info = getattr(method_obj, "_depends", {})
+        if isinstance(depends_info, (dict, tuple, list)): # Check if it's iterable
+             try:
+                 # Attempt to create a string representation, handle potential complex structures
+                 deps_str = ", ".join(f"'{f}'" for f in depends_info) if isinstance(depends_info, dict) else repr(depends_info)
+             except Exception:
+                 deps_str = "(complex dependencies)" # Fallback for complex/unrepresentable structures
+        else:
+             deps_str = repr(depends_info) # Fallback for non-standard types
+        return deps_str
+
     def _extract_method_details_for_tool(
         self, model_cls, method_obj, name
     ) -> Optional[Dict[str, Any]]:
@@ -152,26 +181,35 @@ class LLMToolModelMethodInspector(models.Model):
             "decorators": [],
         }
 
+        # 1. Get Docstring (Same as before)
         try:
             doc = inspect.getdoc(method_obj)
             details["docstring"] = doc.strip() if doc else "(No docstring)"
         except Exception as e:
             details["docstring"] = f"(Error getting docstring: {e})"
 
+        # 2. Get Signature (Same as before, with improved error handling)
         try:
             sig = inspect.signature(method_obj)
-            signature_str = f"{name}{sig}"
+            try:
+                signature_str = f"{name}{str(sig)}"
+            except Exception:
+                signature_str = f"{name}(...)" # Fallback signature
             details["signature"] = signature_str
         except ValueError:
-            details["signature"] = "(Signature inspection not supported)"
+            details["signature"] = f"{name}(...)" # Generic representation
         except TypeError:
-            details["signature"] = "(Signature inspection not applicable)"
+            details["signature"] = f"{name}(Callable Object)"
         except Exception as e:
             details["signature"] = f"(Error inspecting signature: {e})"
 
+        # --- Refactored Type and Decorator Logic ---
+        method_type = "unknown"
         decorators_list = []
-        method_api = getattr(method_obj, "_api", None)
+        type_found = False
 
+        # Gather inputs for checks
+        method_api = getattr(method_obj, "_api", None)
         try:
             static_attr = inspect.getattr_static(model_cls, name)
             is_staticmethod_static = isinstance(static_attr, staticmethod)
@@ -180,42 +218,30 @@ class LLMToolModelMethodInspector(models.Model):
             is_staticmethod_static = False
             is_classmethod_static = False
 
-        if method_api == "model":
-            details["method_type"] = "model"
-            decorators_list.append("@api.model")
-        elif method_api == "model_create":
-            details["method_type"] = "model_create"
-            decorators_list.append("@api.model_create_multi/_single")
-        elif is_staticmethod_static:
-            details["method_type"] = "static"
-            decorators_list.append("@staticmethod")
-        elif is_classmethod_static:
-            details["method_type"] = "class"
-            decorators_list.append("@classmethod")
-        elif isinstance(method_obj, staticmethod):
-            details["method_type"] = "static"
-            decorators_list.append("@staticmethod")
-        elif isinstance(method_obj, classmethod):
-            details["method_type"] = "class"
-            decorators_list.append("@classmethod")
-        else:
-            if hasattr(method_obj, "__get__"):
-                details["method_type"] = "instance"
-            elif inspect.isfunction(method_obj):
-                details["method_type"] = "function"
+        # 3. Determine Primary Type and Core Decorator using METHOD_TYPE_CHECKS
+        for check_func, type_str, decorator_str in METHOD_TYPE_CHECKS:
+            if check_func(method_obj, method_api, is_staticmethod_static, is_classmethod_static):
+                if not type_found:
+                    method_type = type_str
+                    type_found = True
+                # Add the core decorator if specified and not already present
+                if decorator_str and decorator_str not in decorators_list:
+                    decorators_list.append(decorator_str)
 
-        if hasattr(method_obj, "_depends"):
-            depends_info = getattr(method_obj, "_depends", {})
-            if isinstance(depends_info, dict):
-                deps_str = ", ".join(f"'{f}'" for f in depends_info.keys())
-            else:
-                deps_str = repr(depends_info)
-            decorators_list.append(f"@api.depends({deps_str})")
-        if hasattr(method_obj, "_constrains"):
-            decorators_list.append("@api.constrains(...)")
-        if hasattr(method_obj, "_onchange"):
-            decorators_list.append("@api.onchange(...)")
-        if getattr(method_obj, "deprecated", False):
-            decorators_list.append("@api.deprecated")
+        if not type_found:
+            if hasattr(method_obj, "__get__"):
+                method_type = "instance"
+            elif inspect.isfunction(method_obj):
+                method_type = "function"
+
+        # 5. Collect Other Decorators using OTHER_DECORATOR_CHECKS
+        for check_func, formatter_func in OTHER_DECORATOR_CHECKS:
+            if check_func(method_obj):
+                decorator_str = formatter_func(self, method_obj)
+                if decorator_str not in decorators_list: # Avoid duplicates
+                    decorators_list.append(decorator_str)
+
+        details["method_type"] = method_type
         details["decorators"] = decorators_list
+
         return details
