@@ -1,11 +1,8 @@
 import inspect
-import logging
 from typing import Any, List, Optional, Dict, Tuple
 
 from odoo import _, api, models
 from odoo.exceptions import UserError
-
-_logger = logging.getLogger(__name__)
 
 # Constants defining the checks (can be placed at module level or within the class)
 METHOD_TYPE_CHECKS = [
