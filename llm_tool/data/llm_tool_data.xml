@@ -66,18 +66,6 @@
         <field name="requires_user_consent" eval="False" />
     </record>
 
-    <record id="llm_tool_odoo_module_manager" model="llm.tool">
-        <field name="name">odoo_module_manager</field>
-        <field name="implementation">odoo_module_manager</field>
-        <field name="description">
-**HIGH RISK TOOL:** Manages Odoo modules (installs or upgrades). Requires Administrator privileges ('base.group_system') and can cause significant system changes or disruptions. It requires the technical name of the module and the operation ('install' or 'upgrade').
-**IMPORTANT:** The LLM using this tool MUST explicitly ask the user for confirmation before executing, stating the module name and operation.
-        </field>
-        <field name="default" eval="False" />
-        <field name="active" eval="True" />
-        <field name="requires_user_consent" eval="True" />
-    </record>
-
     <record id="llm_tool_odoo_model_method_inspector" model="llm.tool">
         <field name="name">odoo_model_method_inspector</field>
         <field name="implementation">odoo_model_method_inspector</field>
