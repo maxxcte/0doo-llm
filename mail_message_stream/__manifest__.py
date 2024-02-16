@@ -15,6 +15,12 @@ This allows features like LLM responses to signal their progress consistently.
         'bus',
         'mail',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'mail_message_stream/static/src/models/message.js',
+            'mail_message_stream/static/src/models/messaging_notification_handler.js',
+        ],
+    },
     'author': 'Apexive Solutions LLC',
     'website': 'https://github.com/apexive/odoo-llm',
     'data': [],
