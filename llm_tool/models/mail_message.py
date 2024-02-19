@@ -5,30 +5,30 @@ from odoo.exceptions import ValidationError
 class MailMessage(models.Model):
     _inherit = "mail.message"
 
-    llm_tool_calls = fields.Text(
+    tool_calls = fields.Text(
         string="LLM Tool Calls",
         help="JSON serialized list of tool calls made by the assistant in this message.",
         readonly=True, copy=False)
-    llm_tool_call_id = fields.Char(
+    tool_call_id = fields.Char(
         string="LLM Tool Call ID",
         help="The unique ID of the tool call this message is a result for.",
         readonly=True, index=True, copy=False)
     # Definition might be useful for displaying the request directly on the tool message
-    llm_tool_call_definition = fields.Text(
+    tool_call_definition = fields.Text(
         string="LLM Tool Call Definition",
         help="JSON serialized definition of the tool call (type, function name, arguments). Copied from the request.",
         readonly=True, copy=False
     )
-    llm_tool_call_result = fields.Text(
+    tool_call_result = fields.Text(
         string="LLM Tool Call Result",
         help="JSON serialized result returned by the tool execution (or error).",
         readonly=True, copy=False)
 
 
-    @api.constrains("llm_tool_call_id", "subtype_id")
+    @api.constrains("tool_call_id", "subtype_id")
     def _check_tool_message_integrity(self):
         for record in self:
-            if record.llm_tool_call_id and record.subtype_id:
+            if record.tool_call_id and record.subtype_id:
                 tool_message_subtype = self.env.ref("llm_tool.mt_tool_message")
                 if record.subtype_id.id != tool_message_subtype.id:
                     raise ValidationError(
@@ -49,8 +49,8 @@ class MailMessage(models.Model):
 
         # Efficiently fetch LLM fields and subtype info for the messages being formatted
         llm_fields = [
-            'llm_tool_calls', 'llm_tool_call_id', 'llm_tool_call_definition',
-            'llm_tool_call_result', 'user_vote', 'subtype_id'
+            'tool_calls', 'tool_call_id', 'tool_call_definition',
+            'tool_call_result', 'user_vote', 'subtype_id'
         ]
         messages_data = self.env[self._name].sudo().search_read(
             [('id', 'in', message_ids)], llm_fields
@@ -65,10 +65,10 @@ class MailMessage(models.Model):
         for vals in vals_list:
             msg_data = messages_data_map.get(vals['id'], {})
 
-            vals['llm_tool_calls'] = msg_data.get('llm_tool_calls')
-            vals['llm_tool_call_id'] = msg_data.get('llm_tool_call_id')
-            vals['llm_tool_call_definition'] = msg_data.get('llm_tool_call_definition')
-            vals['llm_tool_call_result'] = msg_data.get('llm_tool_call_result')
+            vals['tool_calls'] = msg_data.get('tool_calls')
+            vals['tool_call_id'] = msg_data.get('tool_call_id')
+            vals['tool_call_definition'] = msg_data.get('tool_call_definition')
+            vals['tool_call_result'] = msg_data.get('tool_call_result')
             
             if msg_data.get('subtype_id') in [mt_llm_user_id, mt_llm_assistant_id, mt_llm_tool_result_id]:
                 # is_note is important for Message component to render with bubble
