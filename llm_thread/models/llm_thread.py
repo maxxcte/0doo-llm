@@ -5,6 +5,12 @@ import emoji
 
 from odoo import api, fields, models
 
+from .const import (
+    LLM_TOOL_RESULT_SUBTYPE_XMLID,
+    LLM_USER_SUBTYPE_XMLID,
+    LLM_ASSISTANT_SUBTYPE_XMLID,
+)
+
 _logger = logging.getLogger(__name__)
 
 
@@ -94,8 +100,8 @@ class LLMThread(models.Model):
         body = emoji.demojize(kwargs.get("body"))
 
         email_from = False # Let Odoo handle default unless we override
-        is_tool_result = subtype_xmlid == 'llm_thread.mt_llm_tool_result'
-        is_assistant = subtype_xmlid == 'llm_thread.mt_llm_assistant'
+        is_tool_result = subtype_xmlid == LLM_TOOL_RESULT_SUBTYPE_XMLID
+        is_assistant = subtype_xmlid == LLM_ASSISTANT_SUBTYPE_XMLID
         author_id = kwargs.get("author_id")
         # Handle tool messages
         tool_call_id = kwargs.get("tool_call_id")
@@ -153,9 +159,9 @@ class LLMThread(models.Model):
         """
         self.ensure_one()
         subtypes_to_fetch = [
-            self.env.ref('llm_thread.mt_llm_user', raise_if_not_found=False),
-            self.env.ref('llm_thread.mt_llm_assistant', raise_if_not_found=False),
-            self.env.ref('llm_thread.mt_llm_tool_result', raise_if_not_found=False),
+            self.env.ref(LLM_USER_SUBTYPE_XMLID, raise_if_not_found=False),
+            self.env.ref(LLM_ASSISTANT_SUBTYPE_XMLID, raise_if_not_found=False),
+            self.env.ref(LLM_TOOL_RESULT_SUBTYPE_XMLID, raise_if_not_found=False),
         ]       
         subtype_ids = [st.id for st in subtypes_to_fetch if st]    
         domain = [

@@ -33,6 +33,7 @@ Contact: support@apexive.com
     "data": [
         "security/llm_thread_security.xml",
         "security/ir.model.access.csv",
+        "data/mail_message_subtype.xml",
         "views/llm_thread_views.xml",
         "views/menu.xml",
     ],
