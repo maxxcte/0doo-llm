@@ -148,7 +148,7 @@ class LLMThread(models.Model):
 
         return message.message_format()[0]
 
-    def get_chat_messages(self, limit=None):
+    def _get_message_history_recordset(self, limit=None):
         """Get messages from the thread
 
         Args:
@@ -190,7 +190,7 @@ class LLMThread(models.Model):
             dict: Response chunks with various types (content, tool_start, tool_end, error)
         """
         try:
-            messages = self.get_chat_messages()
+            messages = self._get_message_history_recordset()
             tool_ids = self.tool_ids.ids if self.tool_ids else None
 
             # Format messages using the provider (which will handle validation)
