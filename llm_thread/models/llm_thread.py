@@ -5,12 +5,6 @@ import emoji
 
 from odoo import api, fields, models
 
-from odoo.addons.llm_mail_message_subtypes.const import (
-    LLM_TOOL_RESULT_SUBTYPE_XMLID,
-    LLM_USER_SUBTYPE_XMLID,
-    LLM_ASSISTANT_SUBTYPE_XMLID,
-)
-
 _logger = logging.getLogger(__name__)
 
 
@@ -61,19 +55,6 @@ class LLMThread(models.Model):
         help="Tools that can be used by the LLM in this thread",
     )
 
-    llm_thread_state = fields.Selection(
-        [
-            ('idle', 'Idle'),
-            ('streaming', 'Processing'),
-        ],
-        string="Processing State",
-        default='idle',
-        readonly=True,
-        required=True,
-        copy=False,
-        tracking=True,
-        help="Reflects the backend processing state of the thread. 'Processing' means the system is working on a response.")
-
     @api.model_create_multi
     def create(self, vals_list):
         """Set default title if not provided"""
@@ -84,71 +65,61 @@ class LLMThread(models.Model):
 
     def post_llm_response(self, **kwargs):
         """Post a message to the thread with support for tool messages"""
-        self.ensure_one()
-        subtype_xmlid = kwargs.get("subtype_xmlid")
-        if not subtype_xmlid:
-            raise ValueError("Subtype XML ID is required for _post_llm_message")
-
-        try:
-            subtype = self.env.ref(subtype_xmlid)
-        except ValueError: # Catches if XML ID format is wrong or module not installed
-             _logger.error(f"Invalid XML ID format or module missing for subtype: {subtype_xmlid}")
-             raise MissingError(f"Subtype with XML ID '{subtype_xmlid}' not found.")
-        if not subtype.exists():
-            raise MissingError(f"Subtype with XML ID '{subtype_xmlid}' not found.")
-
         body = emoji.demojize(kwargs.get("body"))
 
-        email_from = False # Let Odoo handle default unless we override
-        is_tool_result = subtype_xmlid == LLM_TOOL_RESULT_SUBTYPE_XMLID
-        is_assistant = subtype_xmlid == LLM_ASSISTANT_SUBTYPE_XMLID
-        author_id = kwargs.get("author_id")
         # Handle tool messages
         tool_call_id = kwargs.get("tool_call_id")
+        subtype_xmlid = kwargs.get("subtype_xmlid")
         tool_calls = kwargs.get("tool_calls")
         tool_name = kwargs.get("tool_name")
-        tool_call_definition = kwargs.get("tool_call_definition")
-        tool_call_result = kwargs.get("tool_call_result")
 
-        if not author_id: # AI or System messages
-            if is_tool_result:
-                tool_name = kwargs.get('tool_name', 'Tool') # Get optional tool name
-                email_from = f"{tool_name} <tool@{self.provider_id.name.lower().replace(' ', '')}.ai>"
-            elif is_assistant:
-                model_name = self.model_id.name or 'Assistant'
-                provider_name = self.provider_id.name or 'provider'
-                email_from = f"{model_name} <ai@{provider_name.lower().replace(' ', '')}.ai>"
+        if tool_call_id and subtype_xmlid == "llm_tool.mt_tool_message":
+            # Use tool name in email_from if available
+            if tool_name:
+                email_from = f"{tool_name} <tool@{self.provider_id.name.lower()}.ai>"
+            else:
+                email_from = f"Tool <tool@{self.provider_id.name.lower()}.ai>"
 
-        post_vals = {
-            'body': body,
-            'message_type': 'comment',
-            'subtype_xmlid': subtype_xmlid,
-            'author_id': author_id,
-            'email_from': email_from or None,
-            'partner_ids': [],
-        }
-        if is_assistant:
-            extra_vals = {
-                'tool_calls': tool_calls,
-            }
-        elif is_tool_result:
-            extra_vals = {
-                'tool_call_id': tool_call_id,
-                'tool_call_definition': tool_call_definition,
-                'tool_call_result': tool_call_result,
-            }
-        else:
-            extra_vals = {}
-        extra_vals = {k: v for k, v in extra_vals.items() if v is not None}
+            message = self.message_post(
+                body=body,
+                message_type="comment",
+                author_id=False,  # No author for AI messages
+                email_from=email_from,
+                partner_ids=[],  # No partner notifications
+                subtype_xmlid=subtype_xmlid,
+            )
 
-        message = self.message_post(**post_vals)
+            # Set the tool_call_id on the message
+            message.write({"tool_call_id": tool_call_id})
 
-        if extra_vals:
-            message.write(extra_vals)
+            return message.message_format()[0]
+
+        # Handle assistant messages with tool calls
+        if tool_calls:
+            message = self.message_post(
+                body=body,
+                message_type="comment",
+                author_id=False,  # No author for AI messages
+                email_from=f"{self.model_id.name} <ai@{self.provider_id.name.lower()}.ai>",
+                partner_ids=[],  # No partner notifications
+            )
+
+            # Set the tool_calls on the message
+            message.write({"tool_calls": json.dumps(tool_calls)})
+
+            return message.message_format()[0]
+
+        message = self.message_post(
+            body=body,
+            message_type="comment",
+            author_id=False,  # No author for AI messages
+            email_from=f"{self.model_id.name} <ai@{self.provider_id.name.lower()}.ai>",
+            partner_ids=[],  # No partner notifications
+        )
 
         return message.message_format()[0]
 
-    def _get_message_history_recordset(self, limit=None):
+    def get_chat_messages(self, limit=None):
         """Get messages from the thread
 
         Args:
@@ -157,18 +128,10 @@ class LLMThread(models.Model):
         Returns:
             mail.message recordset containing the messages
         """
-        self.ensure_one()
-        subtypes_to_fetch = [
-            self.env.ref(LLM_USER_SUBTYPE_XMLID, raise_if_not_found=False),
-            self.env.ref(LLM_ASSISTANT_SUBTYPE_XMLID, raise_if_not_found=False),
-            self.env.ref(LLM_TOOL_RESULT_SUBTYPE_XMLID, raise_if_not_found=False),
-        ]       
-        subtype_ids = [st.id for st in subtypes_to_fetch if st]    
         domain = [
             ("model", "=", self._name),
             ("res_id", "=", self.id),
             ("message_type", "=", "comment"),
-            ("subtype_id", "in", subtype_ids),
         ]
         messages = self.env["mail.message"].search(
             domain, order="create_date ASC", limit=limit
@@ -190,7 +153,7 @@ class LLMThread(models.Model):
             dict: Response chunks with various types (content, tool_start, tool_end, error)
         """
         try:
-            messages = self._get_message_history_recordset()
+            messages = self.get_chat_messages()
             tool_ids = self.tool_ids.ids if self.tool_ids else None
 
             # Format messages using the provider (which will handle validation)
