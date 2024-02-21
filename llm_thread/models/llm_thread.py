@@ -5,7 +5,7 @@ import emoji
 
 from odoo import api, fields, models
 
-from .const import (
+from odoo.addons.llm_mail_message_subtypes.const import (
     LLM_TOOL_RESULT_SUBTYPE_XMLID,
     LLM_USER_SUBTYPE_XMLID,
     LLM_ASSISTANT_SUBTYPE_XMLID,
