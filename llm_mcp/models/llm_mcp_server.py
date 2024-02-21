@@ -42,16 +42,16 @@ class LLMMCPServer(models.Model):
             if server.transport == 'stdio' and not server.command:
                 raise ValidationError("Command is required for Standard IO transport")
 
-    def _get_bus_manager(self):
-        """Get a bus manager instance for this server"""
+    def _get_manager(self):
+        """Get a manager instance for this server"""
         if self.transport != 'stdio':
             return None
 
         try:
-            bus_manager = MCPBusManager(self.env, self.id, self.command, self.args)
-            return bus_manager
+            manager = MCPBusManager(self.env, self.id, self.command, self.args)
+            return manager
         except Exception as e:
-            error_msg = f"Failed to get bus manager for server {self.name}: {str(e)}"
+            error_msg = f"Failed to get manager for server {self.name}: {str(e)}"
             _logger.error(error_msg)
             raise UserError(error_msg)
 
@@ -63,21 +63,21 @@ class LLMMCPServer(models.Model):
 
         if self.transport == 'stdio':
             try:
-                bus_manager = self._get_bus_manager()
-                if not bus_manager:
-                    raise UserError(f"Failed to create bus manager for server {self.name}")
+                manager = self._get_manager()
+                if not manager:
+                    raise UserError(f"Failed to create manager for server {self.name}")
 
-                # Start the bridge
-                if not bus_manager.start_bridge():
-                    raise UserError(f"Failed to start bridge for server {self.name}")
+                # Make sure the process starts
+                if not manager._start_process():
+                    raise UserError(f"Failed to start process for server {self.name}")
 
                 # Ensure MCP is initialized
-                if not bus_manager._initialized:
-                    if not bus_manager._initialize_mcp():
+                if not manager._initialized:
+                    if not manager._initialize_mcp():
                         raise UserError(f"Failed to initialize MCP protocol for server {self.name}")
 
                 # Test connection by asking for tools
-                tools = bus_manager.list_tools()
+                tools = manager.list_tools()
                 if tools is None:
                     raise UserError(f"Failed to retrieve tools from server {self.name}")
 
@@ -85,10 +85,10 @@ class LLMMCPServer(models.Model):
                 self._update_tools(tools)
 
                 # Update protocol information
-                if hasattr(bus_manager, 'protocol_version'):
-                    self.protocol_version = bus_manager.protocol_version
-                if hasattr(bus_manager, 'server_info'):
-                    self.server_info = json.dumps(bus_manager.server_info or {})
+                if hasattr(manager, 'protocol_version'):
+                    self.protocol_version = manager.protocol_version
+                if hasattr(manager, 'server_info'):
+                    self.server_info = json.dumps(manager.server_info or {})
 
                 return True
             except Exception as e:
@@ -108,9 +108,9 @@ class LLMMCPServer(models.Model):
 
         if self.transport == 'stdio':
             try:
-                bus_manager = self._get_bus_manager()
-                if bus_manager:
-                    bus_manager.stop_bridge()
+                manager = self._get_manager()
+                if manager:
+                    manager.close()
             except Exception as e:
                 error_msg = f"Error stopping MCP server {self.name}: {str(e)}"
                 _logger.error(error_msg)
@@ -132,11 +132,11 @@ class LLMMCPServer(models.Model):
 
         if self.transport == 'stdio':
             try:
-                bus_manager = self._get_bus_manager()
-                if not bus_manager:
+                manager = self._get_manager()
+                if not manager:
                     raise UserError(f"Could not connect to MCP server {self.name}")
 
-                tools = bus_manager.list_tools()
+                tools = manager.list_tools()
                 if tools is None:
                     raise UserError(f"Failed to fetch tools from MCP server {self.name}")
 
@@ -221,11 +221,11 @@ class LLMMCPServer(models.Model):
 
         if self.transport == 'stdio':
             try:
-                bus_manager = self._get_bus_manager()
-                if not bus_manager:
+                manager = self._get_manager()
+                if not manager:
                     raise UserError(f"Could not connect to MCP server {self.name}")
 
-                result = bus_manager.call_tool(tool_name, parameters)
+                result = manager.call_tool(tool_name, parameters)
                 if result is None:
                     raise UserError(f"Failed to execute tool {tool_name} on server {self.name}")
                 return result
