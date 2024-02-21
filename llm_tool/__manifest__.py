@@ -33,7 +33,6 @@
         "security/ir.model.access.csv",
         "views/llm_tool_views.xml",
         "views/llm_tool_consent_config_views.xml",
-        "data/mail_message_subtype.xml",
         "data/llm_tool_data.xml",
         "data/llm_tool_consent_config_data.xml",
         "data/server_actions.xml",

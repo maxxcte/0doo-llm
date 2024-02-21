@@ -26,7 +26,7 @@ Contact: support@apexive.com
     """,
     "category": "Productivity, Discuss",
     "version": "16.0.1.1.1",
-    "depends": ["base", "mail", "web", "llm", "llm_tool"],
+    "depends": ["base", "mail", "mail_message_stream", "web", "llm", "llm_tool", "llm_mail_message_subtypes"],
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
     "external_dependencies": {"python": ["emoji"]},

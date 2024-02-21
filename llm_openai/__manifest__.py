@@ -9,7 +9,7 @@
     "website": "https://github.com/apexive/odoo-llm",
     "category": "Technical",
     "version": "16.0.1.1.2",
-    "depends": ["llm", "llm_tool"],
+    "depends": ["llm", "llm_tool", "mail_message_subtypes"],
     "external_dependencies": {
         "python": ["openai"],
     },

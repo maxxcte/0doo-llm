@@ -1,0 +1,70 @@
+import logging
+import uuid
+from odoo import models
+
+from ..const import (
+    STREAM_START_NOTIFICATION,
+    STREAM_CHUNK_NOTIFICATION,
+    STREAM_DONE_NOTIFICATION,
+)
+
+_logger = logging.getLogger(__name__)
+
+class MailMessageStream(models.Model):
+    """
+    Inherits mail.message to add methods for sending streaming events
+    via Bus following the mail module notification pattern.
+    Notifications are sent on the channel of the record the message belongs to.
+    """
+    _inherit = 'mail.message'
+
+    def _get_bus_stream_channel(self):
+        """Gets the channel of the record this message is posted on."""
+        self.ensure_one()
+        if self.model and self.res_id:
+            return (self._cr.dbname, self.model, self.res_id)
+        else:
+            _logger.warning(f"Cannot determine bus channel for message {self.id} without model/res_id.")
+            return None
+
+    def _generate_bus_stream_id(self):
+        return str(uuid.uuid4())
+
+    def _notify_stream(self, notification_type, payload_data):
+        """Internal helper to structure and send the bus notification."""
+        self.ensure_one()
+        channel = self._get_bus_stream_channel()
+        if not channel:
+            return
+
+        full_payload = {
+            'message_id': self.id,
+            'message_subtype_xmlid': self.subtype_id.xml_id if self.subtype_id else None,
+            'thread_model': self.model,
+            'thread_id': self.res_id,
+            'data': payload_data or {}
+        }
+
+        self.env['bus.bus']._sendone(channel, notification_type, full_payload)
+
+    def stream_start(self, initial_data=None):
+        """Sends 'mail.message/stream_start'. Returns stream_id."""
+        self.ensure_one()
+        stream_id = self._generate_bus_stream_id()
+        data_payload = {'stream_id': stream_id, 'initial_data': initial_data}
+        self._notify_stream(STREAM_START_NOTIFICATION, data_payload)
+        return stream_id
+
+    def stream_chunk(self, stream_id, chunk):
+        """Sends 'mail.message/stream_chunk'."""
+        self.ensure_one()
+        if not stream_id: return
+        data_payload = {'stream_id': stream_id, 'chunk': chunk}
+        self._notify_stream(STREAM_CHUNK_NOTIFICATION, data_payload)
+
+    def stream_done(self, stream_id, final_data=None, error=None):
+        """Sends 'mail.message/stream_done'."""
+        self.ensure_one()
+        if not stream_id: return
+        data_payload = {'stream_id': stream_id, 'final_data': final_data, 'error': error}
+        self._notify_stream(STREAM_DONE_NOTIFICATION, data_payload)
