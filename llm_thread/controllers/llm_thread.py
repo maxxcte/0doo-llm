@@ -1,92 +1,57 @@
-import json
 import logging
 
-from odoo import api, http, registry
-from odoo.http import Response, request
+from odoo import _, http
+from odoo.http import request
+
+from odoo.exceptions import AccessError, MissingError, UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
 
 class LLMThreadController(http.Controller):
-    def generate(self, dbname, env, thread_id, system_prompt=None):
-        """Override generate method to handle tool messages"""
-        # Use a cursor block to ensure the cursor remains open for the duration of the generator
-        with registry(dbname).cursor() as cr:
-            env = api.Environment(cr, env.uid, env.context)
-
-            # Convert string data to bytes for all yields
-            yield f"data: {json.dumps({'type': 'start'})}\n\n".encode()
-
-            # Stream responses
-            thread = env["llm.thread"].browse(int(thread_id))
-            for response in thread.get_assistant_response(
-                stream=True, system_prompt=system_prompt
-            ):
-                if response.get("type") == "error":
-                    error_data = f"data: {json.dumps({'type': 'error', 'error': response['error']})}\n\n"
-                    yield error_data.encode("utf-8")
-                    break
-
-                elif response.get("type") == "content":
-                    data = {
-                        "type": "content",
-                        "role": response.get("role", "assistant"),
-                        "content": response.get("content", ""),
-                    }
-                    content_data = f"data: {json.dumps(data)}\n\n"
-                    yield content_data.encode("utf-8")
-
-                elif response.get("type") == "tool_start":
-                    data = {
-                        "type": "tool_start",
-                        "tool_call_id": response.get("tool_call_id"),
-                        "function_name": response.get("function_name"),
-                        "arguments": response.get("arguments"),
-                    }
-                    tool_start_data = f"data: {json.dumps(data)}\n\n"
-                    yield tool_start_data.encode("utf-8")
-
-                elif response.get("type") == "tool_end":
-                    data = {
-                        "type": "tool_end",
-                        "role": response.get("role", "tool"),
-                        "tool_call_id": response.get("tool_call_id"),
-                        "content": response.get("content", ""),
-                        "formatted_content": response.get("formatted_content", ""),
-                    }
-                    tool_end_data = f"data: {json.dumps(data)}\n\n"
-                    yield tool_end_data.encode("utf-8")
-
-            # Send end event
-            yield f"data: {json.dumps({'type': 'end'})}\n\n".encode()
-
-    @http.route("/llm/thread/stream_response", type="http", auth="user", csrf=True)
-    def stream_response(self, thread_id, system_prompt=None):
-        """Stream assistant responses using server-sent events
+    @http.route('/llm/thread/<int:thread_id>/completions', type='json', auth='user', methods=['POST'], csrf=True)
+    def thread_completions_create(self, thread_id, message=None, **kwargs): # Method name reflects action
+        """
+        Adds a user message (prompt) to the thread and triggers the synchronous
+        backend processing loop to generate the next completion (assistant response).
+        Real-time updates are sent via the Odoo Bus during processing.
 
         Args:
-            thread_id: ID of the thread to stream responses from
-            system_prompt: Optional system prompt to include with the agent's system prompt
+            thread_id (int): The ID of the llm.thread record (from path).
+            message (str): The text content of the user's message/prompt (from JSON payload).
+            **kwargs: Catches any other potential parameters (e.g., maybe override model temporarily).
+
+        Returns:
+            dict: {'status': 'completed'} on success,
+                  {'status': 'error', 'error': str} on failure.
         """
-        headers = {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",  # Disable nginx buffering
-        }
+        user_message_body = message # Use the 'message' key from payload
+        if not user_message_body or not user_message_body.strip():
+             return {'status': 'error', 'error': _('Message body cannot be empty.')}
 
-        return Response(
-            self.generate(request.cr.dbname, request.env, thread_id, system_prompt),
-            direct_passthrough=True,
-            headers=headers,
-        )
+        try:
+            thread = request.env['llm.thread'].browse(thread_id)
+            if not thread.exists():
+                 raise MissingError(_("Chat Thread not found."))
 
-    @http.route("/llm/thread/post_llm_response", type="json", auth="user")
-    def post_llm_response(self, thread_id, **kwargs):
-        """Post a message to the thread"""
-        _logger.debug("Posting message - kwargs: %s", kwargs)
-        thread = request.env["llm.thread"].browse(int(thread_id))
-        message = thread.post_llm_response(**kwargs)
-        return message
+            # Check access rights (write access seems appropriate to trigger completion)
+            thread.check_access_rights('write')
+            thread.check_access_rule('write')
+
+            # --- Direct Synchronous Call to the main loop ---
+            # Pass user message as it's the prompt for this completion
+            thread.start_thread_loop(user_message_body=user_message_body.strip())
+            # --- Controller waits here ---
+
+            # If start_thread_loop completes without raising an exception
+            return {'status': 'completed'}
+
+        except (AccessError, MissingError, ValidationError, UserError) as e:
+            _logger.warning(f"Validation/Access Error creating completion for thread {thread_id}: {e}")
+            return {'status': 'error', 'error': str(e)}
+        except Exception as e:
+            _logger.exception(f"Unexpected error creating completion for thread {thread_id}")
+            return {'status': 'error', 'error': _("An unexpected error occurred. Please contact support.")}
 
     @http.route("/llm/message/vote", type="json", auth="user", methods=["POST"])
     def llm_message_vote(self, message_id, vote_value):
