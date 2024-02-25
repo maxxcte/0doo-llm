@@ -88,6 +88,7 @@ Contact: support@apexive.com
             "llm_thread/static/src/components/llm_chatter_topbar/llm_chat_topbar.scss",
             "llm_thread/static/src/components/llm_chatter/llm_chatter.xml",
             "llm_thread/static/src/components/message/message.xml",
+            "llm_thread/static/src/components/message/message.scss",
             # Client Actions
             "llm_thread/static/src/llm_chat_client_action.js",
             # Styles
