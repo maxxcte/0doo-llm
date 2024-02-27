@@ -32,11 +32,11 @@ registerPatch({
      */
     convertData(data) {
       const data2 = this._super(data);
-      if ("is_tool_message" in data) {
-        data2.is_tool_message = data.is_tool_message;
-      }
       if ("user_vote" in data) {
         data2.user_vote = data.user_vote;
+      }
+      if ("subtype_xmlid" in data) {
+        data2.messageSubtypeXmlid = data.subtype_xmlid;
       }
       return data2;
     },
@@ -126,11 +126,6 @@ registerPatch({
      * Compute the subtype XML ID (useful for templates).
      * Requires message_format to add subtype_xmlid to the payload.
      */
-    messageSubtypeXmlid: attr({
-        compute() {
-            // Assumes message_format payload includes 'subtype_xmlid'
-            return this.subtype_xmlid || false;
-        }
-    }),
+    messageSubtypeXmlid: attr({}),
   },
 });
