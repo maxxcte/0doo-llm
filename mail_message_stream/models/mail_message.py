@@ -36,10 +36,9 @@ class MailMessageStream(models.Model):
         channel = self._get_bus_stream_channel()
         if not channel:
             return
-
+        
         full_payload = {
             'message_id': self.id,
-            'message_subtype_xmlid': self.subtype_id.xml_id if self.subtype_id else None,
             'thread_model': self.model,
             'thread_id': self.res_id,
             'data': payload_data or {}

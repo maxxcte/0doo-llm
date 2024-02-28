@@ -3,7 +3,7 @@ import logging
 
 import emoji
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 
 from odoo.exceptions import AccessError, MissingError, UserError, ValidationError
 
@@ -148,7 +148,7 @@ class LLMThread(models.Model):
         if extra_vals:
             message.write(extra_vals)
 
-        return message.message_format()[0]
+        return message
 
     def _get_message_history_recordset(self, limit=None):
         """Get messages from the thread
@@ -192,7 +192,6 @@ class LLMThread(models.Model):
         assistant_msg = None
         assistant_stream_id = None
         results_were_posted = False
-        final_state = 'idle' # Assume success
 
         try:
             # 1. Post User Message (Conditional)
@@ -259,7 +258,6 @@ class LLMThread(models.Model):
                     _logger.error(f"{error_msg} for Thread {self.id}")
                     if assistant_msg and assistant_stream_id:
                         assistant_msg.stream_done(assistant_stream_id, error=error_msg)
-                    final_state = 'error'
                     raise UserError(_("Error from Language Model: %s", chunk['error']))
 
             # 5. Finalize Assistant Message Stream and Update Record
@@ -351,7 +349,6 @@ class LLMThread(models.Model):
                     except Exception as tool_err:
                         error_msg = f"Error processing tool call {tool_call_id} ({tool_name}): {tool_err}"
                         _logger.exception(error_msg)
-                        final_state = 'error'
                         if tool_msg and tool_stream_id:
                             tool_msg.stream_done(tool_stream_id, error=error_msg)
                         if tool_msg: # Try to update message with error state
@@ -368,14 +365,12 @@ class LLMThread(models.Model):
 
         except (ValidationError, UserError, MissingError, AccessError) as e:
             _logger.warning(f"Known error during chat loop for thread {self.id}: {e}")
-            final_state = 'error'
             if assistant_msg and assistant_stream_id:
                  try: assistant_msg.stream_done(assistant_stream_id, error=str(e))
                  except Exception: pass
             raise
         except Exception as e:
             _logger.exception(f"Unexpected error during chat loop for thread {self.id}")
-            final_state = 'error'
             if assistant_msg and assistant_stream_id:
                  try: assistant_msg.stream_done(assistant_stream_id, error=str(e))
                  except Exception: pass
@@ -385,8 +380,8 @@ class LLMThread(models.Model):
             # This runs only when the current level finishes *without* recursing OR after an error
             if not results_were_posted:
                  if self.llm_thread_state == 'streaming': # Prevent overwriting if error already set state somehow
-                     self.write({'llm_thread_state': final_state})
-                     _logger.info(f"SYNC LOOP END: Thread {self.id} final state set to '{final_state}'.")
+                     self.write({'llm_thread_state': 'idle'})
+                     _logger.info(f"SYNC LOOP END: Thread {self.id} final state set to 'idle'.")
 
     def _create_tool_response(self, tool_name, arguments_str, tool_call_id, result_data):
         """Create a standardized tool response structure
