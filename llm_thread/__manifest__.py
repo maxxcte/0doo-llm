@@ -54,7 +54,6 @@ Contact: support@apexive.com
             "llm_thread/static/src/models/llm_chat_thread_header_view.js",
             "llm_thread/static/src/models/chatter.js",
             "llm_thread/static/src/models/llm_tool.js",
-            "llm_thread/static/src/models/llm_tool_message.js",
             "llm_thread/static/src/models/message.js",
             "llm_thread/static/src/models/message_action.js",
             "llm_thread/static/src/models/message_action_list.js",

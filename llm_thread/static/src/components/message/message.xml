@@ -112,9 +112,7 @@
 
                 <!-- Standard Mail Elements (Keep these at the end of the content div) -->
                 <div class="o_Message_linkPreviews"/>
-                <MessageTranslationIcon class="o_Message_translationIcon" message="messageView.message"/>
-                <MessageSeenIndicatorList className="'o_Message_seenIndicatorList'" record="messageView.messageSeenIndicatorListView"/>
-
+                <!-- TODO: add default message view for different subtype ids based on odoo mail module -->
             </div> <!-- End of o_Message_content -->
         </xpath>
 
