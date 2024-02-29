@@ -229,7 +229,7 @@ class LLMThread(models.Model):
                      # Use existing post_llm_response, which returns record now
                      assistant_msg = self.post_llm_response(
                          subtype_xmlid=LLM_ASSISTANT_SUBTYPE_XMLID,
-                         body="", # Start empty
+                         body="Thinking...", # Start empty
                          author_id=False
                      )
                      assistant_stream_id = assistant_msg.stream_start(
