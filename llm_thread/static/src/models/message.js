@@ -38,6 +38,18 @@ registerPatch({
       if ("subtype_xmlid" in data) {
         data2.messageSubtypeXmlid = data.subtype_xmlid;
       }
+      if ("tool_call_definition" in data) {
+        data2.toolCallDefinition = data.tool_call_definition;
+      }
+      if ("tool_call_result" in data) {
+        data2.toolCallResult = data.tool_call_result;
+      }
+      if ("tool_calls" in data) {
+        data2.toolCallCalls = data.tool_calls;
+      }
+      if("tool_call_id" in data && data.tool_call_id !== null) {
+        data2.toolCallId = data.tool_call_id;
+      }
       return data2;
     },
   },
@@ -70,8 +82,14 @@ registerPatch({
         compute() {
             // Uses the field added by llm_thread's python patch
             // safeJsonParse returns undefined if parsing fails or field empty
-            return safeJsonParse(this.llm_tool_call_definition);
+            return safeJsonParse(this.toolCallDefinition);
         },
+    }),
+    toolCallResult: attr({
+      
+    }),
+    toolCallId: attr({
+      default: null,
     }),
     /**
      * Compute parsed tool call result data from llm_tool_call_result field.
@@ -79,7 +97,7 @@ registerPatch({
     toolCallResultData: attr({
         compute() {
             // Uses the field added by llm_thread's python patch
-            return safeJsonParse(this.llm_tool_call_result);
+            return safeJsonParse(this.toolCallResult);
         },
     }),
     /**
@@ -119,7 +137,7 @@ registerPatch({
         compute() {
             // Uses the field added by llm_thread's python patch
             // parseJson returns undefined on failure, default to empty array for template
-            return safeJsonParse(this.tool_calls, []); // Default to empty array
+            return safeJsonParse(this.toolCallCalls, []); // Default to empty array
         },
     }),
     /**
