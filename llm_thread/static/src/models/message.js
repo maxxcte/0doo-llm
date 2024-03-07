@@ -130,6 +130,9 @@ registerPatch({
             }
         },
     }),
+    toolCallCalls: attr({
+      default: [],
+    }),
     /**
      * Compute parsed list of tool calls requested by an assistant message.
      */
