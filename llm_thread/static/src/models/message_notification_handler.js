@@ -37,6 +37,9 @@ registerPatch({
                     console.log(`Custom message inserted: ${message.id}`);
                     return;
                 }
+                else {
+                    return this._super(notification);
+                }
             } catch (error) {
                  console.error(`Error handling custom notification ${notification.type} for message ${notification.payload?.message_id}:`, error, notification.payload);
                  return this._super(notification);
