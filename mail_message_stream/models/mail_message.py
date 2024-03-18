@@ -21,11 +21,9 @@ class MailMessageStream(models.Model):
     def _get_bus_stream_channel(self):
         """Gets the channel of the record this message is posted on."""
         self.ensure_one()
-        if self.model and self.res_id:
-            return (self._cr.dbname, self.model, self.res_id)
-        else:
-            _logger.warning(f"Cannot determine bus channel for message {self.id} without model/res_id.")
-            return None
+        partner_id = self.env.user.partner_id.id
+        channel = (self.env.cr.dbname, 'res.partner', partner_id)
+        return channel
 
     def _generate_bus_stream_id(self):
         return str(uuid.uuid4())

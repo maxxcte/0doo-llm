@@ -148,7 +148,18 @@ class LLMThread(models.Model):
         if extra_vals:
             message.write(extra_vals)
 
+        message_payload = message.message_format()[0]
+        self._update_message_insert(message_payload)
+
         return message
+
+    def _update_message_insert(self, message_payload):
+        self.ensure_one()
+        partner_id = self.env.user.partner_id.id
+        channel = (self.env.cr.dbname, 'res.partner', partner_id)
+        self.env['bus.bus']._sendone(channel, 'mail.message/insert_custom', message_payload)
+        _logger.info(f"Message inserted: {message_payload}")
+        
 
     def _get_message_history_recordset(self, limit=None):
         """Get messages from the thread
