@@ -42,20 +42,6 @@ class LLMProvider(models.Model):
             )
 
         return getattr(self, service_method)(*args, **kwargs)
-    
-    # TODO: maybe combine with with _dispatch?
-    def _dispatch_on_message(self, message_record, method, *args, **kwargs):
-        """Dispatch method call to appropriate service implementation"""
-        if not self.service:
-            raise UserError(_("Provider service not configured"))
-
-        service_method = f"{self.service}_{method}"
-        if not hasattr(message_record, service_method):
-            raise NotImplementedError(
-                _("Method %s not implemented for service %s") % (method, self.service)
-            )
-
-        return getattr(message_record, service_method)(*args, **kwargs)
 
     @api.model
     def _selection_service(self):
@@ -165,3 +151,21 @@ class LLMProvider(models.Model):
             List of formatted messages in provider-specific format
         """
         return self._dispatch("format_messages", messages, system_prompt=system_prompt)
+
+    @api.model
+    def _default_format_message(self, message):
+        """Default implementation for formatting message
+
+        This provides a basic implementation that can be overridden by provider-specific modules.
+
+        Args:
+            message: mail.message record or similar data structure to format
+
+        Returns:
+            Formatted message in a standard format
+        """
+
+        return {
+            "role": "user" if message.author_id else "assistant",
+            "content": message.body or "",  # Ensure content is never null
+        }

@@ -48,7 +48,7 @@ export class LLMChatComposer extends Component {
    * @private
    */
   _onClickStop() {
-    
+    this.composerView._stopStreaming();
   }
 }
 

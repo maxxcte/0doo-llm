@@ -113,9 +113,11 @@ class LLMProvider(models.Model):
             )
             return None
 
+        # --- Recursively Patch Schema --- START
         # Ensure all nested 'items' have a 'type' for broader compatibility
         parameters_schema = schema  # Modify the schema directly before formatting
         self._recursively_patch_schema_items(parameters_schema)
+        # --- Recursively Patch Schema --- END
 
         # Format according to OpenAI requirements
         formatted_tool = {
@@ -140,14 +142,13 @@ class LLMProvider(models.Model):
         stream=False,
         tools=None,
         tool_choice="auto",
-        system_prompt=None,
     ):
         """Send chat messages using OpenAI with tools support"""
         model = self.get_model(model, "chat")
 
         # Prepare request parameters
         params = self._prepare_openai_chat_params(
-            model, messages, stream, tools=tools, tool_choice=tool_choice, system_prompt=system_prompt
+            model, messages, stream, tools=tools, tool_choice=tool_choice
         )
 
         # Make the API call
@@ -155,23 +156,17 @@ class LLMProvider(models.Model):
 
         # Process the response based on streaming mode
         if not stream:
-            return self._openai_process_non_streaming_response(response)
+            return self._process_non_streaming_response(response)
         else:
-            return self._openai_process_streaming_response(response)
+            return self._process_streaming_response(response)
 
-    def _prepare_openai_chat_params(self, model, messages, stream, tools, tool_choice, system_prompt):
+    def _prepare_openai_chat_params(self, model, messages, stream, tools, tool_choice):
         """Prepare parameters for OpenAI API call"""
         params = {
             "model": model.name,
+            "messages": messages.copy(),  # Create a copy to avoid modifying the original
             "stream": stream,
         }
-
-        messages = messages or []
-        system_prompt = system_prompt or None
-
-        if messages or system_prompt:
-            formatted_messages = self.openai_format_messages(messages, system_prompt)
-            params["messages"] = formatted_messages
 
         # Add tools if specified
         if tools:
@@ -216,172 +211,129 @@ class LLMProvider(models.Model):
 
         return params
 
-    def _openai_process_non_streaming_response(self, response):
-        """Processes OpenAI non-streamed response and returns ONE standardized dict."""
-        _logger.info("Processing non-streaming OpenAI response.")
-        try:
-            choice = response.choices[0]
-            message = choice.message
-            result = {} # Standardized result dictionary
+    def _process_non_streaming_response(self, response):
+        """Process a non-streaming response from OpenAI"""
+        message = {
+            "role": response.choices[0].message.role,
+            "content": response.choices[0].message.content or "",  # Handle None content
+        }
 
-            # Add content if present
-            if message.content:
-                result['content'] = message.content
+        # Handle tool calls if present
+        if (
+            hasattr(response.choices[0].message, "tool_calls")
+            and response.choices[0].message.tool_calls
+        ):
+            message["tool_calls"] = []
 
-            # Add tool calls if present, converting to standard format
-            if message.tool_calls:
-                result['tool_calls'] = [
-                    {
-                        "id": tc.id,
-                        "type": tc.type, # Should be 'function'
-                        "function": {
-                            "name": tc.function.name,
-                            "arguments": tc.function.arguments,
-                         }
-                    } for tc in message.tool_calls
-                ]
-                _logger.info(f"Processed {len(result['tool_calls'])} non-streaming tool calls.")
+            for tool_call in response.choices[0].message.tool_calls:
+                # Return the tool call without executing it
+                tool_call_data = {
+                    "id": tool_call.id,
+                    "type": "function",
+                    "function": {
+                        "name": tool_call.function.name,
+                        "arguments": tool_call.function.arguments,
+                    },
+                }
+                message["tool_calls"].append(tool_call_data)
 
-            # Only return the dict if it has content or tool calls
-            if 'content' in result or 'tool_calls' in result:
-                return result
-            else:
-                 _logger.warning("OpenAI non-streaming response had no content or tool calls.")
-                 return {} # Return empty dict if nothing to process
+        yield message
 
-        except (AttributeError, IndexError, Exception) as e:
-             _logger.exception("Error processing OpenAI non-streaming response")
-             # Return structure indicates error
-             return {'error': f"Error processing response: {e}"}
+    def _process_streaming_response(self, response):
+        """Process a streaming response from OpenAI"""
+        tool_call_chunks = {}
 
-    def _openai_process_streaming_response(self, response_stream):
-        """
-        Processes OpenAI stream and yields standardized dicts for start_thread_loop.
-        Yields: {'content': str} OR {'tool_calls': list} OR {'error': str}
-        """
-        _logger.info("Starting to process OpenAI stream...")
-        assembled_tool_calls = {} # key: index, value: assembled tool call dict
-        final_tool_calls_list = [] # List of fully completed tool calls to yield
-        stream_has_tools = False # Flag if any tool chunks were received
-        finish_reason = None
+        for chunk in response:
+            delta = chunk.choices[0].delta
 
-        try:
-            for chunk in response_stream:
-                choice = chunk.choices[0] if chunk.choices else None
-                delta = choice.delta if choice else None
-                chunk_finish_reason = choice.finish_reason if choice else None
-                if chunk_finish_reason:
-                    finish_reason = chunk_finish_reason # Store the final reason
+            # Handle normal content
+            if hasattr(delta, "content") and delta.content is not None:
+                yield {
+                    "role": "assistant",
+                    "content": delta.content,
+                }
 
-                if not delta:
-                    _logger.info("Stream chunk had no delta.")
-                    continue
+            # Handle streaming tool calls
+            if hasattr(delta, "tool_calls") and delta.tool_calls:
+                for tool_call_chunk in delta.tool_calls:
+                    index = tool_call_chunk.index
 
-                # 1. Yield Content Chunks
-                if delta.content:
-                    # Directly yield content in the standardized format
-                    yield {'content': delta.content}
+                    # Initialize or update tool call data
+                    tool_call_chunks = self._update_tool_call_chunk(
+                        tool_call_chunks, tool_call_chunk, index
+                    )
 
-                # 2. Process Tool Call Chunks (Accumulate)
-                if delta.tool_calls:
-                    stream_has_tools = True # Mark that we encountered tool calls
-                    for tool_call_chunk in delta.tool_calls:
-                        index = tool_call_chunk.index
-                        # Use helper to assemble fragments
-                        assembled_tool_calls = self._update_tool_call_chunk(
-                            assembled_tool_calls, tool_call_chunk, index
-                        )
+                    # Check if we have a complete tool call
+                    current_args = tool_call_chunks[index]["function"]["arguments"]
+                    if current_args and current_args.endswith("}"):
+                        try:
+                            # Validate JSON is complete by parsing it
+                            json.loads(current_args)
 
-            # --- End of Stream ---
-            _logger.info(f"OpenAI stream finished. Finish Reason: {finish_reason}")
+                            # Get tool name
+                            tool_name = tool_call_chunks[index]["function"]["name"]
+                            if not tool_name:
+                                _logger.warning(f"Empty tool name for index: {index}")
+                                continue
 
-            # 3. Process and Yield Completed Tool Calls (after stream ends)
-            if stream_has_tools:
-                # Only yield tool_calls if the finish reason indicates tools were intended
-                # Or if we successfully assembled some (covers cases where finish_reason might be null/stop but tools were sent)
-                if finish_reason == 'tool_calls' or (finish_reason != 'error' and assembled_tool_calls):
-                    for index, call_data in sorted(assembled_tool_calls.items()):
-                        # Check our internal '_complete' flag set by the helper
-                        if call_data.get("_complete"):
-                            # Format into the standard structure {id, type, function:{name, args}}
-                            final_tool_calls_list.append({
-                                "id": call_data["id"],
-                                "type": call_data.get("type", "function"), # Default type
-                                "function": {
-                                    "name": call_data["function"]["name"],
-                                    "arguments": call_data["function"]["arguments"],
-                                }
-                            })
-                        else:
-                            # Log incomplete tool calls - should not happen if OpenAI stream is correct
-                             _logger.error(f"OpenAI stream ended but tool call at index {index} was incomplete: {call_data}")
-                             yield {'error': f"Received incomplete tool call data from provider for tool index {index}."}
+                            # Generate a UUID for id if it's empty, google apis don't give tool call id for example
+                            if not tool_call_chunks[index].get("id"):
+                                tool_call_chunks[index]["id"] = str(uuid.uuid4())
 
-                    # Yield the list of completed tool calls ONCE
-                    if final_tool_calls_list:
-                        _logger.info(f"Yielding {len(final_tool_calls_list)} completed tool calls.")
-                        yield {'tool_calls': final_tool_calls_list}
-                    elif assembled_tool_calls:
-                         _logger.warning("Stream indicated tool calls, but none were successfully assembled.")
-                         # Decide: yield empty list or error? Let's yield nothing more for now.
+                            # Yield the tool call without result
+                            yield {
+                                "role": "assistant",
+                                "tool_call": tool_call_chunks[index],
+                            }
+                        except json.JSONDecodeError:
+                            # JSON not complete yet, continue accumulating
+                            _logger.info(
+                                "JSON arguments incomplete, continuing to accumulate"
+                            )
+                        except Exception as e:
+                            _logger.exception(f"Error processing tool call: {str(e)}")
+                            # Add error to tool call data
+                            tool_call_chunks[index]["error"] = str(e)
 
-                elif finish_reason != 'error':
-                     _logger.warning(f"OpenAI stream had tool chunks but finished with reason '{finish_reason}'. Not yielding tool calls.")
-
-        except OpenAI.APIError as e:
-             _logger.error(f"OpenAI API Error during streaming: {e}", exc_info=True)
-             yield {'error': f"OpenAI API Error: {e}"}
-        except Exception as e:
-            _logger.exception("Unexpected error processing OpenAI stream")
-            yield {'error': f"Internal error processing stream: {e}"}
-
-        _logger.info("Finished processing OpenAI stream.")
+                            # Yield the tool call with error
+                            yield {
+                                "role": "assistant",
+                                "tool_call": tool_call_chunks[index],
+                            }
 
     def _update_tool_call_chunk(self, tool_call_chunks, tool_call_chunk, index):
-        """
-        Helper to assemble fragmented tool calls from OpenAI stream chunks.
-        (Keep this helper as it's essential for stream processing)
-        """
+        """Update tool call chunks with new data"""
         # Initialize tool call data if it's a new one
         if index not in tool_call_chunks:
             tool_call_chunks[index] = {
-                "id": tool_call_chunk.id,          # ID might be in first chunk
-                "type": tool_call_chunk.type,      # Type might be in first chunk
+                "id": tool_call_chunk.id,
+                "type": "function",
                 "function": {"name": "", "arguments": ""},
-                "_complete": False # Internal flag to track assembly
             }
 
-        current_call = tool_call_chunks[index]
-
-        # Update fields if present in the chunk
+        # First chunk typically contains id, name and type
         if tool_call_chunk.id:
-            current_call["id"] = tool_call_chunk.id
+            tool_call_chunks[index]["id"] = tool_call_chunk.id
+
         if tool_call_chunk.type:
-            current_call["type"] = tool_call_chunk.type # Usually 'function'
+            tool_call_chunks[index]["type"] = tool_call_chunk.type
 
-        func_chunk = tool_call_chunk.function
-        if func_chunk:
-            if func_chunk.name:
-                current_call["function"]["name"] = func_chunk.name
-            if func_chunk.arguments:
-                current_call["function"]["arguments"] += func_chunk.arguments
+        # Update function name if present
+        if (
+            hasattr(tool_call_chunk, "function")
+            and hasattr(tool_call_chunk.function, "name")
+            and tool_call_chunk.function.name
+        ):
+            tool_call_chunks[index]["function"]["name"] = tool_call_chunk.function.name
 
-        # --- Check for completion ---
-        # A simple heuristic: If we have an ID, a name, and the arguments string
-        # looks like it might be complete JSON (ends with '}'), try parsing.
-        # More robust parsing might be needed depending on how OpenAI streams complex args.
-        if (current_call.get("id") and
-            current_call["function"].get("name") and
-            current_call["function"]["arguments"].strip().endswith('}')):
-            try:
-                json.loads(current_call["function"]["arguments"])
-                current_call["_complete"] = True # Mark as potentially complete
-                # Ensure ID is present (might need UUID generation if missing)
-                if not current_call.get("id"):
-                    current_call["id"] = str(uuid.uuid4())
-                    _logger.warning(f"Generated UUID for OpenAI tool call index {index} as none was provided.")
-            except json.JSONDecodeError:
-                 current_call["_complete"] = False # Not valid JSON yet
+        # Update arguments if present - this continues across multiple chunks
+        if (
+            hasattr(tool_call_chunk, "function")
+            and hasattr(tool_call_chunk.function, "arguments")
+            and tool_call_chunk.function.arguments is not None
+        ):
+            arg_chunk = tool_call_chunk.function.arguments
+            tool_call_chunks[index]["function"]["arguments"] += arg_chunk
 
         return tool_call_chunks
 
@@ -472,7 +424,36 @@ class LLMProvider(models.Model):
 
         # Format the rest of the messages
         for message in messages:
-            formatted_messages.append(self._dispatch_on_message(message, "format_message"))
+            formatted_messages.append(self._format_message_for_openai(message))
 
         # Then validate and clean the messages for OpenAI
         return self._validate_and_clean_messages(formatted_messages)
+
+    def _format_message_for_openai(self, message):
+        # Check if this is a tool message
+        if message.subtype_id and message.tool_call_id:
+            tool_message_subtype = self.env.ref("llm_tool.mt_tool_message")
+            if message.subtype_id.id == tool_message_subtype.id:
+                return {
+                    "role": "tool",
+                    "tool_call_id": message.tool_call_id,
+                    "content": message.body or "",  # Ensure content is never null
+                }
+
+        # Check if this is an assistant message with tool calls
+        if not message.author_id and message.tool_calls:
+            try:
+                tool_calls_data = json.loads(message.tool_calls)
+                result = {
+                    "role": "assistant",
+                    "tool_calls": tool_calls_data,
+                }
+                if message.body:
+                    result["content"] = message.body
+                return result
+            except (json.JSONDecodeError, ValueError):
+                # If JSON parsing fails, fall back to default behavior
+                pass
+
+        # Default behavior from parent
+        return self._default_format_message(message)

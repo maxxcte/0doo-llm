@@ -85,6 +85,55 @@
             />
                     </t>
                 </t>
+                <!-- Streaming Message -->
+                <t t-if="composerView.isStreaming and htmlStreamingContent">
+                    <div class="o_Message position-relative py-1 px-3">
+                        <div class="position-relative d-flex flex-shrink-0">
+                            <div class="o_Message_sidebar d-flex flex-shrink-0">
+                                <div
+                  class="o_Message_authorAvatarContainer o_Message_sidebarItem position-relative"
+                >
+                                    <img
+                    class="o_Message_authorAvatar w-100 h-100 rounded-circle o_object_fit_cover"
+                    src="/mail/static/src/img/smiley/avatar.jpg"
+                    alt="AI Avatar"
+                  />
+                                </div>
+                            </div>
+                            <div class="o_Message_core flex-grow-1">
+                                <div
+                  class="o_Message_header d-flex flex-wrap align-items-baseline"
+                >
+                                    <a
+                    class="o_Message_authorName me-2 text-truncate text-muted"
+                  >
+                                        <strong>AI</strong>
+                                    </a>
+                                </div>
+                                <div
+                  class="o_Message_bubbleWrap position-relative d-flex align-items-start"
+                >
+                                    <div
+                    class="o_Message_bubble position-relative w-100 text-muted"
+                  >
+                                        <div
+                      class="o_Message_background position-absolute start-0 top-0 w-100 h-100"
+                    />
+                                        <div
+                      class="o_Message_content position-relative text-break"
+                    >
+                                            <div class="o_Message_prettyBody">
+                                                <t
+                          t-out="htmlStreamingContent"
+                        />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
                 <!-- LOADING (if order desc)-->
                 <t
           t-if="!messageListView.threadViewOwner.threadCache.hasLoadingFailed and messageListView.threadViewOwner.order === 'desc'"

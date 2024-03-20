@@ -3,15 +3,7 @@ import logging
 
 import emoji
 
-from odoo import _, api, fields, models
-
-from odoo.exceptions import AccessError, MissingError, UserError, ValidationError
-
-from odoo.addons.llm_mail_message_subtypes.const import (
-    LLM_TOOL_RESULT_SUBTYPE_XMLID,
-    LLM_USER_SUBTYPE_XMLID,
-    LLM_ASSISTANT_SUBTYPE_XMLID,
-)
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -63,19 +55,6 @@ class LLMThread(models.Model):
         help="Tools that can be used by the LLM in this thread",
     )
 
-    llm_thread_state = fields.Selection(
-        [
-            ('idle', 'Idle'),
-            ('streaming', 'Processing'),
-        ],
-        string="Processing State",
-        default='idle',
-        readonly=True,
-        required=True,
-        copy=False,
-        tracking=True,
-        help="Reflects the backend processing state of the thread. 'Processing' means the system is working on a response.")
-
     @api.model_create_multi
     def create(self, vals_list):
         """Set default title if not provided"""
@@ -86,82 +65,61 @@ class LLMThread(models.Model):
 
     def post_llm_response(self, **kwargs):
         """Post a message to the thread with support for tool messages"""
-        self.ensure_one()
-        subtype_xmlid = kwargs.get("subtype_xmlid")
-        if not subtype_xmlid:
-            raise ValueError("Subtype XML ID is required for _post_llm_message")
-
-        try:
-            subtype = self.env.ref(subtype_xmlid)
-        except ValueError: # Catches if XML ID format is wrong or module not installed
-             _logger.error(f"Invalid XML ID format or module missing for subtype: {subtype_xmlid}")
-             raise MissingError(f"Subtype with XML ID '{subtype_xmlid}' not found.")
-        if not subtype.exists():
-            raise MissingError(f"Subtype with XML ID '{subtype_xmlid}' not found.")
-
         body = emoji.demojize(kwargs.get("body"))
 
-        email_from = False # Let Odoo handle default unless we override
-        is_tool_result = subtype_xmlid == LLM_TOOL_RESULT_SUBTYPE_XMLID
-        is_assistant = subtype_xmlid == LLM_ASSISTANT_SUBTYPE_XMLID
-        author_id = kwargs.get("author_id")
         # Handle tool messages
         tool_call_id = kwargs.get("tool_call_id")
+        subtype_xmlid = kwargs.get("subtype_xmlid")
         tool_calls = kwargs.get("tool_calls")
         tool_name = kwargs.get("tool_name")
-        tool_call_definition = kwargs.get("tool_call_definition")
-        tool_call_result = kwargs.get("tool_call_result")
 
-        if not author_id: # AI or System messages
-            if is_tool_result:
-                tool_name = kwargs.get('tool_name', 'Tool') # Get optional tool name
-                email_from = f"{tool_name} <tool@{self.provider_id.name.lower().replace(' ', '')}.ai>"
-            elif is_assistant:
-                model_name = self.model_id.name or 'Assistant'
-                provider_name = self.provider_id.name or 'provider'
-                email_from = f"{model_name} <ai@{provider_name.lower().replace(' ', '')}.ai>"
+        if tool_call_id and subtype_xmlid == "llm_tool.mt_tool_message":
+            # Use tool name in email_from if available
+            if tool_name:
+                email_from = f"{tool_name} <tool@{self.provider_id.name.lower()}.ai>"
+            else:
+                email_from = f"Tool <tool@{self.provider_id.name.lower()}.ai>"
 
-        post_vals = {
-            'body': body,
-            'message_type': 'comment',
-            'subtype_xmlid': subtype_xmlid,
-            'author_id': author_id,
-            'email_from': email_from or None,
-            'partner_ids': [],
-        }
-        if is_assistant:
-            extra_vals = {
-                'tool_calls': tool_calls,
-            }
-        elif is_tool_result:
-            extra_vals = {
-                'tool_call_id': tool_call_id,
-                'tool_call_definition': tool_call_definition,
-                'tool_call_result': tool_call_result,
-            }
-        else:
-            extra_vals = {}
-        extra_vals = {k: v for k, v in extra_vals.items() if v is not None}
+            message = self.message_post(
+                body=body,
+                message_type="comment",
+                author_id=False,  # No author for AI messages
+                email_from=email_from,
+                partner_ids=[],  # No partner notifications
+                subtype_xmlid=subtype_xmlid,
+            )
 
-        message = self.message_post(**post_vals)
+            # Set the tool_call_id on the message
+            message.write({"tool_call_id": tool_call_id})
 
-        if extra_vals:
-            message.write(extra_vals)
+            return message.message_format()[0]
 
-        message_payload = message.message_format()[0]
-        self._update_message_insert(message_payload)
+        # Handle assistant messages with tool calls
+        if tool_calls:
+            message = self.message_post(
+                body=body,
+                message_type="comment",
+                author_id=False,  # No author for AI messages
+                email_from=f"{self.model_id.name} <ai@{self.provider_id.name.lower()}.ai>",
+                partner_ids=[],  # No partner notifications
+            )
 
-        return message
+            # Set the tool_calls on the message
+            message.write({"tool_calls": json.dumps(tool_calls)})
 
-    def _update_message_insert(self, message_payload):
-        self.ensure_one()
-        partner_id = self.env.user.partner_id.id
-        channel = (self.env.cr.dbname, 'res.partner', partner_id)
-        self.env['bus.bus']._sendone(channel, 'mail.message/insert_custom', message_payload)
-        _logger.info(f"Message inserted: {message_payload}")
-        
+            return message.message_format()[0]
 
-    def _get_message_history_recordset(self, limit=None):
+        message = self.message_post(
+            body=body,
+            message_type="comment",
+            author_id=False,  # No author for AI messages
+            email_from=f"{self.model_id.name} <ai@{self.provider_id.name.lower()}.ai>",
+            partner_ids=[],  # No partner notifications
+        )
+
+        return message.message_format()[0]
+
+    def get_chat_messages(self, limit=None):
         """Get messages from the thread
 
         Args:
@@ -170,244 +128,208 @@ class LLMThread(models.Model):
         Returns:
             mail.message recordset containing the messages
         """
-        self.ensure_one()
-        subtypes_to_fetch = [
-            self.env.ref(LLM_USER_SUBTYPE_XMLID, raise_if_not_found=False),
-            self.env.ref(LLM_ASSISTANT_SUBTYPE_XMLID, raise_if_not_found=False),
-            self.env.ref(LLM_TOOL_RESULT_SUBTYPE_XMLID, raise_if_not_found=False),
-        ]       
-        subtype_ids = [st.id for st in subtypes_to_fetch if st]    
         domain = [
             ("model", "=", self._name),
             ("res_id", "=", self.id),
             ("message_type", "=", "comment"),
-            ("subtype_id", "in", subtype_ids),
         ]
         messages = self.env["mail.message"].search(
             domain, order="create_date ASC", limit=limit
         )
         return messages
 
-    def start_thread_loop(self, user_message_body=None):
+    def get_assistant_response(self, stream=True, system_prompt=None):
         """
-        Orchestrates the LLM interaction cycle synchronously.
+        Get assistant response with tool handling.
+
+        This method processes the chat messages, validates them, and handles
+        the response from the LLM, including any tool calls and their results.
+
+        Args:
+            stream (bool): Whether to stream the response
+            system_prompt (str, optional): System prompt to include at the beginning of the messages
+
+        Yields:
+            dict: Response chunks with various types (content, tool_start, tool_end, error)
         """
-        self.ensure_one()
-        if self.llm_thread_state == 'streaming':
-            _logger.warning(f"Thread {self.id} is already processing, skipping.")
-            return
-
-        _logger.info(f"SYNC LOOP START: Thread {self.id}, User Msg: {bool(user_message_body)}")
-        self.write({'llm_thread_state': 'streaming'})
-
-        assistant_msg = None
-        assistant_stream_id = None
-        results_were_posted = False
-
         try:
-            # 1. Post User Message (Conditional)
-            if user_message_body:
-                user_msg = self.post_llm_response( # Use the existing method name
-                    subtype_xmlid=LLM_USER_SUBTYPE_XMLID,
-                    body=user_message_body,
-                    author_id=self.env.user.partner_id.id,
+            messages = self.get_chat_messages()
+            tool_ids = self.tool_ids.ids if self.tool_ids else None
+
+            # Format messages using the provider (which will handle validation)
+            try:
+                formatted_messages = self.provider_id.format_messages(
+                    messages, system_prompt=system_prompt
                 )
-                # No need to return formatted data here
+            except Exception:
+                formatted_messages = self._default_format_messages(
+                    messages, system_prompt=system_prompt
+                )
 
-            # 2. Prepare Data for LLM Call
-            history_messages_rs = self._get_message_history_recordset()
-            tools_rs = self.tool_ids # Pass the tool recordset
-
-            # 3. Call LLM Provider via llm.model
-            _logger.info(f"Thread {self.id}: Calling Provider '{self.provider_id.name}' Model '{self.model_id.name}'")
-            if not self.model_id or not self.provider_id:
-                 raise UserError(_("Thread is missing Provider or Model configuration."))
-
-            # Provider's chat method handles internal formatting
-            stream_response = self.model_id.chat(
-                messages=history_messages_rs,
-                tools=tools_rs,
-                stream=True
+            # Process response with possible tool calls
+            response_generator = self._chat_with_tools(
+                formatted_messages, tool_ids, stream
             )
 
-            # 4. Consume Stream & Handle Assistant Message
-            accumulated_content = ""
-            received_tool_calls = [] # List to store tool call definitions from LLM
+            # Process the response stream using the helper method
+            yield from self._process_llm_response(response_generator)
 
-            for chunk in stream_response:
-                # Create assistant message record ONCE on first relevant activity
-                if assistant_msg is None and (chunk.get('content') or chunk.get('tool_calls')):
-                     # Use existing post_llm_response, which returns record now
-                     assistant_msg = self.post_llm_response(
-                         subtype_xmlid=LLM_ASSISTANT_SUBTYPE_XMLID,
-                         body="Thinking...", # Start empty
-                         author_id=False
-                     )
-                     assistant_stream_id = assistant_msg.stream_start(
-                         initial_data={'stream_type': 'llm_assistant_response'}
-                     )
-                     _logger.info(f"Thread {self.id}: Assistant msg {assistant_msg.id} created, stream {assistant_stream_id} started.")
-
-                # Process content chunks
-                if assistant_stream_id and chunk.get('content'):
-                    content_chunk = chunk.get('content')
-                    accumulated_content += content_chunk
-                    assistant_msg.stream_chunk(assistant_stream_id, content_chunk)
-
-                # Process tool call definitions
-                if chunk.get('tool_calls'):
-                    calls = chunk.get('tool_calls')
-                    if isinstance(calls, list):
-                        valid_calls = [c for c in calls if isinstance(c, dict) and c.get('id') and c.get('function')]
-                        received_tool_calls.extend(valid_calls)
-                        if len(valid_calls) != len(calls): _logger.warning(f"Thread {self.id}: Invalid tool calls received: {calls}")
-                    else: _logger.warning(f"Thread {self.id}: Received non-list tool_calls: {calls}")
-
-                # Handle error directly from stream chunk
-                if chunk.get('error'):
-                    error_msg = f"LLM Provider stream error: {chunk['error']}"
-                    _logger.error(f"{error_msg} for Thread {self.id}")
-                    if assistant_msg and assistant_stream_id:
-                        assistant_msg.stream_done(assistant_stream_id, error=error_msg)
-                    raise UserError(_("Error from Language Model: %s", chunk['error']))
-
-            # 5. Finalize Assistant Message Stream and Update Record
-            if assistant_stream_id:
-                assistant_msg.stream_done(assistant_stream_id)
-                _logger.info(f"Thread {self.id}: Assistant stream {assistant_stream_id} done.")
-            if assistant_msg:
-                update_vals = {'body': accumulated_content}
-                if received_tool_calls:
-                    update_vals['tool_calls'] = json.dumps(received_tool_calls) # Save validated JSON
-                if accumulated_content or received_tool_calls: # Check if update needed
-                    assistant_msg.write(update_vals)
-                    _logger.info(f"Thread {self.id}: Assistant msg {assistant_msg.id} updated (Body: {bool(accumulated_content)}, Tools: {bool(received_tool_calls)})")
-
-
-            # 6. Handle Tool Calls Sequentially
-            if assistant_msg and received_tool_calls:
-                _logger.info(f"Thread {self.id}: Processing {len(received_tool_calls)} tool call(s).")
-                # Load validated definitions from the saved field
-                tool_call_definitions = json.loads(assistant_msg.tool_calls or '[]')
-
-                for tool_call_def in tool_call_definitions:
-                    tool_msg = None
-                    tool_stream_id = None
-                    tool_call_id = tool_call_def.get('id')
-                    tool_function = tool_call_def.get('function', {})
-                    tool_name = tool_function.get('name', 'unknown_tool')
-                    if not tool_call_id or not tool_name: continue
-
-                    _logger.info(f"Thread {self.id}: Preparing tool call {tool_call_id} ({tool_name})")
-                    try:
-                        # 1. Create Tool Result Message placeholder using post_llm_response
-                        # Pass necessary fields for the write() call within post_llm_response
-                        tool_msg = self.post_llm_response(
-                            subtype_xmlid=LLM_TOOL_RESULT_SUBTYPE_XMLID,
-                            tool_call_id=tool_call_id,
-                            tool_call_definition=json.dumps(tool_call_def), # Store definition
-                            tool_call_result=None, # Result is not known yet
-                            body=f"Executing: {tool_name}...", # Initial body
-                            author_id=False,
-                            tool_name=tool_name # For email_from
-                        )
-                        # 2. Signal Start of Execution
-                        tool_stream_id = tool_msg.stream_start(
-                            initial_data={'tool_call_id': tool_call_id, 'definition': tool_call_def}
-                        )
-                        _logger.info(f"Thread {self.id}: Tool msg {tool_msg.id} created, stream {tool_stream_id} started for tool {tool_call_id}.")
-
-                        # 3. Execute Tool
-                        args_str = tool_function.get('arguments')
-                        # Pass tool_call_id as required by your _execute_tool signature
-                        tool_response_dict = self._execute_tool(tool_name, args_str, tool_call_id)
-
-                        # --- Extract Result/Error from the Structured Response ---
-                        result_str = tool_response_dict.get("result", json.dumps({"error": "Tool execution failed to produce result"}))
-                        execution_error = None
-                        error_flag = False
-                        try:
-                            # Parse the inner 'result' JSON string to check for the error structure
-                            parsed_result_data = json.loads(result_str)
-                            if isinstance(parsed_result_data, dict) and 'error' in parsed_result_data:
-                                execution_error = parsed_result_data['error']
-                                error_flag = True
-                        except (json.JSONDecodeError, TypeError):
-                            # If result_str isn't valid JSON or not a dict, assume it's valid (but log)
-                             _logger.warning(f"Tool {tool_name} result string was not valid JSON or dictionary: {result_str}. Assuming success content.")
-                             error_flag = False # Treat non-error-structure as success content
-                        # --- End Result/Error Extraction ---
-
-                        final_body = f"{'Error' if error_flag else 'Result'} for {tool_name}"
-
-                        # 4. Update Tool Result Message with the result JSON string
-                        tool_msg.write({
-                            'tool_call_result': result_str, # Store the JSON string from the 'result' key
-                            'body': final_body
-                        })
-                        results_were_posted = True
-
-                        _logger.info(f"Thread {self.id}: Tool msg {tool_msg.id} updated with result for tool {tool_call_id}.")
-
-                        # 5. Signal Done for this tool's execution stream
-                        tool_msg.stream_done(
-                            tool_stream_id,
-                            final_data={'message': tool_msg.message_format()[0]}, # Send final message state
-                            error=tool_result_dict.get('error') if error_flag else None
-                        )
-                        _logger.info(f"Thread {self.id}: Tool stream {tool_stream_id} done for tool {tool_call_id}.")
-
-                    except Exception as tool_err:
-                        error_msg = f"Error processing tool call {tool_call_id} ({tool_name}): {tool_err}"
-                        _logger.exception(error_msg)
-                        if tool_msg and tool_stream_id:
-                            tool_msg.stream_done(tool_stream_id, error=error_msg)
-                        if tool_msg: # Try to update message with error state
-                             try: tool_msg.write({'tool_call_result': json.dumps({'error': error_msg}), 'body': f"Error: {tool_name}"})
-                             except Exception: pass
-                        raise UserError(_("An error occurred while executing tool '%(tool_name)s': %(error)s", tool_name=tool_name, error=tool_err))
-
-
-            # 7. Recursive Call (if tools were executed and no error occurred)
-            if results_were_posted:
-                _logger.info(f"Thread {self.id}: Tool results processed, making synchronous recursive call.")
-                # Call self again, state remains 'streaming'. Return the result of the recursive call.
-                return self.start_thread_loop(user_message_body=None)
-
-        except (ValidationError, UserError, MissingError, AccessError) as e:
-            _logger.warning(f"Known error during chat loop for thread {self.id}: {e}")
-            if assistant_msg and assistant_stream_id:
-                 try: assistant_msg.stream_done(assistant_stream_id, error=str(e))
-                 except Exception: pass
-            raise
         except Exception as e:
-            _logger.exception(f"Unexpected error during chat loop for thread {self.id}")
-            if assistant_msg and assistant_stream_id:
-                 try: assistant_msg.stream_done(assistant_stream_id, error=str(e))
-                 except Exception: pass
-            raise UserError(_("An unexpected error occurred during the chat process."))
-        finally:
-            # --- Final State Update ---
-            # This runs only when the current level finishes *without* recursing OR after an error
-            if not results_were_posted:
-                 if self.llm_thread_state == 'streaming': # Prevent overwriting if error already set state somehow
-                     self.write({'llm_thread_state': 'idle'})
-                     _logger.info(f"SYNC LOOP END: Thread {self.id} final state set to 'idle'.")
+            _logger.error("Error getting AI response: %s", str(e))
+            yield {"type": "error", "error": str(e)}
 
-    def _create_tool_response(self, tool_name, arguments_str, tool_call_id, result_data):
+    def _process_llm_response(self, response_generator):
+        """
+        Process the LLM response stream, handling content and tool calls.
+
+        Args:
+            response_generator: Generator yielding response chunks from the LLM
+
+        Yields:
+            dict: Processed response chunks with proper formatting
+        """
+        content = ""
+        assistant_tool_calls = []
+
+        try:
+            for response in response_generator:
+                # Handle content
+                if response.get("content") is not None:
+                    content += response.get("content", "")
+                    yield {
+                        "type": "content",
+                        "role": "assistant",
+                        "content": response.get("content", ""),
+                    }
+
+                # Handle tool calls - these come directly from the provider now
+                if response.get("tool_call"):
+                    tool_call = response.get("tool_call")
+                    assistant_tool_calls.append(
+                        {
+                            "id": tool_call["id"],
+                            "type": tool_call["type"],
+                            "function": tool_call["function"],
+                        }
+                    )
+
+                    # Signal tool call start
+                    yield {
+                        "type": "tool_start",
+                        "tool_call_id": tool_call["id"],
+                        "function_name": tool_call["function"]["name"],
+                        "arguments": tool_call["function"]["arguments"],
+                    }
+
+                    # Display raw tool output
+                    raw_output = f"**Arguments:**\n```json\n{tool_call['function']['arguments']}\n```\n\n"
+                    raw_output += (
+                        f"**Result:**\n```json\n{tool_call['result']}\n```\n\n"
+                    )
+
+                    # Signal tool call end with result
+                    yield {
+                        "type": "tool_end",
+                        "role": "tool",
+                        "tool_call_id": tool_call["id"],
+                        "content": tool_call["result"],
+                        "formatted_content": raw_output,
+                    }
+
+            # If we have tool calls, post the assistant message with tool_calls
+            if assistant_tool_calls:
+                self.post_llm_response(
+                    body=content or "", tool_calls=assistant_tool_calls
+                )
+
+        except Exception as e:
+            _logger.error("Error processing LLM response: %s", str(e))
+            yield {"type": "error", "error": str(e)}
+
+    def _default_format_messages(self, messages, system_prompt=None):
+        """Format messages generic to the provider
+
+        Args:
+            messages: mail.message recordset to format
+            system_prompt: Optional system prompt to include at the beginning of the messages
+
+        Returns:
+            List of formatted messages in OpenAI-compatible format
+        """
+        # First use the default implementation from the llm_tool module
+        formatted_messages = []
+
+        # Add system prompt if provided
+        if system_prompt:
+            formatted_messages.append({"role": "system", "content": system_prompt})
+
+        # Format the rest of the messages
+        for message in messages:
+            formatted_messages.append(self.provider_id._default_format_message(message))
+
+        # Then validate and clean the messages for OpenAI
+        return formatted_messages
+
+    def _chat_with_tools(self, messages, tool_ids=None, stream=True):
+        """Helper method to chat with tools"""
+        # Get available tools if tool_ids provided
+        tools = None
+        if tool_ids:
+            tools = self.env["llm.tool"].browse(tool_ids)
+
+        # Use the provider to handle the chat with tools
+        response_generator = self.model_id.chat(
+            messages=messages, stream=stream, tools=tools
+        )
+
+        # Process the response generator
+        for response in response_generator:
+            # If there's a tool call, execute it
+            if response.get("tool_calls"):
+                # For non-streaming responses, we get an array of tool calls
+                for tool_call in response.get("tool_calls", []):
+                    # Execute the tool
+                    tool_name = tool_call["function"]["name"]
+                    arguments_str = tool_call["function"]["arguments"]
+                    tool_id = tool_call["id"]
+
+                    # Execute the tool
+                    tool_result = self.execute_tool(tool_name, arguments_str, tool_id)
+
+                    # Update the tool call with the result
+                    tool_call.update(tool_result)
+
+            # If there's a single tool call (streaming case)
+            elif response.get("tool_call") and not response.get("tool_call").get(
+                "result"
+            ):
+                tool_call = response.get("tool_call")
+                tool_name = tool_call["function"]["name"]
+                arguments_str = tool_call["function"]["arguments"]
+                tool_id = tool_call["id"]
+
+                # Execute the tool
+                tool_result = self.execute_tool(tool_name, arguments_str, tool_id)
+
+                # Update the response with the tool result
+                response["tool_call"] = tool_result
+
+            yield response
+
+    def _create_tool_response(self, tool_name, arguments_str, tool_id, result_data):
         """Create a standardized tool response structure
 
         Args:
             tool_name: Name of the tool
             arguments_str: JSON string of arguments
-            tool_call_id: ID of the tool call
+            tool_id: ID of the tool call
             result_data: Result data to include (will be JSON serialized)
 
         Returns:
             Dictionary with standardized tool response format
         """
         return {
-            "id": tool_call_id,
+            "id": tool_id,
             "type": "function",
             "function": {
                 "name": tool_name,
@@ -416,13 +338,13 @@ class LLMThread(models.Model):
             "result": json.dumps(result_data),
         }
 
-    def _execute_tool(self, tool_name, arguments_str, tool_call_id):
+    def execute_tool(self, tool_name, arguments_str, tool_id):
         """Execute a tool and return the result
 
         Args:
             tool_name: Name of the tool to execute
             arguments_str: JSON string of arguments for the tool
-            tool_call_id: ID of the tool call
+            tool_id: ID of the tool call
 
         Returns:
             Dictionary with tool execution result
@@ -435,16 +357,16 @@ class LLMThread(models.Model):
             return self._create_tool_response(
                 tool_name,
                 arguments_str,
-                tool_call_id,
+                tool_id,
                 {"error": f"Tool '{tool_name}' not found"},
             )
 
         try:
             arguments = json.loads(arguments_str)
             result = tool.execute(arguments)
-            return self._create_tool_response(tool_name, arguments_str, tool_call_id, result)
+            return self._create_tool_response(tool_name, arguments_str, tool_id, result)
         except Exception as e:
             _logger.exception(f"Error executing tool {tool_name}: {str(e)}")
             return self._create_tool_response(
-                tool_name, arguments_str, tool_call_id, {"error": str(e)}
+                tool_name, arguments_str, tool_id, {"error": str(e)}
             )

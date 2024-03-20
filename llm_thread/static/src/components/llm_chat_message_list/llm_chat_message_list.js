@@ -10,19 +10,20 @@ export class LLMChatMessageList extends MessageList {
   setup() {
     super.setup();
     this.rootRef = useRef("root");
-    // TODO Need to do it via addComponentHint probably
     useEffect(
       () => {
-        if (this.thread && this.thread.llmThreadState === 'streaming') {
+        if (this.composerView.isStreaming && this.htmlStreamingContent) {
           this._scrollToEnd();
         }
       },
-      () => [this.thread.llmThreadState]
+      () => [this.htmlStreamingContent]
     );
   }
 
-  get thread() {
-    return this.composerView.composer.thread;
+  get htmlStreamingContent() {
+    return this.composerView.htmlStreamingContent
+      ? markup(this.composerView.htmlStreamingContent)
+      : "";
   }
 
   get composerView() {
