@@ -43,7 +43,7 @@ class MailMessageStream(models.Model):
             'data': payload_data or {}
         }
 
-        self._send_one_immediately(channel, notification_type, full_payload)
+        self._sendone_immediately(channel, notification_type, full_payload)
 
     def stream_start(self, initial_data=None):
         """Sends 'mail.message/stream_start'. Returns stream_id."""

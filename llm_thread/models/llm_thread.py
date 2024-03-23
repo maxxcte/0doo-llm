@@ -157,7 +157,7 @@ class LLMThread(models.Model):
         self.ensure_one()
         partner_id = self.env.user.partner_id.id
         channel = (self.env.cr.dbname, 'res.partner', partner_id)
-        self._send_one_immediately(channel, 'mail.message/insert_custom', message_payload)
+        self._sendone_immediately(channel, 'mail.message/insert_custom', message_payload)
         _logger.info(f"Message inserted: {datetime.now()}")
         
 

@@ -23,7 +23,7 @@ class BusImmediateSendMixin(models.AbstractModel):
     _name = 'bus.immediate.send.mixin'
     _description = 'Bus Immediate Send Mixin'
 
-    def _send_one_immediately(self, channel, notification_type, payload, user_id=SUPERUSER_ID):
+    def _sendone_immediately(self, channel, notification_type, payload, user_id=SUPERUSER_ID):
         """
         Sends a bus message using a separate, immediately committed cursor.
 
