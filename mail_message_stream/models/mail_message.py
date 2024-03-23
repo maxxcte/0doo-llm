@@ -1,6 +1,6 @@
 import logging
 import uuid
-from odoo import models
+from odoo import models, api, SUPERUSER_ID
 
 from ..const import (
     STREAM_START_NOTIFICATION,
@@ -16,7 +16,8 @@ class MailMessageStream(models.Model):
     via Bus following the mail module notification pattern.
     Notifications are sent on the channel of the record the message belongs to.
     """
-    _inherit = 'mail.message'
+    _name = 'mail.message'
+    _inherit = ['mail.message', 'bus.immediate.send.mixin']
 
     def _get_bus_stream_channel(self):
         """Gets the channel of the record this message is posted on."""
@@ -42,7 +43,7 @@ class MailMessageStream(models.Model):
             'data': payload_data or {}
         }
 
-        self.env['bus.bus']._sendone(channel, notification_type, full_payload)
+        self._send_one_immediately(channel, notification_type, full_payload)
 
     def stream_start(self, initial_data=None):
         """Sends 'mail.message/stream_start'. Returns stream_id."""

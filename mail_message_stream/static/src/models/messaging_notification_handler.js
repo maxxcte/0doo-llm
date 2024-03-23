@@ -24,8 +24,8 @@ registerPatch({
             }
 
             if (!notification.payload) {
-                 console.warn(`Ignoring notification type ${notification.type} due to missing payload.`);
-                 return this._super(notification);
+                console.warn(`Ignoring notification type ${notification.type} due to missing payload.`);
+                return this._super(notification);
             }
 
             const messageModel = notification.payload.message_id
@@ -46,7 +46,7 @@ registerPatch({
                         if (messageModel && messageModel.exists()) {
                             messageModel.handleStreamChunk(notification.payload);
                         } else {
-                             console.debug(`Stream chunk event received for message ${notification.payload.message_id}, but message model not found locally.`);
+                            console.debug(`Stream chunk event received for message ${notification.payload.message_id}, but message model not found locally.`);
                         }
                         return;
 
