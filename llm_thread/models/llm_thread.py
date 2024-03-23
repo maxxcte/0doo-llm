@@ -1,6 +1,6 @@
 import json
 import logging
-
+from datetime import datetime
 import emoji
 
 from odoo import _, api, fields, models
@@ -19,7 +19,7 @@ _logger = logging.getLogger(__name__)
 class LLMThread(models.Model):
     _name = "llm.thread"
     _description = "LLM Chat Thread"
-    _inherit = ["mail.thread"]
+    _inherit = ["mail.thread", "bus.immediate.send.mixin"]
     _order = "write_date DESC"
 
     name = fields.Char(
@@ -157,8 +157,8 @@ class LLMThread(models.Model):
         self.ensure_one()
         partner_id = self.env.user.partner_id.id
         channel = (self.env.cr.dbname, 'res.partner', partner_id)
-        self.env['bus.bus']._sendone(channel, 'mail.message/insert_custom', message_payload)
-        _logger.info(f"Message inserted: {message_payload}")
+        self._send_one_immediately(channel, 'mail.message/insert_custom', message_payload)
+        _logger.info(f"Message inserted: {datetime.now()}")
         
 
     def _get_message_history_recordset(self, limit=None):
@@ -368,7 +368,7 @@ class LLMThread(models.Model):
                              except Exception: pass
                         raise UserError(_("An error occurred while executing tool '%(tool_name)s': %(error)s", tool_name=tool_name, error=tool_err))
 
-
+            # TODO: update message content/body/tool_calls etc. as well check if odoo provides any method for this
             # 7. Recursive Call (if tools were executed and no error occurred)
             if results_were_posted:
                 _logger.info(f"Thread {self.id}: Tool results processed, making synchronous recursive call.")

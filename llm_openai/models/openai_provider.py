@@ -328,9 +328,6 @@ class LLMProvider(models.Model):
                 elif finish_reason != 'error':
                      _logger.warning(f"OpenAI stream had tool chunks but finished with reason '{finish_reason}'. Not yielding tool calls.")
 
-        except OpenAI.APIError as e:
-             _logger.error(f"OpenAI API Error during streaming: {e}", exc_info=True)
-             yield {'error': f"OpenAI API Error: {e}"}
         except Exception as e:
             _logger.exception("Unexpected error processing OpenAI stream")
             yield {'error': f"Internal error processing stream: {e}"}

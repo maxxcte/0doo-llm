@@ -19,13 +19,11 @@ registerPatch({
          * @param {Object} notification.payload The data payload.
          */
         _handleNotification(notification) {
-            console.log(`Received notification: ${notification.type}`);
             if (!this.messaging || !this.messaging.exists()) {
                 return this._super(notification);
             }
 
             if (!notification.payload) {
-                 console.warn(`Ignoring notification type ${notification.type} due to missing payload.`);
                  return this._super(notification);
             }
 
@@ -34,7 +32,6 @@ registerPatch({
                     const message = this.messaging.models.Message.insert(
                         this.messaging.models.Message.convertData(notification.payload)
                     );
-                    console.log(`Custom message inserted: ${message.id}`);
                     return;
                 }
                 else {
