@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <templates xml:space="preserve">
     <t t-name="llm_thread.Message" t-inherit="mail.Message" t-inherit-mode="extension" owl="1">
-
         <!--
         Replace the main content rendering area.
         We rely on is_note=True (set by backend message_format for LLM subtypes)
@@ -12,7 +11,9 @@
                  t-att-class="{
                     'opacity-75': messageView.message.isSquashed,
                     'o_Message_content--failed': messageView.message.isFailed,
-                 }">
+                 }"
+                 t-ref="content"
+                 >
 
                 <!-- === STREAMING STATE === -->
                 <t t-if="messageView.message.isStreaming">
@@ -33,9 +34,9 @@
                                 Executing: <strong t-esc="messageView.message.toolCallDefinition?.function?.name || 'tool'"/>...
                                 <span class="o_llm_tool_executing_id text-muted small ms-1">(ID: <t t-esc="messageView.message.initialStreamData?.tool_call_id"/>)</span>
                             </span>
-                             <!-- Optional: Display arguments in a collapsible section -->
-                             <details class="o_llm_tool_executing_args small mt-1">
-                                 <summary class="text-muted" style="cursor: pointer;">Show Arguments</summary>
+                            <!-- Optional: Display arguments in a collapsible section -->
+                            <details class="o_llm_tool_executing_args small mt-1">
+                                <summary class="text-muted" style="cursor: pointer;">Show Arguments</summary>
                                  <pre class="bg-light p-1 rounded small mt-1"><code t-esc="messageView.message.initialStreamData?.definition?.function?.arguments or '{}'"/></pre>
                              </details>
                         </div>
@@ -62,7 +63,9 @@
                     <!-- Assistant Final Content -->
                     <t t-if="messageView.message.messageSubtypeXmlid === 'llm_mail_message_subtypes.mt_llm_assistant'">
                         <!-- Render final message body (processed by mail) -->
-                        <div class="o_Message_prettyBody" t-out="messageView.message.body"/>
+                        <t t-if="!messageView.composerViewInEditing">
+                          <div class="o_Message_prettyBody" t-ref="prettyBody"/><!-- messageView.message.prettyBody is inserted here from _update() -->
+                        </t>
                         <!-- Display requested tool calls if any -->
                         <t t-if="messageView.message.formattedToolCalls and messageView.message.formattedToolCalls.length > 0">
                             <div class="o_llm_tool_calls mt-2 small text-muted border-top pt-1">
@@ -106,7 +109,27 @@
                     </t>
                     <!-- User Message Final Content (or other standard subtypes) -->
                     <t t-else="">
-                         <div class="o_Message_prettyBody" t-out="messageView.message.body"/>
+                      <t t-if="!messageView.composerViewInEditing">
+                        <div class="o_Message_prettyBody" t-ref="prettyBody"/><!-- messageView.message.prettyBody is inserted here from _update() -->
+                      </t>
+                      <t t-if="messageView.composerViewInEditing">
+                          <Composer
+                              className="'o_Message_composer'"
+                              record="messageView.composerViewInEditing"
+                          />
+                      </t>
+                      <t t-if="messageView.message.subtype_description and !messageView.message.isBodyEqualSubtypeDescription">
+                          <p t-esc="messageView.message.subtype_description" class="mb-0"/>
+                      </t>
+                      <t t-if="messageView.message.trackingValues.length > 0">
+                          <ul class="o_Message_trackingValues mb-0 ps-4">
+                            <t t-foreach="messageView.message.trackingValues" t-as="trackingValue" t-key="trackingValue.id">
+                                  <li>
+                                      <TrackingValue value="trackingValue"/>
+                                  </li>
+                              </t>
+                          </ul>
+                      </t>
                     </t>
                 </t>
 
