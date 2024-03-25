@@ -64,7 +64,7 @@
                     <t t-if="messageView.message.messageSubtypeXmlid === 'llm_mail_message_subtypes.mt_llm_assistant'">
                         <!-- Render final message body (processed by mail) -->
                         <t t-if="!messageView.composerViewInEditing">
-                          <div class="o_Message_prettyBody" t-ref="prettyBody"/><!-- messageView.message.prettyBody is inserted here from _update() -->
+                            <div class="o_Message_prettyBody" t-ref="prettyBody"/>
                         </t>
                         <!-- Display requested tool calls if any -->
                         <t t-if="messageView.message.formattedToolCalls and messageView.message.formattedToolCalls.length > 0">
@@ -110,7 +110,7 @@
                     <!-- User Message Final Content (or other standard subtypes) -->
                     <t t-else="">
                       <t t-if="!messageView.composerViewInEditing">
-                        <div class="o_Message_prettyBody" t-ref="prettyBody"/><!-- messageView.message.prettyBody is inserted here from _update() -->
+                        <div class="o_Message_prettyBody" t-ref="prettyBody"/>
                       </t>
                       <t t-if="messageView.composerViewInEditing">
                           <Composer
