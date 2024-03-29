@@ -84,12 +84,12 @@ class LLMThread(models.Model):
                 vals["name"] = f"Chat with {self.model_id.name}"
         return super().create(vals_list)
 
-    def post_llm_response(self, **kwargs):
-        """Post a message to the thread with support for tool messages"""
+    def save_message(self, **kwargs):
+        """Save a message to the thread with support for tool messages"""
         self.ensure_one()
         subtype_xmlid = kwargs.get("subtype_xmlid")
         if not subtype_xmlid:
-            raise ValueError("Subtype XML ID is required for _post_llm_message")
+            raise ValueError("Subtype XML ID is required for save_message")
 
         try:
             subtype = self.env.ref(subtype_xmlid)
@@ -149,11 +149,11 @@ class LLMThread(models.Model):
             message.write(extra_vals)
 
         message_payload = message.message_format()[0]
-        self._update_message_insert(message_payload)
+        self._notify_message_insert(message_payload)
 
         return message
 
-    def _update_message_insert(self, message_payload):
+    def _notify_message_insert(self, message_payload):
         self.ensure_one()
         partner_id = self.env.user.partner_id.id
         channel = (self.env.cr.dbname, 'res.partner', partner_id)
@@ -208,7 +208,7 @@ class LLMThread(models.Model):
         try:
             # 1. Post User Message (Conditional)
             if user_message_body is not None:
-                user_msg = self.post_llm_response( # Use the existing method name
+                user_msg = self.save_message( # Use the existing method name
                     subtype_xmlid=LLM_USER_SUBTYPE_XMLID,
                     body=user_message_body,
                     author_id=self.env.user.partner_id.id,
@@ -238,8 +238,7 @@ class LLMThread(models.Model):
             for chunk in stream_response:
                 # Create assistant message record ONCE on first relevant activity
                 if assistant_msg is None and (chunk.get('content') or chunk.get('tool_calls')):
-                     # Use existing post_llm_response, which returns record now
-                     assistant_msg = self.post_llm_response(
+                     assistant_msg = self.save_message(
                          subtype_xmlid=LLM_ASSISTANT_SUBTYPE_XMLID,
                          body="Thinking...", # Start empty
                          author_id=False
@@ -247,7 +246,6 @@ class LLMThread(models.Model):
                      assistant_stream_id = assistant_msg.stream_start(
                          initial_data={'stream_type': 'llm_assistant_response'}
                      )
-                     _logger.info(f"Thread {self.id}: Assistant msg {assistant_msg.id} created, stream {assistant_stream_id} started.")
 
                 # Process content chunks
                 if assistant_stream_id and chunk.get('content'):
@@ -275,19 +273,15 @@ class LLMThread(models.Model):
             # 5. Finalize Assistant Message Stream and Update Record
             if assistant_stream_id:
                 assistant_msg.stream_done(assistant_stream_id)
-                _logger.info(f"Thread {self.id}: Assistant stream {assistant_stream_id} done.")
             if assistant_msg:
                 update_vals = {'body': accumulated_content}
                 if received_tool_calls:
                     update_vals['tool_calls'] = json.dumps(received_tool_calls) # Save validated JSON
                 if accumulated_content or received_tool_calls: # Check if update needed
                     assistant_msg.write(update_vals)
-                    _logger.info(f"Thread {self.id}: Assistant msg {assistant_msg.id} updated (Body: {bool(accumulated_content)}, Tools: {bool(received_tool_calls)})")
-
 
             # 6. Handle Tool Calls Sequentially
             if assistant_msg and received_tool_calls:
-                _logger.info(f"Thread {self.id}: Processing {len(received_tool_calls)} tool call(s).")
                 # Load validated definitions from the saved field
                 tool_call_definitions = json.loads(assistant_msg.tool_calls or '[]')
 
@@ -301,9 +295,9 @@ class LLMThread(models.Model):
 
                     _logger.info(f"Thread {self.id}: Preparing tool call {tool_call_id} ({tool_name})")
                     try:
-                        # 1. Create Tool Result Message placeholder using post_llm_response
-                        # Pass necessary fields for the write() call within post_llm_response
-                        tool_msg = self.post_llm_response(
+                        # 1. Create Tool Result Message placeholder using save_message
+                        # Pass necessary fields for the write() call within save_message
+                        tool_msg = self.save_message(
                             subtype_xmlid=LLM_TOOL_RESULT_SUBTYPE_XMLID,
                             tool_call_id=tool_call_id,
                             tool_call_definition=json.dumps(tool_call_def), # Store definition
@@ -388,8 +382,6 @@ class LLMThread(models.Model):
                  except Exception: pass
             raise UserError(_("An unexpected error occurred during the chat process."))
         finally:
-            # --- Final State Update ---
-            # This runs only when the current level finishes *without* recursing OR after an error
             if not results_were_posted:
                  if self.llm_thread_state == 'streaming': # Prevent overwriting if error already set state somehow
                      self.write({'llm_thread_state': 'idle'})
