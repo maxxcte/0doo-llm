@@ -84,12 +84,12 @@ class LLMThread(models.Model):
                 vals["name"] = f"Chat with {self.model_id.name}"
         return super().create(vals_list)
 
-    def save_message(self, **kwargs):
+    def create_new_message(self, **kwargs):
         """Save a message to the thread with support for tool messages"""
         self.ensure_one()
         subtype_xmlid = kwargs.get("subtype_xmlid")
         if not subtype_xmlid:
-            raise ValueError("Subtype XML ID is required for save_message")
+            raise ValueError("Subtype XML ID is required for create_new_message")
 
         try:
             subtype = self.env.ref(subtype_xmlid)
@@ -208,7 +208,7 @@ class LLMThread(models.Model):
         try:
             # 1. Post User Message (Conditional)
             if user_message_body is not None:
-                user_msg = self.save_message( # Use the existing method name
+                user_msg = self.create_new_message( # Use the existing method name
                     subtype_xmlid=LLM_USER_SUBTYPE_XMLID,
                     body=user_message_body,
                     author_id=self.env.user.partner_id.id,
@@ -238,7 +238,7 @@ class LLMThread(models.Model):
             for chunk in stream_response:
                 # Create assistant message record ONCE on first relevant activity
                 if assistant_msg is None and (chunk.get('content') or chunk.get('tool_calls')):
-                     assistant_msg = self.save_message(
+                     assistant_msg = self.create_new_message(
                          subtype_xmlid=LLM_ASSISTANT_SUBTYPE_XMLID,
                          body="Thinking...", # Start empty
                          author_id=False
@@ -295,9 +295,9 @@ class LLMThread(models.Model):
 
                     _logger.info(f"Thread {self.id}: Preparing tool call {tool_call_id} ({tool_name})")
                     try:
-                        # 1. Create Tool Result Message placeholder using save_message
-                        # Pass necessary fields for the write() call within save_message
-                        tool_msg = self.save_message(
+                        # 1. Create Tool Result Message placeholder using create_new_message
+                        # Pass necessary fields for the write() call within create_new_message
+                        tool_msg = self.create_new_message(
                             subtype_xmlid=LLM_TOOL_RESULT_SUBTYPE_XMLID,
                             tool_call_id=tool_call_id,
                             tool_call_definition=json.dumps(tool_call_def), # Store definition
