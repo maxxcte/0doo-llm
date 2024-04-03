@@ -29,7 +29,7 @@ Contact: support@apexive.com
     "depends": ["base", "mail", "mail_message_stream", "web", "llm", "llm_tool", "llm_mail_message_subtypes"],
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
-    "external_dependencies": {"python": ["emoji"]},
+    "external_dependencies": {"python": ["emoji", "markdown2"]},
     "data": [
         "security/llm_thread_security.xml",
         "security/ir.model.access.csv",

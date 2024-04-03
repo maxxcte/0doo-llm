@@ -34,6 +34,13 @@ registerPatch({
                     );
                     return;
                 }
+                else if (notification.type === 'mail.message/update_custom') {
+                    const message = this.messaging.models['Message'].findFromIdentifyingData({ id: notification.payload.id });
+                    if (message) {
+                        message.update(this.messaging.models.Message.convertData(notification.payload));
+                    }
+                    return;
+                }
                 else {
                     return this._super(notification);
                 }

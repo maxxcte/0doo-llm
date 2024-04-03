@@ -2,6 +2,7 @@ import json
 import logging
 from datetime import datetime
 import emoji
+import markdown2
 
 from odoo import _, api, fields, models
 
@@ -159,7 +160,16 @@ class LLMThread(models.Model):
         channel = (self.env.cr.dbname, 'res.partner', partner_id)
         self._sendone_immediately(channel, 'mail.message/insert_custom', message_payload)
         _logger.info(f"Message inserted: {datetime.now()}")
-        
+    
+    def _notify_message_update(self, message):
+        """Sends updated message data immediately via bus."""
+        self.ensure_one() # Context: called from thread
+        if not message or not message.exists():
+             return
+        message_payload = message.message_format()[0] # Get latest data
+        partner_id = self.env.user.partner_id.id
+        channel = (self.env.cr.dbname, 'res.partner', partner_id) # Send to partner
+        self._sendone_immediately(channel, 'mail.message/update_custom', message_payload)
 
     def _get_message_history_recordset(self, limit=None):
         """Get messages from the thread
@@ -274,11 +284,12 @@ class LLMThread(models.Model):
             if assistant_stream_id:
                 assistant_msg.stream_done(assistant_stream_id)
             if assistant_msg:
-                update_vals = {'body': accumulated_content}
+                update_vals = {'body': markdown2.markdown(accumulated_content)}
                 if received_tool_calls:
                     update_vals['tool_calls'] = json.dumps(received_tool_calls) # Save validated JSON
                 if accumulated_content or received_tool_calls: # Check if update needed
                     assistant_msg.write(update_vals)
+                    self._notify_message_update(assistant_msg)
 
             # 6. Handle Tool Calls Sequentially
             if assistant_msg and received_tool_calls:
@@ -350,6 +361,7 @@ class LLMThread(models.Model):
                             final_data={'message': tool_msg.message_format()[0]}, # Send final message state
                             error=tool_result_dict.get('error') if error_flag else None
                         )
+                        self._notify_message_update(tool_msg)
                         _logger.info(f"Thread {self.id}: Tool stream {tool_stream_id} done for tool {tool_call_id}.")
 
                     except Exception as tool_err:
@@ -358,8 +370,11 @@ class LLMThread(models.Model):
                         if tool_msg and tool_stream_id:
                             tool_msg.stream_done(tool_stream_id, error=error_msg)
                         if tool_msg: # Try to update message with error state
-                             try: tool_msg.write({'tool_call_result': json.dumps({'error': error_msg}), 'body': f"Error: {tool_name}"})
-                             except Exception: pass
+                             try: 
+                                tool_msg.write({'tool_call_result': json.dumps({'error': error_msg}), 'body': f"Error: {tool_name}"})
+                                self._notify_message_update(tool_msg)
+                             except Exception: 
+                                pass
                         raise UserError(_("An error occurred while executing tool '%(tool_name)s': %(error)s", tool_name=tool_name, error=tool_err))
 
             # TODO: update message content/body/tool_calls etc. as well check if odoo provides any method for this
