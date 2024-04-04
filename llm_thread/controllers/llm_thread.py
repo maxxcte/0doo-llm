@@ -12,7 +12,7 @@ _logger = logging.getLogger(__name__)
 class LLMThreadController(http.Controller):
     # TODO: Fix this in a correct way, keeping it for testing purposes
     # --- Pass data explicitly to the thread function ---
-    def _run_start_thread_loop_async(self, dbname, uid, context, thread_id, user_message_body):
+    def _run(self, dbname, uid, context, thread_id, user_message_body):
         """Target function for the background thread."""
         # DO NOT use 'request' object here
 
@@ -59,7 +59,7 @@ class LLMThreadController(http.Controller):
                   _logger.error(f"Failed to set final state for thread {thread_id} after background error: {inner_e}")
 
     @http.route('/llm/thread/<int:thread_id>/completions', type='json', auth='user', methods=['POST'], csrf=True)
-    def thread_completions_create(self, thread_id, message=None, **kwargs):
+    def run(self, thread_id, message=None, **kwargs):
         user_message_body = message
         if not user_message_body or not user_message_body.strip():
              return {'status': 'error', 'error': _('Message body cannot be empty.')}
@@ -82,7 +82,7 @@ class LLMThreadController(http.Controller):
 
             # --- Spawn Background Thread ---
             background_thread = threading.Thread(
-                target=self._run_start_thread_loop_async,
+                target=self._run,
                 args=thread_args, # Pass the prepared arguments
                 name=f"llm_thread_loop_{thread_id}"
             )
