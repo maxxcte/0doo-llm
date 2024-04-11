@@ -74,3 +74,12 @@ class MailMessageLLMSubtypes(models.Model):
                 vals['subtype_xmlid'] = None
 
         return vals_list
+    
+    def is_llm_user_message(self):
+        return self.subtype_id == self.env.ref(LLM_USER_SUBTYPE_XMLID)
+    
+    def is_llm_assistant_message(self):
+        return self.subtype_id == self.env.ref(LLM_ASSISTANT_SUBTYPE_XMLID)
+    
+    def is_llm_tool_result_message(self):
+        return self.subtype_id == self.env.ref(LLM_TOOL_RESULT_SUBTYPE_XMLID)
