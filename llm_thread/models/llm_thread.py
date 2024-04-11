@@ -171,7 +171,7 @@ class LLMThread(models.Model):
         channel = (self.env.cr.dbname, 'res.partner', partner_id) # Send to partner
         self._sendone_immediately(channel, 'mail.message/update_custom', message_payload)
 
-    def _get_message_history_recordset(self, limit=None):
+    def _get_message_history_recordset(self, order='ASC', limit=None):
         """Get messages from the thread
 
         Args:
@@ -194,213 +194,215 @@ class LLMThread(models.Model):
             ("subtype_id", "in", subtype_ids),
         ]
         messages = self.env["mail.message"].search(
-            domain, order="create_date ASC", limit=limit
+            domain, order="create_date {order}", limit=limit
         )
         return messages
+    
 
-    def start_thread_loop(self, user_message_body=None):
+    def start_thread_loop(self, user_message_body):
         """
-        Orchestrates the LLM interaction cycle synchronously.
+        Orchestrates the LLM interaction cycle synchronously in a loop.
         """
         self.ensure_one()
-        _logger.info(f"Thread {self.id} starting with user message: {user_message_body}")
         if self.llm_thread_state == 'streaming' and user_message_body is not None:
-            _logger.warning(f"Thread {self.id} is already processing, skipping.")
-            return
+            raise UserError("Thread is already processing, cannot process new request.")
 
-        _logger.info(f"SYNC LOOP START: Thread {self.id}, User Msg: {bool(user_message_body)}")
         self.write({'llm_thread_state': 'streaming'})
+        
+        last_message = None
+        if user_message_body is not None:
+            last_message = self.create_new_message(
+                subtype_xmlid=LLM_USER_SUBTYPE_XMLID,
+                body=user_message_body,
+                author_id=self.env.user.partner_id.id,
+            )
+        
+        if not last_message:
+            last_message_in_history = self._get_message_history_recordset(order='DESC', limit=1)
+            if last_message_in_history:
+                last_message = last_message_in_history[0]
+        
+        if not last_message:
+            raise UserError("No message found to process.")
 
-        assistant_msg = None
-        assistant_stream_id = None
-        results_were_posted = False
+        current_iteration = 0
+        MAX_ITERATION = 10
 
-        try:
-            # 1. Post User Message (Conditional)
-            if user_message_body is not None:
-                user_msg = self.create_new_message( # Use the existing method name
-                    subtype_xmlid=LLM_USER_SUBTYPE_XMLID,
-                    body=user_message_body,
-                    author_id=self.env.user.partner_id.id,
-                )
-                # No need to return formatted data here
 
-            # 2. Prepare Data for LLM Call
-            history_messages_rs = self._get_message_history_recordset()
-            tools_rs = self.tool_ids # Pass the tool recordset
 
-            # 3. Call LLM Provider via llm.model
-            _logger.info(f"Thread {self.id}: Calling Provider '{self.provider_id.name}' Model '{self.model_id.name}'")
-            if not self.model_id or not self.provider_id:
-                 raise UserError(_("Thread is missing Provider or Model configuration."))
+        while current_iteration < MAX_ITERATION:
+            current_iteration += 1
 
-            # Provider's chat method handles internal formatting
-            stream_response = self.model_id.chat(
-                messages=history_messages_rs,
-                tools=tools_rs,
+            if not last_message:
+                # fail-safe check
+                raise UserError("No message found to process.")
+            
+            if last_message.is_llm_user_message() or last_message.is_llm_tool_result_message():
+                # Process user message or tool result
+                assistant_msg = self._start_streaming()
+                last_message = assistant_msg
+                continue
+            
+            if last_message.is_llm_assistant_message():
+                if last_message.tool_calls:
+                    # Process tool calls
+                    last_tool_msg = self._process_tool_calls(last_message)
+                    last_message = last_tool_msg
+                    continue
+                else:
+                    break
+        
+        self.write({'llm_thread_state': 'idle'})
+    
+    def _process_tool_calls(self, assistant_msg):
+        self.ensure_one()
+        if assistant_msg and assistant_msg.tool_calls:
+            # Load validated definitions from the saved field
+            tool_call_definitions = json.loads(assistant_msg.tool_calls or '[]')
+            last_tool_msg = None
+            for tool_call_def in tool_call_definitions:
+                tool_msg = None
+                tool_stream_id = None
+                tool_call_id = tool_call_def.get('id')
+                tool_function = tool_call_def.get('function', {})
+                tool_name = tool_function.get('name', 'unknown_tool')
+                if not tool_call_id or not tool_name:
+                    continue
+                try:
+                    # 1. Create Tool Result Message placeholder using create_new_message
+                    # Pass necessary fields for the write() call within create_new_message
+                    tool_msg = self.create_new_message(
+                        subtype_xmlid=LLM_TOOL_RESULT_SUBTYPE_XMLID,
+                        tool_call_id=tool_call_id,
+                        tool_call_definition=json.dumps(tool_call_def), # Store definition
+                        tool_call_result=None, # Result is not known yet
+                        body=f"Executing: {tool_name}...", # Initial body
+                        author_id=False,
+                        tool_name=tool_name # For email_from
+                    )
+                    # 2. Signal Start of Execution
+                    tool_stream_id = tool_msg.stream_start(
+                        initial_data={'tool_call_id': tool_call_id, 'definition': tool_call_def}
+                    )
+                    _logger.info(f"Thread {self.id}: Tool msg {tool_msg.id} created, stream {tool_stream_id} started for tool {tool_call_id}.")
+
+                    # 3. Execute Tool
+                    args_str = tool_function.get('arguments')
+                    # Pass tool_call_id as required by your _execute_tool signature
+                    tool_response_dict = self._execute_tool(tool_name, args_str, tool_call_id)
+
+                    # --- Extract Result/Error from the Structured Response ---
+                    result_str = tool_response_dict.get("result", json.dumps({"error": "Tool execution failed to produce result"}))
+                    execution_error = None
+                    error_flag = False
+                    try:
+                        # Parse the inner 'result' JSON string to check for the error structure
+                        parsed_result_data = json.loads(result_str)
+                        if isinstance(parsed_result_data, dict) and 'error' in parsed_result_data:
+                            execution_error = parsed_result_data['error']
+                            error_flag = True
+                    except (json.JSONDecodeError, TypeError):
+                        # If result_str isn't valid JSON or not a dict, assume it's valid (but log)
+                            _logger.warning(f"Tool {tool_name} result string was not valid JSON or dictionary: {result_str}. Assuming success content.")
+                            error_flag = False # Treat non-error-structure as success content
+                    # --- End Result/Error Extraction ---
+
+                    final_body = f"{'Error' if error_flag else 'Result'} for {tool_name}"
+
+                    # 4. Update Tool Result Message with the result JSON string
+                    tool_msg.write({
+                        'tool_call_result': result_str, # Store the JSON string from the 'result' key
+                        'body': final_body
+                    })
+
+                    # 5. Signal Done for this tool's execution stream
+                    tool_msg.stream_done(
+                        tool_stream_id,
+                        final_data={'message': tool_msg.message_format()[0]}, # Send final message state
+                        error=tool_result_dict.get('error') if error_flag else None
+                    )
+                    self._notify_message_update(tool_msg)
+                    last_tool_msg = tool_msg
+
+                except Exception as tool_err:
+                    error_msg = f"Error processing tool call {tool_call_id} ({tool_name}): {tool_err}"
+                    _logger.exception(error_msg)
+                    if tool_msg and tool_stream_id:
+                        tool_msg.stream_done(tool_stream_id, error=error_msg)
+                    if tool_msg: # Try to update message with error state
+                        try: 
+                            tool_msg.write({'tool_call_result': json.dumps({'error': error_msg}), 'body': f"Error: {tool_name}"})
+                            self._notify_message_update(tool_msg)
+                            last_tool_msg = tool_msg
+                        except Exception: 
+                            pass
+                    raise UserError(_("An error occurred while executing tool '%(tool_name)s': %(error)s", tool_name=tool_name, error=tool_err))
+            return last_tool_msg
+                
+    def _start_streaming(self):
+        self.ensure_one()
+        message_history_rs = self._get_message_history_recordset()
+        tool_rs = self.tool_ids
+
+        stream_response = self.model_id.chat(
+                messages=message_history_rs,
+                tools=tool_rs,
                 stream=True
             )
+        assistant_msg = None
+        assistant_stream_id = None
+        # 4. Consume Stream & Handle Assistant Message
+        accumulated_content = ""
+        received_tool_calls = [] # List to store tool call definitions from LLM
 
-            # 4. Consume Stream & Handle Assistant Message
-            accumulated_content = ""
-            received_tool_calls = [] # List to store tool call definitions from LLM
+        for chunk in stream_response:
+            if assistant_msg is None and (chunk.get('content') or chunk.get('tool_calls')):
+                assistant_msg = self.create_new_message(
+                    subtype_xmlid=LLM_ASSISTANT_SUBTYPE_XMLID,
+                    body="Thinking...", # Start empty
+                    author_id=False
+                )
+                assistant_stream_id = assistant_msg.stream_start(
+                    initial_data={'stream_type': 'llm_assistant_response'}
+                )
 
-            for chunk in stream_response:
-                # Create assistant message record ONCE on first relevant activity
-                if assistant_msg is None and (chunk.get('content') or chunk.get('tool_calls')):
-                     assistant_msg = self.create_new_message(
-                         subtype_xmlid=LLM_ASSISTANT_SUBTYPE_XMLID,
-                         body="Thinking...", # Start empty
-                         author_id=False
-                     )
-                     assistant_stream_id = assistant_msg.stream_start(
-                         initial_data={'stream_type': 'llm_assistant_response'}
-                     )
+            # Process content chunks
+            if assistant_stream_id and chunk.get('content'):
+                content_chunk = chunk.get('content')
+                accumulated_content += content_chunk
+                assistant_msg.stream_chunk(assistant_stream_id, content_chunk)
 
-                # Process content chunks
-                if assistant_stream_id and chunk.get('content'):
-                    content_chunk = chunk.get('content')
-                    accumulated_content += content_chunk
-                    assistant_msg.stream_chunk(assistant_stream_id, content_chunk)
+            # Process tool call definitions
+            if chunk.get('tool_calls'):
+                calls = chunk.get('tool_calls')
+                if isinstance(calls, list):
+                    valid_calls = [c for c in calls if isinstance(c, dict) and c.get('id') and c.get('function')]
+                    received_tool_calls.extend(valid_calls)
+                    if len(valid_calls) != len(calls):
+                        _logger.warning(f"Thread {self.id}: Invalid tool calls received: {calls}")
+                else: 
+                    _logger.warning(f"Thread {self.id}: Received non-list tool_calls: {calls}")
 
-                # Process tool call definitions
-                if chunk.get('tool_calls'):
-                    calls = chunk.get('tool_calls')
-                    if isinstance(calls, list):
-                        valid_calls = [c for c in calls if isinstance(c, dict) and c.get('id') and c.get('function')]
-                        received_tool_calls.extend(valid_calls)
-                        if len(valid_calls) != len(calls): _logger.warning(f"Thread {self.id}: Invalid tool calls received: {calls}")
-                    else: _logger.warning(f"Thread {self.id}: Received non-list tool_calls: {calls}")
+            # Handle error directly from stream chunk
+            if chunk.get('error'):
+                error_msg = f"LLM Provider stream error: {chunk['error']}"
+                _logger.error(f"{error_msg} for Thread {self.id}")
+                if assistant_msg and assistant_stream_id:
+                    assistant_msg.stream_done(assistant_stream_id, error=error_msg)
+                raise UserError(_("Error from Language Model: %s", chunk['error']))
 
-                # Handle error directly from stream chunk
-                if chunk.get('error'):
-                    error_msg = f"LLM Provider stream error: {chunk['error']}"
-                    _logger.error(f"{error_msg} for Thread {self.id}")
-                    if assistant_msg and assistant_stream_id:
-                        assistant_msg.stream_done(assistant_stream_id, error=error_msg)
-                    raise UserError(_("Error from Language Model: %s", chunk['error']))
-
-            # 5. Finalize Assistant Message Stream and Update Record
-            if assistant_stream_id:
-                assistant_msg.stream_done(assistant_stream_id)
-            if assistant_msg:
-                update_vals = {'body': markdown2.markdown(accumulated_content)}
-                if received_tool_calls:
-                    update_vals['tool_calls'] = json.dumps(received_tool_calls) # Save validated JSON
-                if accumulated_content or received_tool_calls: # Check if update needed
-                    assistant_msg.write(update_vals)
-                    self._notify_message_update(assistant_msg)
-
-            # 6. Handle Tool Calls Sequentially
-            if assistant_msg and received_tool_calls:
-                # Load validated definitions from the saved field
-                tool_call_definitions = json.loads(assistant_msg.tool_calls or '[]')
-
-                for tool_call_def in tool_call_definitions:
-                    tool_msg = None
-                    tool_stream_id = None
-                    tool_call_id = tool_call_def.get('id')
-                    tool_function = tool_call_def.get('function', {})
-                    tool_name = tool_function.get('name', 'unknown_tool')
-                    if not tool_call_id or not tool_name: continue
-
-                    _logger.info(f"Thread {self.id}: Preparing tool call {tool_call_id} ({tool_name})")
-                    try:
-                        # 1. Create Tool Result Message placeholder using create_new_message
-                        # Pass necessary fields for the write() call within create_new_message
-                        tool_msg = self.create_new_message(
-                            subtype_xmlid=LLM_TOOL_RESULT_SUBTYPE_XMLID,
-                            tool_call_id=tool_call_id,
-                            tool_call_definition=json.dumps(tool_call_def), # Store definition
-                            tool_call_result=None, # Result is not known yet
-                            body=f"Executing: {tool_name}...", # Initial body
-                            author_id=False,
-                            tool_name=tool_name # For email_from
-                        )
-                        # 2. Signal Start of Execution
-                        tool_stream_id = tool_msg.stream_start(
-                            initial_data={'tool_call_id': tool_call_id, 'definition': tool_call_def}
-                        )
-                        _logger.info(f"Thread {self.id}: Tool msg {tool_msg.id} created, stream {tool_stream_id} started for tool {tool_call_id}.")
-
-                        # 3. Execute Tool
-                        args_str = tool_function.get('arguments')
-                        # Pass tool_call_id as required by your _execute_tool signature
-                        tool_response_dict = self._execute_tool(tool_name, args_str, tool_call_id)
-
-                        # --- Extract Result/Error from the Structured Response ---
-                        result_str = tool_response_dict.get("result", json.dumps({"error": "Tool execution failed to produce result"}))
-                        execution_error = None
-                        error_flag = False
-                        try:
-                            # Parse the inner 'result' JSON string to check for the error structure
-                            parsed_result_data = json.loads(result_str)
-                            if isinstance(parsed_result_data, dict) and 'error' in parsed_result_data:
-                                execution_error = parsed_result_data['error']
-                                error_flag = True
-                        except (json.JSONDecodeError, TypeError):
-                            # If result_str isn't valid JSON or not a dict, assume it's valid (but log)
-                             _logger.warning(f"Tool {tool_name} result string was not valid JSON or dictionary: {result_str}. Assuming success content.")
-                             error_flag = False # Treat non-error-structure as success content
-                        # --- End Result/Error Extraction ---
-
-                        final_body = f"{'Error' if error_flag else 'Result'} for {tool_name}"
-
-                        # 4. Update Tool Result Message with the result JSON string
-                        tool_msg.write({
-                            'tool_call_result': result_str, # Store the JSON string from the 'result' key
-                            'body': final_body
-                        })
-                        results_were_posted = True
-
-                        _logger.info(f"Thread {self.id}: Tool msg {tool_msg.id} updated with result for tool {tool_call_id}.")
-
-                        # 5. Signal Done for this tool's execution stream
-                        tool_msg.stream_done(
-                            tool_stream_id,
-                            final_data={'message': tool_msg.message_format()[0]}, # Send final message state
-                            error=tool_result_dict.get('error') if error_flag else None
-                        )
-                        self._notify_message_update(tool_msg)
-                        _logger.info(f"Thread {self.id}: Tool stream {tool_stream_id} done for tool {tool_call_id}.")
-
-                    except Exception as tool_err:
-                        error_msg = f"Error processing tool call {tool_call_id} ({tool_name}): {tool_err}"
-                        _logger.exception(error_msg)
-                        if tool_msg and tool_stream_id:
-                            tool_msg.stream_done(tool_stream_id, error=error_msg)
-                        if tool_msg: # Try to update message with error state
-                             try: 
-                                tool_msg.write({'tool_call_result': json.dumps({'error': error_msg}), 'body': f"Error: {tool_name}"})
-                                self._notify_message_update(tool_msg)
-                             except Exception: 
-                                pass
-                        raise UserError(_("An error occurred while executing tool '%(tool_name)s': %(error)s", tool_name=tool_name, error=tool_err))
-
-            # TODO: update message content/body/tool_calls etc. as well check if odoo provides any method for this
-            # 7. Recursive Call (if tools were executed and no error occurred)
-            if results_were_posted:
-                _logger.info(f"Thread {self.id}: Tool results processed, making synchronous recursive call.")
-                # Call self again, state remains 'streaming'. Return the result of the recursive call.
-                return self.start_thread_loop(user_message_body=None)
-
-        except (ValidationError, UserError, MissingError, AccessError) as e:
-            _logger.warning(f"Known error during chat loop for thread {self.id}: {e}")
-            if assistant_msg and assistant_stream_id:
-                 try: assistant_msg.stream_done(assistant_stream_id, error=str(e))
-                 except Exception: pass
-            raise
-        except Exception as e:
-            _logger.exception(f"Unexpected error during chat loop for thread {self.id}")
-            if assistant_msg and assistant_stream_id:
-                 try: assistant_msg.stream_done(assistant_stream_id, error=str(e))
-                 except Exception: pass
-            raise UserError(_("An unexpected error occurred during the chat process."))
-        finally:
-            if not results_were_posted:
-                 if self.llm_thread_state == 'streaming': # Prevent overwriting if error already set state somehow
-                     self.write({'llm_thread_state': 'idle'})
-                     _logger.info(f"SYNC LOOP END: Thread {self.id} final state set to 'idle'.")
+        # 5. Finalize Assistant Message Stream and Update Record
+        if assistant_stream_id:
+            assistant_msg.stream_done(assistant_stream_id)
+        
+        update_vals = {'body': markdown2.markdown(accumulated_content)}
+        if received_tool_calls:
+            update_vals['tool_calls'] = json.dumps(received_tool_calls) # Save validated JSON
+        if accumulated_content or received_tool_calls: # Check if update needed
+            assistant_msg.write(update_vals)
+            self._notify_message_update(assistant_msg)
+        
+        return assistant_msg
 
     def _create_tool_response(self, tool_name, arguments_str, tool_call_id, result_data):
         """Create a standardized tool response structure
