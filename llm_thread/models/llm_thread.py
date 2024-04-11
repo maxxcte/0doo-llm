@@ -64,7 +64,7 @@ class LLMThread(models.Model):
         help="Tools that can be used by the LLM in this thread",
     )
 
-    llm_thread_state = fields.Selection(
+    state = fields.Selection(
         [
             ('idle', 'Idle'),
             ('streaming', 'Processing'),
@@ -202,10 +202,10 @@ class LLMThread(models.Model):
         Orchestrates the LLM interaction cycle synchronously in a loop.
         """
         self.ensure_one()
-        if self.llm_thread_state == 'streaming' and user_message_body is not None:
+        if self.state == 'streaming' and user_message_body is not None:
             raise UserError("Thread is already processing, cannot process new request.")
 
-        self.write({'llm_thread_state': 'streaming'})
+        self.write({'state': 'streaming'})
         
         last_message = None
         if user_message_body is not None:
@@ -250,7 +250,7 @@ class LLMThread(models.Model):
                 else:
                     break
         
-        self.write({'llm_thread_state': 'idle'})
+        self.write({'state': 'idle'})
     
     def _process_tool_calls(self, assistant_msg):
         self.ensure_one()
@@ -316,7 +316,6 @@ class LLMThread(models.Model):
             # Handle error directly from stream chunk
             if chunk.get('error'):
                 error_msg = f"LLM Provider stream error: {chunk['error']}"
-                _logger.error(f"{error_msg} for Thread {self.id}")
                 if assistant_msg and assistant_stream_id:
                     assistant_msg.stream_done(assistant_stream_id, error=error_msg)
                 raise UserError(_("Error from Language Model: %s", chunk['error']))
@@ -371,20 +370,13 @@ class LLMThread(models.Model):
         tool = self.env["llm.tool"].search([("name", "=", tool_name)], limit=1)
 
         if not tool:
-            _logger.error(f"Tool '{tool_name}' not found")
-            return self._create_tool_response(
-                tool_name,
-                arguments_str,
-                tool_call_id,
-                {"error": f"Tool '{tool_name}' not found"},
-            )
+            raise UserError(f"Tool '{tool_name}' not found")
 
         try:
             arguments = json.loads(arguments_str)
             result = tool.execute(arguments)
             return self._create_tool_response(tool_name, arguments_str, tool_call_id, result)
         except Exception as e:
-            _logger.error(f"Error executing tool {tool_name}: {str(e)}")
             return self._create_tool_response(
                 tool_name, arguments_str, tool_call_id, {"error": str(e)}
             )
