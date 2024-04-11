@@ -6,7 +6,7 @@ import markdown2
 
 from odoo import _, api, fields, models
 
-from odoo.exceptions import AccessError, MissingError, UserError, ValidationError
+from odoo.exceptions import MissingError, UserError
 
 from odoo.addons.llm_mail_message_subtypes.const import (
     LLM_TOOL_RESULT_SUBTYPE_XMLID,
@@ -95,8 +95,7 @@ class LLMThread(models.Model):
         try:
             subtype = self.env.ref(subtype_xmlid)
         except ValueError: # Catches if XML ID format is wrong or module not installed
-             _logger.error(f"Invalid XML ID format or module missing for subtype: {subtype_xmlid}")
-             raise MissingError(f"Subtype with XML ID '{subtype_xmlid}' not found.")
+            raise MissingError(f"Subtype with XML ID '{subtype_xmlid}' not found.")
         if not subtype.exists():
             raise MissingError(f"Subtype with XML ID '{subtype_xmlid}' not found.")
 
@@ -159,7 +158,6 @@ class LLMThread(models.Model):
         partner_id = self.env.user.partner_id.id
         channel = (self.env.cr.dbname, 'res.partner', partner_id)
         self._sendone_immediately(channel, 'mail.message/insert_custom', message_payload)
-        _logger.info(f"Message inserted: {datetime.now()}")
     
     def _notify_message_update(self, message):
         """Sends updated message data immediately via bus."""
@@ -234,7 +232,6 @@ class LLMThread(models.Model):
             current_iteration += 1
 
             if not last_message:
-                # fail-safe check
                 raise UserError("No message found to process.")
             
             if last_message.is_llm_user_message() or last_message.is_llm_tool_result_message():
@@ -262,81 +259,14 @@ class LLMThread(models.Model):
             tool_call_definitions = json.loads(assistant_msg.tool_calls or '[]')
             last_tool_msg = None
             for tool_call_def in tool_call_definitions:
-                tool_msg = None
-                tool_stream_id = None
                 tool_call_id = tool_call_def.get('id')
                 tool_function = tool_call_def.get('function', {})
                 tool_name = tool_function.get('name', 'unknown_tool')
                 if not tool_call_id or not tool_name:
                     continue
-                try:
-                    # 1. Create Tool Result Message placeholder using create_new_message
-                    # Pass necessary fields for the write() call within create_new_message
-                    tool_msg = self.create_new_message(
-                        subtype_xmlid=LLM_TOOL_RESULT_SUBTYPE_XMLID,
-                        tool_call_id=tool_call_id,
-                        tool_call_definition=json.dumps(tool_call_def), # Store definition
-                        tool_call_result=None, # Result is not known yet
-                        body=f"Executing: {tool_name}...", # Initial body
-                        author_id=False,
-                        tool_name=tool_name # For email_from
-                    )
-                    # 2. Signal Start of Execution
-                    tool_stream_id = tool_msg.stream_start(
-                        initial_data={'tool_call_id': tool_call_id, 'definition': tool_call_def}
-                    )
-                    _logger.info(f"Thread {self.id}: Tool msg {tool_msg.id} created, stream {tool_stream_id} started for tool {tool_call_id}.")
-
-                    # 3. Execute Tool
-                    args_str = tool_function.get('arguments')
-                    # Pass tool_call_id as required by your _execute_tool signature
-                    tool_response_dict = self._execute_tool(tool_name, args_str, tool_call_id)
-
-                    # --- Extract Result/Error from the Structured Response ---
-                    result_str = tool_response_dict.get("result", json.dumps({"error": "Tool execution failed to produce result"}))
-                    execution_error = None
-                    error_flag = False
-                    try:
-                        # Parse the inner 'result' JSON string to check for the error structure
-                        parsed_result_data = json.loads(result_str)
-                        if isinstance(parsed_result_data, dict) and 'error' in parsed_result_data:
-                            execution_error = parsed_result_data['error']
-                            error_flag = True
-                    except (json.JSONDecodeError, TypeError):
-                        # If result_str isn't valid JSON or not a dict, assume it's valid (but log)
-                            _logger.warning(f"Tool {tool_name} result string was not valid JSON or dictionary: {result_str}. Assuming success content.")
-                            error_flag = False # Treat non-error-structure as success content
-
-                    final_body = f"{'Error' if error_flag else 'Result'} for {tool_name}"
-
-                    # 4. Update Tool Result Message with the result JSON string
-                    tool_msg.write({
-                        'tool_call_result': result_str, # Store the JSON string from the 'result' key
-                        'body': final_body
-                    })
-
-                    # 5. Signal Done for this tool's execution stream
-                    tool_msg.stream_done(
-                        tool_stream_id,
-                        final_data={'message': tool_msg.message_format()[0]}, # Send final message state
-                        error=tool_result_dict.get('error') if error_flag else None
-                    )
-                    self._notify_message_update(tool_msg)
-                    last_tool_msg = tool_msg
-
-                except Exception as tool_err:
-                    error_msg = f"Error processing tool call {tool_call_id} ({tool_name}): {tool_err}"
-                    _logger.exception(error_msg)
-                    if tool_msg and tool_stream_id:
-                        tool_msg.stream_done(tool_stream_id, error=error_msg)
-                    if tool_msg: # Try to update message with error state
-                        try: 
-                            tool_msg.write({'tool_call_result': json.dumps({'error': error_msg}), 'body': f"Error: {tool_name}"})
-                            self._notify_message_update(tool_msg)
-                            last_tool_msg = tool_msg
-                        except Exception: 
-                            pass
-                    raise UserError(_("An error occurred while executing tool '%(tool_name)s': %(error)s", tool_name=tool_name, error=tool_err))
+                
+                tool_msg = self._execute_tool_call(tool_call_def)
+                last_tool_msg = tool_msg
             return last_tool_msg
                 
     def _start_streaming(self):
@@ -454,7 +384,66 @@ class LLMThread(models.Model):
             result = tool.execute(arguments)
             return self._create_tool_response(tool_name, arguments_str, tool_call_id, result)
         except Exception as e:
-            _logger.exception(f"Error executing tool {tool_name}: {str(e)}")
+            _logger.error(f"Error executing tool {tool_name}: {str(e)}")
             return self._create_tool_response(
                 tool_name, arguments_str, tool_call_id, {"error": str(e)}
             )
+
+    def _execute_tool_call(self, tool_call_def):
+        """Executes a single tool call, records it as a message, and streams updates."""
+        tool_msg = None
+        tool_stream_id = None
+        tool_call_id = tool_call_def.get('id')
+        tool_function = tool_call_def.get('function', {})
+        tool_name = tool_function.get('name', 'unknown_tool')
+
+        if not tool_call_id or not tool_name:
+            _logger.warning(f"Thread {self.id}: Skipping tool call due to missing id or name: {tool_call_def}")
+            return None
+
+        try:
+            # 1. Create Placeholder Message
+            tool_msg = self.create_new_message(
+                subtype_xmlid=LLM_TOOL_RESULT_SUBTYPE_XMLID,
+                tool_call_id=tool_call_id,
+                tool_call_definition=json.dumps(tool_call_def),
+                tool_call_result=None, # Result is not known yet
+                body=f"Executing: {tool_name}...", # Initial body
+                author_id=False, # System message
+                tool_name=tool_name # For email_from
+            )
+
+            # 2. Start Stream
+            tool_stream_id = tool_msg.stream_start(
+                initial_data={'tool_call_id': tool_call_id, 'definition': tool_call_def}
+            )
+            
+            # 3. Execute Tool
+            args_str = tool_function.get('arguments')
+            tool_response_dict = self._execute_tool(tool_name, args_str, tool_call_id)
+
+            # 4. Process Result & Update Message
+            result_str = tool_response_dict.get("result", json.dumps({"error": "Tool execution failed to return a 'result' key"}))
+            final_body = f"Result for {tool_name}"
+            tool_msg_vals = {
+                'tool_call_result': result_str,
+                'body': final_body
+            }
+            tool_msg.write(tool_msg_vals)
+            
+            tool_msg.stream_done(
+                tool_stream_id,
+                final_data={'message': tool_msg.message_format()[0]},
+            )
+
+            # 6. Notify
+            self._notify_message_update(tool_msg)
+            return tool_msg
+
+        except Exception as tool_err:
+            error_msg = f"Error processing tool call {tool_call_id} ({tool_name}): {tool_err}"
+            if tool_msg and tool_stream_id:
+                tool_msg.write({'tool_call_result': json.dumps({'error': error_msg}), 'body': f"Error executing {tool_name}"})
+                tool_msg.stream_done(tool_stream_id, error=str(tool_err))
+                self._notify_message_update(tool_msg)
+            raise UserError(_("An error occurred while executing tool '%(tool_name)s': %(error)s", tool_name=tool_name, error=tool_err))
