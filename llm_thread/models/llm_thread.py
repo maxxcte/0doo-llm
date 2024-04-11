@@ -238,7 +238,8 @@ class LLMThread(models.Model):
                 raise UserError("No message found to process.")
             
             if last_message.is_llm_user_message() or last_message.is_llm_tool_result_message():
-                # Process user message or tool result
+                # Process user message or tool result, in both cases we get assistant_msg
+                # some assistant message has tool_calls, some don't
                 assistant_msg = self._start_streaming()
                 last_message = assistant_msg
                 continue
@@ -305,7 +306,6 @@ class LLMThread(models.Model):
                         # If result_str isn't valid JSON or not a dict, assume it's valid (but log)
                             _logger.warning(f"Tool {tool_name} result string was not valid JSON or dictionary: {result_str}. Assuming success content.")
                             error_flag = False # Treat non-error-structure as success content
-                    # --- End Result/Error Extraction ---
 
                     final_body = f"{'Error' if error_flag else 'Result'} for {tool_name}"
 
