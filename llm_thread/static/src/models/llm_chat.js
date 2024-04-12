@@ -16,7 +16,7 @@ const THREAD_SEARCH_FIELDS = [
   "related_thread_model",
   "related_thread_id",
   "tool_ids",
-  "llm_thread_state",
+  "state",
 ];
 
 registerModel({
@@ -120,7 +120,7 @@ registerModel({
         relatedThreadModel: threadData.related_thread_model,
         relatedThreadId: threadData.related_thread_id,
         selectedToolIds: threadData.tool_ids || [],
-        llmThreadState: threadData.llm_thread_state,
+        llmThreadState: threadData.state,
       };
 
       // Handle the llmModel field separately to avoid undefined errors

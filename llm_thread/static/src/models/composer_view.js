@@ -10,7 +10,7 @@ registerPatch({
     isSendDisabled: attr({
       compute() {
           // Disabled if composer is empty/uploading OR if the thread backend is processing
-          const threadIsProcessing = this.composer?.thread?.llm_thread_state === 'streaming';
+          const threadIsProcessing = this.composer?.thread?.state === 'streaming';
           return !this.composer?.canPostMessage || threadIsProcessing;
       },
       default: true, // Assume disabled initially
@@ -30,7 +30,7 @@ registerPatch({
       // Optional: Immediately update UI state (e.g., clear input, maybe show temp message)
       this.composer.update({ textInputContent: '' });
       // Could potentially update thread state locally to 'streaming' optimistically
-      // thread.update({ llm_thread_state: 'streaming' }); // Requires thread model patch
+      // thread.update({ state: 'streaming' }); // Requires thread model patch
   
       try {
           const result = await this.messaging.rpc({
@@ -43,18 +43,18 @@ registerPatch({
           if (result.status === 'error') {
               this.messaging.notify({ message: result.error, type: 'danger' });
                // Reset thread state if needed (though backend finally block should handle it)
-               // thread.update({ llm_thread_state: 'idle' });
+               // thread.update({ state: 'idle' });
           } else if (result.status === 'completed') {
              // Loop finished successfully on backend.
              // State should be updated via bus eventually, but can ensure idle here
-             // thread.update({ llm_thread_state: 'idle' });
+             // thread.update({ state: 'idle' });
              console.log("LLM completion loop finished.");
           }
       } catch (error) {
           console.error("Error sending LLM message:", error);
           this.messaging.notify({ message: this.env._t("Failed to send message."), type: 'danger' });
            // Reset thread state on RPC error
-           // thread.update({ llm_thread_state: 'idle' });
+           // thread.update({ state: 'idle' });
       } finally {
            // Ensure composer is focused or UI reset as needed
            this.update({ doFocus: true });

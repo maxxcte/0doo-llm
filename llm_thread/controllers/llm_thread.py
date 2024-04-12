@@ -49,10 +49,10 @@ class LLMThreadController(http.Controller):
                          # Use SUPERUSER_ID to bypass potential permission issues writing error state
                          error_env = api.Environment(error_cr, SUPERUSER_ID, {})
                          thread_to_update = error_env['llm.thread'].browse(thread_id)
-                         if thread_to_update.exists() and thread_to_update.llm_thread_state == 'streaming':
-                              thread_to_update.write({'llm_thread_state': 'error'}) # Write error state if using it
+                         if thread_to_update.exists() and thread_to_update.state == 'streaming':
+                              thread_to_update.write({'state': 'error'}) # Write error state if using it
                               # OR write back to idle if not using error state:
-                              # thread_to_update.write({'llm_thread_state': 'idle'})
+                              # thread_to_update.write({'state': 'idle'})
                               _logger.info(f"Set thread {thread_id} state back to idle/error due to background exception.")
                          # Commit happens automatically on exit of 'with error_cr'
              except Exception as inner_e:
@@ -70,7 +70,7 @@ class LLMThreadController(http.Controller):
             if not thread.exists(): raise MissingError(_("Chat Thread not found."))
             thread.check_access_rights('write')
             thread.check_access_rule('write')
-            if thread.llm_thread_state == 'streaming':
+            if thread.state == 'streaming':
                  return {'status': 'error', 'error': _("Thread is already processing.")}
 
             # --- Prepare arguments for the background thread ---
