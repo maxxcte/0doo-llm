@@ -314,8 +314,8 @@ class LLMProvider(models.Model):
                             })
                         else:
                             # Log incomplete tool calls - should not happen if OpenAI stream is correct
-                             _logger.error(f"OpenAI stream ended but tool call at index {index} was incomplete: {call_data}")
-                             yield {'error': f"Received incomplete tool call data from provider for tool index {index}."}
+                            _logger.error(f"OpenAI stream ended but tool call at index {index} was incomplete: {call_data}")
+                            yield {'error': f"Received incomplete tool call data from provider for tool index {index}."}
 
                     # Yield the list of completed tool calls ONCE
                     if final_tool_calls_list:
@@ -329,10 +329,7 @@ class LLMProvider(models.Model):
                      _logger.warning(f"OpenAI stream had tool chunks but finished with reason '{finish_reason}'. Not yielding tool calls.")
 
         except Exception as e:
-            _logger.exception("Unexpected error processing OpenAI stream")
             yield {'error': f"Internal error processing stream: {e}"}
-
-        _logger.info("Finished processing OpenAI stream.")
 
     def _update_tool_call_chunk(self, tool_call_chunks, tool_call_chunk, index):
         """
@@ -363,10 +360,6 @@ class LLMProvider(models.Model):
             if func_chunk.arguments:
                 current_call["function"]["arguments"] += func_chunk.arguments
 
-        # --- Check for completion ---
-        # A simple heuristic: If we have an ID, a name, and the arguments string
-        # looks like it might be complete JSON (ends with '}'), try parsing.
-        # More robust parsing might be needed depending on how OpenAI streams complex args.
         if (current_call.get("id") and
             current_call["function"].get("name") and
             current_call["function"]["arguments"].strip().endswith('}')):
