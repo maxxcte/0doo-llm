@@ -2,12 +2,7 @@
 import json
 import logging
 
-from odoo import models
-from odoo.addons.llm_mail_message_subtypes.const import (
-    LLM_TOOL_RESULT_SUBTYPE_XMLID,
-    LLM_USER_SUBTYPE_XMLID,
-    LLM_ASSISTANT_SUBTYPE_XMLID,
-)
+from odoo import models, tools
 
 _logger = logging.getLogger(__name__)
 
@@ -18,17 +13,20 @@ class MailMessage(models.Model):
     def openai_format_message(self):
         """Provider-specific formatting for OpenAI."""
         self.ensure_one()
-        user_subtype = self.env.ref(LLM_USER_SUBTYPE_XMLID, False)
-        assistant_subtype = self.env.ref(LLM_ASSISTANT_SUBTYPE_XMLID, False)
-        tool_result_subtype = self.env.ref(LLM_TOOL_RESULT_SUBTYPE_XMLID, False)
+        body = self.body
+        if body:
+            body = tools.html2plaintext(body)
 
-        subtype_id = self.subtype_id.id
+        if self.is_llm_user_message():
+            formatted_message = {'role': 'user'}
+            if body:
+                formatted_message['content'] = body
+            return formatted_message
 
-        if user_subtype and subtype_id == user_subtype.id:
-            return {'role': 'user', 'content': self.body or ""}
-
-        elif assistant_subtype and subtype_id == assistant_subtype.id:
-            entry = {'role': 'assistant', 'content': self.body or ""}
+        elif self.is_llm_assistant_message():
+            formatted_message = {'role': 'assistant'}
+            if body:
+                formatted_message['content'] = body
             api_tool_calls = None
             if self.tool_calls:
                 try:
@@ -46,18 +44,15 @@ class MailMessage(models.Model):
                     _logger.warning(f"OpenAI Format Msg {self.id}: Failed to parse tool_calls JSON: {self.tool_calls}")
 
             if api_tool_calls:
-                entry['tool_calls'] = api_tool_calls
+                formatted_message['tool_calls'] = api_tool_calls
 
-            return entry
+            return formatted_message
 
-        elif tool_result_subtype and subtype_id == tool_result_subtype.id:
+        elif self.is_llm_tool_result_message():
             if not self.tool_call_id or self.tool_call_result is None:
                 _logger.warning(f"OpenAI Format: Skipping tool result message {self.id}: missing tool_call_id or result.")
                 return None
-            return {
-                'role': 'tool',
-                'tool_call_id': self.tool_call_id,
-                'content': self.tool_call_result or ""
-            }
+            formatted_message = {'role': 'tool', 'tool_call_id': self.tool_call_id, 'content': self.tool_call_result}
+            return formatted_message
         else:
             return None
