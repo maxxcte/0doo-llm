@@ -185,6 +185,7 @@ class LLMThread(models.Model):
             self.env.ref(LLM_TOOL_RESULT_SUBTYPE_XMLID, raise_if_not_found=False),
         ]       
         subtype_ids = [st.id for st in subtypes_to_fetch if st]    
+        order_claude = f"create_date {order}"
         domain = [
             ("model", "=", self._name),
             ("res_id", "=", self.id),
@@ -192,7 +193,7 @@ class LLMThread(models.Model):
             ("subtype_id", "in", subtype_ids),
         ]
         messages = self.env["mail.message"].search(
-            domain, order="create_date {order}", limit=limit
+            domain, order=order_claude, limit=limit
         )
         return messages
     
@@ -273,7 +274,7 @@ class LLMThread(models.Model):
         self.ensure_one()
         message_history_rs = self._get_message_history_recordset()
         tool_rs = self.tool_ids
-
+        _logger.info(f"Starting streaming process... {message_history_rs}")
         stream_response = self.model_id.chat(
                 messages=message_history_rs,
                 tools=tool_rs,
@@ -323,10 +324,12 @@ class LLMThread(models.Model):
         # 5. Finalize Assistant Message Stream and Update Record
         if assistant_stream_id:
             assistant_msg.stream_done(assistant_stream_id)
-        
-        update_vals = {'body': markdown2.markdown(accumulated_content)}
+        update_vals = {}
+        if accumulated_content:
+            update_vals['body'] = markdown2.markdown(accumulated_content)
         if received_tool_calls:
             update_vals['tool_calls'] = json.dumps(received_tool_calls) # Save validated JSON
+
         if accumulated_content or received_tool_calls: # Check if update needed
             assistant_msg.write(update_vals)
             self._notify_message_update(assistant_msg)
