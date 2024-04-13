@@ -185,7 +185,7 @@ class LLMThread(models.Model):
             self.env.ref(LLM_TOOL_RESULT_SUBTYPE_XMLID, raise_if_not_found=False),
         ]       
         subtype_ids = [st.id for st in subtypes_to_fetch if st]    
-        order_claude = f"create_date {order}"
+        order_clause = f"create_date {order}, id {order}"
         domain = [
             ("model", "=", self._name),
             ("res_id", "=", self.id),
@@ -193,7 +193,7 @@ class LLMThread(models.Model):
             ("subtype_id", "in", subtype_ids),
         ]
         messages = self.env["mail.message"].search(
-            domain, order=order_claude, limit=limit
+            domain, order=order_clause, limit=limit
         )
         return messages
     
