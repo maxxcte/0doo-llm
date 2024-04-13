@@ -74,7 +74,6 @@ class LLMThread(models.Model):
         readonly=True,
         required=True,
         copy=False,
-        tracking=True,
         help="Reflects the backend processing state of the thread. 'Processing' means the system is working on a response.")
 
     @api.model_create_multi
