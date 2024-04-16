@@ -107,27 +107,14 @@ class LLMThreadController(http.Controller):
 
     @http.route("/llm/message/vote", type="json", auth="user", methods=["POST"])
     def llm_message_vote(self, message_id, vote_value):
-        """Updates the user vote on a specific message."""
+        """Updates the user vote on a specific message by calling the model method."""
         try:
-            vote_value = int(vote_value)
-            if vote_value not in [-1, 1, 0]:
-                return {"error": "Invalid vote value. Must be 1, -1, or 0."}
+            msg_id = int(message_id)
+            vote_val = int(vote_value)
+            request.env["mail.message"].set_user_vote(msg_id, vote_val)
+            return {"success": True}
 
-            message = request.env["mail.message"].browse(int(message_id))
-            # Basic check if the message exists and belongs to a model the user might see
-            # More specific checks could be added if needed (e.g., is it part of an llm.thread?)
-            if not message.exists():
-                return {"error": "Message not found."}
-
-            # Check if it's an assistant message (no author_id)
-            # Although the UI should only show votes for assistant messages,
-            # this adds a layer of verification.
-            if message.author_id:
-                return {"error": "Voting is only allowed on assistant messages."}
-
-            message.sudo().write({"user_vote": vote_value})
-            return {"success": True, "message_id": message.id, "new_vote": vote_value}
-
+        except (ValueError, TypeError):
+            return {"error": _("Invalid message ID or vote value format.")}
         except Exception as e:
-            # Log the exception?
             return {"error": str(e)}
