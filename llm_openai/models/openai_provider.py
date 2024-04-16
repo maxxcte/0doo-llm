@@ -305,7 +305,8 @@ class LLMProvider(models.Model):
                         if call_data.get("_complete"):
                             # Format into the standard structure {id, type, function:{name, args}}
                             final_tool_calls_list.append({
-                                "id": call_data["id"],
+                                # Generate a UUID for id if it's empty, google apis don't give tool call id for example
+                                "id": call_data.get("id") or str(uuid.uuid4()),
                                 "type": call_data.get("type", "function"), # Default type
                                 "function": {
                                     "name": call_data["function"]["name"],
@@ -313,8 +314,8 @@ class LLMProvider(models.Model):
                                 }
                             })
                         else:
-                            # Log incomplete tool calls - should not happen if OpenAI stream is correct
-                            _logger.error(f"OpenAI stream ended but tool call at index {index} was incomplete: {call_data}")
+                            # Incomplete for other reasons, log error
+                            _logger.error(f"OpenAI stream ended but tool call at index {index} was incomplete for reasons other than missing ID: {call_data}")
                             yield {'error': f"Received incomplete tool call data from provider for tool index {index}."}
 
                     # Yield the list of completed tool calls ONCE
@@ -336,22 +337,20 @@ class LLMProvider(models.Model):
         Helper to assemble fragmented tool calls from OpenAI stream chunks.
         (Keep this helper as it's essential for stream processing)
         """
-        # Initialize tool call data if it's a new one
         if index not in tool_call_chunks:
             tool_call_chunks[index] = {
-                "id": tool_call_chunk.id,          # ID might be in first chunk
-                "type": tool_call_chunk.type,      # Type might be in first chunk
+                "id": tool_call_chunk.id,
+                "type": tool_call_chunk.type,
                 "function": {"name": "", "arguments": ""},
                 "_complete": False # Internal flag to track assembly
             }
 
         current_call = tool_call_chunks[index]
 
-        # Update fields if present in the chunk
         if tool_call_chunk.id:
             current_call["id"] = tool_call_chunk.id
         if tool_call_chunk.type:
-            current_call["type"] = tool_call_chunk.type # Usually 'function'
+            current_call["type"] = tool_call_chunk.type
 
         func_chunk = tool_call_chunk.function
         if func_chunk:
@@ -360,18 +359,13 @@ class LLMProvider(models.Model):
             if func_chunk.arguments:
                 current_call["function"]["arguments"] += func_chunk.arguments
 
-        if (current_call.get("id") and
-            current_call["function"].get("name") and
+        if (current_call["function"].get("name") and
             current_call["function"]["arguments"].strip().endswith('}')):
             try:
                 json.loads(current_call["function"]["arguments"])
-                current_call["_complete"] = True # Mark as potentially complete
-                # Ensure ID is present (might need UUID generation if missing)
-                if not current_call.get("id"):
-                    current_call["id"] = str(uuid.uuid4())
-                    _logger.warning(f"Generated UUID for OpenAI tool call index {index} as none was provided.")
+                current_call["_complete"] = True
             except json.JSONDecodeError:
-                 current_call["_complete"] = False # Not valid JSON yet
+                current_call["_complete"] = False # Not valid JSON yet
 
         return tool_call_chunks
 
