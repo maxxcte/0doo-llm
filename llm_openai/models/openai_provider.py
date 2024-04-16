@@ -462,7 +462,9 @@ class LLMProvider(models.Model):
 
         # Format the rest of the messages
         for message in messages:
-            formatted_messages.append(self._dispatch_on_message(message, "format_message"))
+            formatted_message = self._dispatch_on_message(message, "format_message")
+            if formatted_message:
+                formatted_messages.append(formatted_message)
 
         # Then validate and clean the messages for OpenAI
         return self._validate_and_clean_messages(formatted_messages)
