@@ -336,17 +336,7 @@ class LLMThread(models.Model):
         return assistant_msg
 
     def _create_tool_response(self, tool_name, arguments_str, tool_call_id, result_data):
-        """Create a standardized tool response structure
-
-        Args:
-            tool_name: Name of the tool
-            arguments_str: JSON string of arguments
-            tool_call_id: ID of the tool call
-            result_data: Result data to include (will be JSON serialized)
-
-        Returns:
-            Dictionary with standardized tool response format
-        """
+        """Create a standardized tool response structure."""
         return {
             "id": tool_call_id,
             "type": "function",
@@ -384,7 +374,7 @@ class LLMThread(models.Model):
             )
 
     def _execute_tool_call(self, tool_call_def):
-        """Executes a single tool call, records it as a message, and streams updates."""
+        """Executes a single tool call, creates tool message, and streams updates."""
         tool_msg = None
         tool_stream_id = None
         tool_call_id = tool_call_def.get('id')
@@ -401,10 +391,10 @@ class LLMThread(models.Model):
                 subtype_xmlid=LLM_TOOL_RESULT_SUBTYPE_XMLID,
                 tool_call_id=tool_call_id,
                 tool_call_definition=json.dumps(tool_call_def),
-                tool_call_result=None, # Result is not known yet
-                body=f"Executing: {tool_name}...", # Initial body
-                author_id=False, # System message
-                tool_name=tool_name # For email_from
+                tool_call_result=None,
+                body=f"Executing: {tool_name}...",
+                author_id=False,
+                tool_name=tool_name
             )
 
             # 2. Start Stream
