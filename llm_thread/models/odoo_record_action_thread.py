@@ -23,27 +23,26 @@ class OdooRecordActionThread(threading.Thread):
     def run(self):
         """Target function for the background thread."""
         try:
-            with api.Environment.manage():
-                reg = registry(self.dbname)
-                with reg.cursor() as new_cr:
-                    env = api.Environment(new_cr, self.uid, self.context)
-                    record = env[self.model_name].browse(self.record_id)
+            reg = registry(self.dbname)
+            with reg.cursor() as new_cr:
+                env = api.Environment(new_cr, self.uid, self.context)
+                record = env[self.model_name].browse(self.record_id)
 
-                    if record.exists():
-                        method_to_call = getattr(record, self.method_name, None)
-                        if method_to_call and callable(method_to_call):
-                            method_to_call(*self.method_args, **self.method_kwargs)
-                            _logger.info(
-                                f"Background thread {self.name}: Finished {self.method_name} on {self.model_name} {self.record_id}"
-                            )
-                        else:
-                            _logger.error(
-                                f"Background thread {self.name}: Method '{self.method_name}' not found or not callable on {self.model_name} {self.record_id}"
-                            )
+                if record.exists():
+                    method_to_call = getattr(record, self.method_name, None)
+                    if method_to_call and callable(method_to_call):
+                        method_to_call(*self.method_args, **self.method_kwargs)
+                        _logger.info(
+                            f"Background thread {self.name}: Finished {self.method_name} on {self.model_name} {self.record_id}"
+                        )
                     else:
                         _logger.error(
-                             f"Background thread {self.name}: Could not find {self.model_name} {self.record_id} in db {self.dbname}"
+                            f"Background thread {self.name}: Method '{self.method_name}' not found or not callable on {self.model_name} {self.record_id}"
                         )
+                else:
+                    _logger.error(
+                         f"Background thread {self.name}: Could not find {self.model_name} {self.record_id} in db {self.dbname}"
+                    )
 
         except Exception as e:
             _logger.error(f"Error in background thread {self.name} (DB: {self.dbname}): {e}")
