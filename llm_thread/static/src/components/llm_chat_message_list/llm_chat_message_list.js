@@ -13,11 +13,11 @@ export class LLMChatMessageList extends MessageList {
     // TODO Need to do it via addComponentHint probably
     useEffect(
       () => {
-        if (this.thread && this.thread.llmThreadState === 'streaming') {
+        if (this.thread && this.thread.state === 'streaming') {
           this._scrollToEnd();
         }
       },
-      () => [this.thread.llmThreadState]
+      () => [this.thread.state]
     );
   }
 

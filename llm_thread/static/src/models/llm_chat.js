@@ -120,7 +120,7 @@ registerModel({
         relatedThreadModel: threadData.related_thread_model,
         relatedThreadId: threadData.related_thread_id,
         selectedToolIds: threadData.tool_ids || [],
-        llmThreadState: threadData.state,
+        state: threadData.state,
       };
 
       // Handle the llmModel field separately to avoid undefined errors

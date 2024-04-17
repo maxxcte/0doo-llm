@@ -58,7 +58,7 @@ registerPatch({
         );
       },
     }),
-    llmThreadState: attr({ default: 'idle' }),
+    state: attr({ default: 'idle' }),
   },
   recordMethods: {
     /**
