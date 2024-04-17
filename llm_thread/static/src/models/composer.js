@@ -9,5 +9,11 @@ registerPatch({
     placeholderLLMChat: attr({
       default: "Ask anything...",
     }),
+    isSendDisabled: attr({
+      compute() {
+          return !this.canPostMessage;
+      },
+      default: true, // Assume disabled initially
+    }),
   },
 });

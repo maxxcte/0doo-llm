@@ -6,22 +6,12 @@ import { registerPatch } from "@mail/model/model_core";
 
 registerPatch({
   name: "ComposerView",
-  fields: {
-    isSendDisabled: attr({
-      compute() {
-          // Disabled if composer is empty/uploading OR if the thread backend is processing
-          const threadIsProcessing = this.composer?.thread?.state === 'streaming';
-          return !this.composer?.canPostMessage || threadIsProcessing;
-      },
-      default: true, // Assume disabled initially
-    }),
-  },
   recordMethods: {
     async postUserMessageForLLM() {
-      if (this.isSendDisabled) { // Check based on thread state
-          return;
-      }
       const thread = this.composer.thread;
+      if(thread.state === 'streaming') {
+        return;
+      }
       const messageBody = this.composer.textInputContent.trim();
       if (!messageBody || !thread) {
           return; // Or show warning
@@ -83,7 +73,7 @@ registerPatch({
         // ENTER: submit the message only if the dropdown mention proposition is not displayed
         case "Enter":
           // Prevent sending if the composer is disabled (e.g., empty, uploading, or LLM streaming)
-          if (this.isSendDisabled) {
+          if (this.composer.isSendDisabled || this.composer.thread.state === 'streaming') {
             // Prevent default Enter behavior (like newline)
             ev.preventDefault();
             // Stop processing
