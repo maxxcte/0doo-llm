@@ -68,6 +68,7 @@ class LLMThread(models.Model):
         [
             ('idle', 'Idle'),
             ('streaming', 'Processing'),
+            ('stopped', 'Stopped'),
         ],
         string="Processing State",
         default='idle',
@@ -167,6 +168,18 @@ class LLMThread(models.Model):
         partner_id = self.env.user.partner_id.id
         channel = (self.env.cr.dbname, 'res.partner', partner_id) # Send to partner
         self._sendone_immediately(channel, 'mail.message/update_custom', message_payload)
+    
+    def _notify_thread_state_update(self):
+        self.ensure_one()
+        partner_id = self.env.user.partner_id.id
+        channel = (self.env.cr.dbname, 'res.partner', partner_id) # Send to partner
+        self._sendone_immediately(channel, 'llm.thread/update_state', {"state": self.state, "id": self.id})
+
+    def write(self, values):
+        res = super().write(values)
+        if 'state' in values:
+            self._notify_thread_state_update()
+        return res
 
     def _get_message_history_recordset(self, order='ASC', limit=None):
         """Get messages from the thread
