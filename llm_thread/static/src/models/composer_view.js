@@ -34,7 +34,7 @@ registerPatch({
   
       try {
           const result = await this.messaging.rpc({
-              route: `/llm/thread/${thread.id}/completions`, // Use the new route
+              route: `/llm/thread/${thread.id}/run`, // Use the new route
               params: {
                   message: messageBody, // Send as 'message' key
               },

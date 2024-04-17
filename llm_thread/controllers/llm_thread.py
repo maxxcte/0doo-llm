@@ -58,7 +58,7 @@ class LLMThreadController(http.Controller):
              except Exception as inner_e:
                   _logger.error(f"Failed to set final state for thread {thread_id} after background error: {inner_e}")
 
-    @http.route('/llm/thread/<int:thread_id>/completions', type='json', auth='user', methods=['POST'], csrf=True)
+    @http.route('/llm/thread/<int:thread_id>/run', type='json', auth='user', methods=['POST'], csrf=True)
     def run(self, thread_id, message=None, **kwargs):
         user_message_body = message
         if not user_message_body or not user_message_body.strip():
