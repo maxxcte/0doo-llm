@@ -1,7 +1,5 @@
 /** @odoo-module **/
 
-import { attr, many } from "@mail/model/model_field";
-import { markdownToHtml } from "../utils/markdown_utils";
 import { registerPatch } from "@mail/model/model_core";
 
 registerPatch({
@@ -17,10 +15,7 @@ registerPatch({
           return; // Or show warning
       }
   
-      // Optional: Immediately update UI state (e.g., clear input, maybe show temp message)
       this.composer.update({ textInputContent: '' });
-      // Could potentially update thread state locally to 'streaming' optimistically
-      // thread.update({ state: 'streaming' }); // Requires thread model patch
   
       try {
           const result = await this.messaging.rpc({
@@ -29,24 +24,15 @@ registerPatch({
                   message: messageBody, // Send as 'message' key
               },
           });
-          // Controller returns simple status, actual updates via bus
           if (result.status === 'error') {
               this.messaging.notify({ message: result.error, type: 'danger' });
-               // Reset thread state if needed (though backend finally block should handle it)
-               // thread.update({ state: 'idle' });
           } else if (result.status === 'completed') {
-             // Loop finished successfully on backend.
-             // State should be updated via bus eventually, but can ensure idle here
-             // thread.update({ state: 'idle' });
-             console.log("LLM completion loop finished.");
+             console.log("LLM completion loop started in background.");
           }
       } catch (error) {
           console.error("Error sending LLM message:", error);
           this.messaging.notify({ message: this.env._t("Failed to send message."), type: 'danger' });
-           // Reset thread state on RPC error
-           // thread.update({ state: 'idle' });
       } finally {
-           // Ensure composer is focused or UI reset as needed
            this.update({ doFocus: true });
       }
     },
