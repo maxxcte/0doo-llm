@@ -68,7 +68,7 @@ class LLMThread(models.Model):
         [
             ('idle', 'Idle'),
             ('streaming', 'Processing'),
-            ('stopped', 'Stopped'),
+            ('requested_stop', 'Requested Stop'),
         ],
         string="Processing State",
         default='idle',

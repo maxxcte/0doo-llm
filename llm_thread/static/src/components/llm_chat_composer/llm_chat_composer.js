@@ -31,6 +31,10 @@ export class LLMChatComposer extends Component {
     return this.composerView.composer.thread.state === 'streaming';
   }
 
+  get isRequestedStop(){
+    return this.composerView.composer.thread.state === 'requested_stop';
+  }
+
   // --------------------------------------------------------------------------
   // Private
   // --------------------------------------------------------------------------
