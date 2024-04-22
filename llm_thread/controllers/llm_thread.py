@@ -11,6 +11,18 @@ _logger = logging.getLogger(__name__)
 
 class LLMThreadController(http.Controller):
 
+    @http.route('llm/thread/<int:thread_id>/update', type='json', auth='user', methods=['POST'], csrf=True)
+    def llm_thread_update(self, thread_id, **kwargs):
+        try:
+            thread = request.env['llm.thread'].browse(thread_id)
+            if not thread.exists():
+                raise MissingError(_("LLM Thread not found."))
+            thread.write(kwargs)
+            return {'status': 'success'}
+        except Exception as e:
+            return {'status': 'error', 'error': str(e)}
+        
+
     @http.route('/llm/thread/<int:thread_id>/run', type='json', auth='user', methods=['POST'], csrf=True)
     def run(self, thread_id, message=None, **kwargs):
         user_message_body = message
