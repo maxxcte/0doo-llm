@@ -31,7 +31,7 @@
                         <div class="o_Message_prettyBody o_llm_tool_executing">
                             <i class="fa fa-spinner fa-spin me-1 text-muted" aria-label="Executing"/>
                             <span class="text-muted fst-italic">
-                                Executing: <strong t-esc="messageView.message.toolCallDefinition?.function?.name || 'tool'"/>...
+                                Executing: <strong t-esc="messageView.message.toolCallDefinitionFormatted?.function?.name || 'tool'"/>...
                                 <span class="o_llm_tool_executing_id text-muted small ms-1">(ID: <t t-esc="messageView.message.initialStreamData?.tool_call_id"/>)</span>
                             </span>
                             <!-- Optional: Display arguments in a collapsible section -->
@@ -85,14 +85,14 @@
                              <div class="o_llm_tool_result_header small mb-1">
                                  <strong class="me-2">
                                      <i t-attf-class="fa me-1 {{ messageView.message.toolCallResultIsError ? 'fa-exclamation-circle text-danger' : 'fa-check-circle text-success' }}"/>
-                                     Tool: <t t-esc="messageView.message.toolCallDefinition?.function?.name || 'Unknown Tool'"/>
+                                     Tool: <t t-esc="messageView.message.toolCallDefinitionFormatted?.function?.name || 'Unknown Tool'"/>
                                  </strong>
                                  <span class="text-muted small">(ID: <t t-esc="messageView.message.toolCallId || 'N/A'"/>)</span>
                              </div>
                              <!-- Display Arguments (optional, could be default collapsed) -->
                              <details class="o_llm_tool_result_args small mb-1">
                                  <summary class="text-muted" style="cursor: pointer;">Arguments</summary>
-                                 <pre class="bg-light p-1 rounded small mt-1"><code t-esc="messageView.message.toolCallDefinition?.function?.arguments || '{}'"/></pre>
+                                 <pre class="bg-light p-1 rounded small mt-1"><code t-esc="messageView.message.toolCallDefinitionFormatted?.function?.arguments || '{}'"/></pre>
                              </details>
                              <!-- Display Result/Error Content -->
                              <div class="o_llm_tool_result_content mt-1">

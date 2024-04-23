@@ -78,12 +78,11 @@ registerPatch({
     /**
      * Compute parsed tool call definition from llm_tool_call_definition field.
      */
-    toolCallDefinition: attr({
-        compute() {
-            // Uses the field added by llm_thread's python patch
-            // safeJsonParse returns undefined if parsing fails or field empty
-            return safeJsonParse(this.toolCallDefinition);
-        },
+    toolCallDefinition: attr({}),
+    toolCallDefinitionFormatted: attr({
+      compute() {
+        return safeJsonParse(this.toolCallDefinition);
+    },
     }),
     toolCallResult: attr({
       
