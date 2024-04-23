@@ -11,14 +11,15 @@ export class LLMChatMessageList extends MessageList {
     super.setup();
     this.rootRef = useRef("root");
     // TODO Need to do it via addComponentHint probably
-    useEffect(
-      () => {
-        if (this.thread && this.thread.state === 'streaming') {
-          this._scrollToEnd();
-        }
-      },
-      () => [this.thread.state]
-    );
+    // TODO state is now removed, we probably need to check via eventsource
+    // useEffect(
+    //   () => {
+    //     if (this.thread && this.thread.state === 'streaming') {
+    //       this._scrollToEnd();
+    //     }
+    //   },
+    //   () => [this.thread.state]
+    // );
   }
 
   get thread() {

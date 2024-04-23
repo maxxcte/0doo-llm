@@ -64,19 +64,6 @@ class LLMThread(models.Model):
         help="Tools that can be used by the LLM in this thread",
     )
 
-    state = fields.Selection(
-        [
-            ('idle', 'Idle'),
-            ('streaming', 'Processing'),
-            ('requested_stop', 'Requested Stop'),
-        ],
-        string="Processing State",
-        default='idle',
-        readonly=True,
-        required=True,
-        copy=False,
-        help="Reflects the backend processing state of the thread. 'Processing' means the system is working on a response.")
-
     @api.model_create_multi
     def create(self, vals_list):
         """Set default title if not provided"""
@@ -169,18 +156,6 @@ class LLMThread(models.Model):
         channel = (self.env.cr.dbname, 'res.partner', partner_id) # Send to partner
         self._sendone_immediately(channel, 'mail.message/update_custom', message_payload)
     
-    def _notify_thread_state_update(self):
-        self.ensure_one()
-        partner_id = self.env.user.partner_id.id
-        channel = (self.env.cr.dbname, 'res.partner', partner_id) # Send to partner
-        self._sendone_immediately(channel, 'llm.thread/update_state', {"state": self.state, "id": self.id})
-
-    def write(self, values):
-        res = super().write(values)
-        if 'state' in values:
-            self._notify_thread_state_update()
-        return res
-
     def _get_message_history_recordset(self, order='ASC', limit=None):
         """Get messages from the thread
 
@@ -215,11 +190,6 @@ class LLMThread(models.Model):
         Orchestrates the LLM interaction cycle synchronously in a loop.
         """
         self.ensure_one()
-        if self.state == 'streaming' and user_message_body is not None:
-            raise UserError("Thread is already processing, cannot process new request.")
-
-        self.write({'state': 'streaming'})
-        
         last_message = None
         if user_message_body is not None:
             last_message = self.create_new_message(
@@ -239,32 +209,33 @@ class LLMThread(models.Model):
         current_iteration = 0
         MAX_ITERATION = 10
 
+        try:
+            while current_iteration < MAX_ITERATION:
+                current_iteration += 1
 
-
-        while current_iteration < MAX_ITERATION:
-            current_iteration += 1
-
-            if not last_message:
-                raise UserError("No message found to process.")
-            
-            if last_message.is_llm_user_message() or last_message.is_llm_tool_result_message():
-                # Process user message or tool result, in both cases we get assistant_msg
-                # some assistant message has tool_calls, some don't
-                assistant_msg = self._start_streaming()
-                last_message = assistant_msg
-                continue
-            
-            if last_message.is_llm_assistant_message():
-                if last_message.tool_calls:
-                    # Process tool calls
-                    last_tool_msg = self._process_tool_calls(last_message)
-                    last_message = last_tool_msg
+                if not last_message:
+                    raise UserError("No message found to process.")
+                
+                if last_message.is_llm_user_message() or last_message.is_llm_tool_result_message():
+                    # Process user message or tool result, in both cases we get assistant_msg
+                    # some assistant message has tool_calls, some don't
+                    assistant_msg = self._start_streaming()
+                    last_message = assistant_msg
                     continue
-                else:
-                    break
+                
+                if last_message.is_llm_assistant_message():
+                    if last_message.tool_calls:
+                        # Process tool calls
+                        last_tool_msg = self._process_tool_calls(last_message)
+                        last_message = last_tool_msg
+                        continue
+                    else:
+                        break
+        except Exception as e:
+            raise
+        finally:
+            yield f"data: {json.dumps({'type': 'end'})}\n\n".encode()
         
-        self.write({'state': 'idle'})
-    
     def _process_tool_calls(self, assistant_msg):
         self.ensure_one()
         if assistant_msg and assistant_msg.tool_calls:

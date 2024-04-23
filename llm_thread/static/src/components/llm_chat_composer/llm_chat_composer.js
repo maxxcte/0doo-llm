@@ -32,7 +32,7 @@ export class LLMChatComposer extends Component {
   }
 
   get isRequestedStop(){
-    return this.composerView.composer.thread.state === 'requested_stop';
+    return false;
   }
 
   // --------------------------------------------------------------------------

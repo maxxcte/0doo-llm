@@ -58,7 +58,6 @@ registerPatch({
         );
       },
     }),
-    state: attr({ default: 'idle' }),
   },
   recordMethods: {
     /**

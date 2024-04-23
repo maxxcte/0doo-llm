@@ -5,7 +5,7 @@ import { registerPatch } from "@mail/model/model_core";
 registerPatch({
   name: "ComposerView",
   recordMethods: {
-    async _updateLLMThreadState(state){
+    async _updateLLMThread(params){
       const thread = this.composer.thread;
       
       try {
@@ -14,31 +14,27 @@ registerPatch({
         }
         const result = await this.messaging.rpc({
             route: `/llm/thread/${thread.id}/update`, // Use the new route
-            params: {
-                state: state, // Send as 'message' key
-            },
+            params: params,
         });
         if (result.status === 'error') {
             this.messaging.notify({ message: result.error, type: 'danger' });
         } else if (result.status === 'success') {
-           console.log("updated state successfully");
+           console.log("updated LLM Thread successfully");
         }
       } catch (error) {
-          console.error("Error updating LLMThread State:", error);
-          this.messaging.notify({ message: this.env._t("Failed to update LLM Thread state."), type: 'danger' });
+          console.error("Error updating LLMThread:", error);
+          this.messaging.notify({ message: this.env._t("Failed to update LLM Thread."), type: 'danger' });
       } finally {
           this.update({ doFocus: true });
       }
     },
     async stopLLMThreadLoop() {
-      await this._updateLLMThreadState('requested_stop');
+      // this should close event source
     },
 
     async postUserMessageForLLM() {
       const thread = this.composer.thread;
-      if(thread.state === 'streaming') {
-        return;
-      }
+      
       const messageBody = this.composer.textInputContent.trim();
       if (!messageBody || !thread) {
           return; // Or show warning
@@ -47,17 +43,21 @@ registerPatch({
       this.composer.update({ textInputContent: '' });
   
       try {
-          const result = await this.messaging.rpc({
-              route: `/llm/thread/${thread.id}/run`, // Use the new route
-              params: {
-                  message: messageBody, // Send as 'message' key
-              },
-          });
-          if (result.status === 'error') {
-              this.messaging.notify({ message: result.error, type: 'danger' });
-          } else if (result.status === 'completed') {
-             console.log("LLM completion loop started in background.");
+          const eventSource = new EventSource(
+            `/llm/thread/run?thread_id=${thread.id}&message=${messageBody}`,
+          );
+          eventSource.onmessage = async (event) =>{
+            const data = JSON.parse(event.data);
+            switch (data.type) {
+              case 'end':
+                eventSource.close();
+                break;
+            }
           }
+          eventSource.onerror = (error) => {
+            console.error("EventSource failed:", error);
+            eventSource.close();
+          };
       } catch (error) {
           console.error("Error sending LLM message:", error);
           this.messaging.notify({ message: this.env._t("Failed to send message."), type: 'danger' });

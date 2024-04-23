@@ -41,13 +41,6 @@ registerPatch({
                     }
                     return;
                 }
-                else if (notification.type === 'llm.thread/update_state') {
-                    const thread = this.messaging.models['Thread'].findFromIdentifyingData({ id: notification.payload.id, model: 'llm.thread' });
-                    if (thread) {
-                        thread.update({ state: notification.payload.state });
-                    }
-                    return;
-                }
                 else {
                     return this._super(notification);
                 }
