@@ -10,20 +10,20 @@ export class LLMChatMessageList extends MessageList {
   setup() {
     super.setup();
     this.rootRef = useRef("root");
-    // TODO Need to do it via addComponentHint probably
-    // TODO state is now removed, we probably need to check via eventsource
-    // useEffect(
-    //   () => {
-    //     if (this.thread && this.thread.state === 'streaming') {
-    //       this._scrollToEnd();
-    //     }
-    //   },
-    //   () => [this.thread.state]
-    // );
+    useEffect(
+      () => {
+        if (this.composerView.isStreaming && this.htmlStreamingContent) {
+          this._scrollToEnd();
+        }
+      },
+      () => [this.htmlStreamingContent]
+    );
   }
 
-  get thread() {
-    return this.composerView.composer.thread;
+  get htmlStreamingContent() {
+    return this.composerView.htmlStreamingContent
+      ? markup(this.composerView.htmlStreamingContent)
+      : "";
   }
 
   get composerView() {
