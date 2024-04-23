@@ -23,8 +23,6 @@ export class LLMChatComposerTextInput extends ComposerTextInput {
   }
 
   _composerView(){
-    console.log(this.props.record);
-    console.log(this.props.record.composer);
     return this.props.record;
   }
 

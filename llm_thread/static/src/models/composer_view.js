@@ -5,6 +5,35 @@ import { registerPatch } from "@mail/model/model_core";
 registerPatch({
   name: "ComposerView",
   recordMethods: {
+    async _updateLLMThreadState(state){
+      const thread = this.composer.thread;
+      
+      try {
+        if (!thread || !thread.id) {
+          throw new Error("Thread or Thread ID is missing.");
+        }
+        const result = await this.messaging.rpc({
+            route: `/llm/thread/${thread.id}/update`, // Use the new route
+            params: {
+                state: state, // Send as 'message' key
+            },
+        });
+        if (result.status === 'error') {
+            this.messaging.notify({ message: result.error, type: 'danger' });
+        } else if (result.status === 'success') {
+           console.log("updated state successfully");
+        }
+      } catch (error) {
+          console.error("Error updating LLMThread State:", error);
+          this.messaging.notify({ message: this.env._t("Failed to update LLM Thread state."), type: 'danger' });
+      } finally {
+          this.update({ doFocus: true });
+      }
+    },
+    async stopLLMThreadLoop() {
+      await this._updateLLMThreadState('requested_stop');
+    },
+
     async postUserMessageForLLM() {
       const thread = this.composer.thread;
       if(thread.state === 'streaming') {
