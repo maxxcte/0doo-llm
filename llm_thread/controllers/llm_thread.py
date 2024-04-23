@@ -1,7 +1,7 @@
 import logging
-
-from odoo import http
-from odoo.http import request
+import json
+from odoo import http, api, registry
+from odoo.http import request, Response
 from odoo.exceptions import MissingError
 from odoo.tools.translate import _
 from ..models.odoo_record_action_thread import OdooRecordActionThread
@@ -22,41 +22,37 @@ class LLMThreadController(http.Controller):
         except Exception as e:
             return {'status': 'error', 'error': str(e)}
         
+    def _run(self, dbname, env, thread_id, user_message_body):
+        """Override generate method to handle tool messages"""
+        # Use a cursor block to ensure the cursor remains open for the duration of the generator
+        with registry(dbname).cursor() as cr:
+            env = api.Environment(cr, env.uid, env.context)
 
-    @http.route('/llm/thread/<int:thread_id>/run', type='json', auth='user', methods=['POST'], csrf=True)
+            # Convert string data to bytes for all yields
+            yield f"data: {json.dumps({'type': 'start'})}\n\n".encode()
+
+            # Stream responses
+            thread = env["llm.thread"].browse(int(thread_id))
+            for response in thread.start_thread_loop(
+                user_message_body
+            ):
+                yield f"data: {json.dumps({'type':'processing'})}\n\n".encode()
+            # Send end event
+            yield f"data: {json.dumps({'type': 'end'})}\n\n".encode()
+
+    @http.route('/llm/thread/run', type="http", auth='user', csrf=True)
     def run(self, thread_id, message=None, **kwargs):
+        headers = {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        }
         user_message_body = message
-        if not user_message_body or not user_message_body.strip():
-            return {'status': 'error', 'error': _('Message body cannot be empty.')}
-
-        try:
-            thread = request.env['llm.thread'].browse(thread_id)
-            if not thread.exists():
-                raise MissingError(_("Chat Thread not found."))
-            if thread.state == 'streaming':
-                return {'status': 'error', 'error': _("Thread is already processing.")}
-
-            dbname = request.env.cr.dbname
-            uid = request.env.uid
-            context = request.env.context
-            model_name = 'llm.thread'
-            method_name = 'start_thread_loop'
-            method_kwargs = {'user_message_body': user_message_body.strip()}
-
-            recordActionThread = OdooRecordActionThread(
-                dbname=dbname,
-                uid=uid,
-                context=context,
-                model_name=model_name,
-                record_id=thread_id,
-                method_name=method_name,
-                method_kwargs=method_kwargs
-            )
-            recordActionThread.start()
-            return {'status': 'processing_started'}
-
-        except Exception as e:
-            return {'status': 'error', 'error': str(e)}
+        return Response(
+            self._run(request.cr.dbname, request.env, thread_id, user_message_body),
+            direct_passthrough=True,
+            headers=headers,
+        )
 
     @http.route("/llm/message/vote", type="json", auth="user", methods=["POST"])
     def llm_message_vote(self, message_id, vote_value):

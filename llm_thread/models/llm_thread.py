@@ -219,7 +219,7 @@ class LLMThread(models.Model):
                 if last_message.is_llm_user_message() or last_message.is_llm_tool_result_message():
                     # Process user message or tool result, in both cases we get assistant_msg
                     # some assistant message has tool_calls, some don't
-                    assistant_msg = self._start_streaming()
+                    assistant_msg = self._get_assistant_response()
                     last_message = assistant_msg
                     continue
                 
@@ -234,6 +234,7 @@ class LLMThread(models.Model):
         except Exception as e:
             raise
         finally:
+            # TODO: test SSE end, for test purpose
             yield f"data: {json.dumps({'type': 'end'})}\n\n".encode()
         
     def _process_tool_calls(self, assistant_msg):
@@ -253,7 +254,7 @@ class LLMThread(models.Model):
                 last_tool_msg = tool_msg
             return last_tool_msg
                 
-    def _start_streaming(self):
+    def _get_assistant_response(self):
         self.ensure_one()
         message_history_rs = self._get_message_history_recordset()
         tool_rs = self.tool_ids
