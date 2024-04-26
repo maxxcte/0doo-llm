@@ -56,19 +56,7 @@ class LLMPromptTemplate(models.Model):
         default=False,
         help="Whether this template should pause and wait for user input",
     )
-    
-    # Resource including
-    include_resources = fields.Boolean(
-        string="Include Resources",
-        default=False,
-        help="Whether to include resources with this template",
-    )
-    resource_ids = fields.Many2many(
-        "llm.prompt.resource",
-        string="Resources",
-        help="Resources to include with this template",
-    )
-    
+
     def get_template_message(self, arguments=None):
         """
         Generate a message for this template with the given arguments
