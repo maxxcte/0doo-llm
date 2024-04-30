@@ -198,7 +198,7 @@ class LLMThread(models.Model):
             raise UserError("No message found to process.")
         return last_message
 
-    def start_thread_loop(self, user_message_body):
+    def generate(self, user_message_body):
         """
         Orchestrates the LLM interaction cycle synchronously in a loop.
         """
@@ -215,7 +215,6 @@ class LLMThread(models.Model):
 
         try:
             while True:
-
                 if not last_message:
                     raise UserError("No message found to process.")
                 

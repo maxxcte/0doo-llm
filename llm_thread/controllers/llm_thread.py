@@ -33,7 +33,7 @@ class LLMThreadController(http.Controller):
 
             # Stream responses
             thread = env["llm.thread"].browse(int(thread_id))
-            for response in thread.start_thread_loop(
+            for response in thread.generate(
                 user_message_body
             ):
                 yield f"data: {json.dumps({'type':'processing'})}\n\n".encode()
