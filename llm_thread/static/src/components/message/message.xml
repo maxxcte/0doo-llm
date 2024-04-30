@@ -1,56 +1,143 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <templates xml:space="preserve">
-    <t
-    t-name="llm_thread.Message"
-    t-inherit="mail.Message"
-    t-inherit-mode="extension"
-    owl="1"
-  >
-        <!-- Replace the avatar with a cog icon for tool messages -->
-        <xpath
-      expr="//div[hasclass('o_Message_authorAvatarContainer')]"
-      position="replace"
-    >
-            <t t-if="messageView.message.is_tool_message">
-                <div
-          class="o_Message_authorAvatarContainer o_Message_sidebarItem position-relative d-flex align-items-center justify-content-center bg-light rounded-circle"
-        >
-                    <i
-            class="fa fa-cog fa-lg text-primary"
-            title="Tool Message"
-            aria-label="Tool Message"
-          />
-                </div>
-            </t>
-            <t t-else="">
-                <div
-          class="o_Message_authorAvatarContainer o_Message_sidebarItem position-relative"
-        >
-                    <img
-            class="o_Message_authorAvatar w-100 h-100 rounded-circle o_object_fit_cover"
-            t-att-class="{ 'cursor-pointer': messageView.hasAuthorClickable, o_redirect: messageView.hasAuthorClickable }"
-            t-att-src="messageView.message.avatarUrl"
-            t-att-role="messageView.hasAuthorClickable ? 'button' : ''"
-            t-att-tabindex="messageView.hasAuthorClickable ? '0' : ''"
-            t-on-click="messageView.onClickAuthorAvatar"
-            t-att-title="messageView.authorTitleText"
-            t-att-alt="messageView.authorTitleText"
-          />
-                    <t t-if="messageView.personaImStatusIconView">
-                        <PersonaImStatusIcon
-              className="'o_Message_personaImStatusIcon position-absolute bottom-0 end-0 d-flex align-items-center justify-content-center text-white'"
-              classNameObj="{
-                                'o-message-selected': messageView.isSelected,
-                                'o_Message_personaImStatusIcon-mobile': messaging.device.isSmall,
-                                'small': !messaging.device.isSmall,
-                                'text-100': messageView.message.is_note and !messageView.isSelected,
-                            }"
-              hasOpenChat="messageView.hasAuthorClickable"
-              record="messageView.personaImStatusIconView"
-            />
+    <t t-name="llm_thread.Message" t-inherit="mail.Message" t-inherit-mode="extension" owl="1">
+        <!--
+        Replace the main content rendering area.
+        We rely on is_note=True (set by backend message_format for LLM subtypes)
+        to get the desired overall bubble style from the base mail.Message template.
+        -->
+        <xpath expr="//div[hasclass('o_Message_content')]" position="replace">
+            <div class="o_Message_content position-relative text-break"
+                 t-att-class="{
+                    'opacity-75': messageView.message.isSquashed,
+                    'o_Message_content--failed': messageView.message.isFailed,
+                 }"
+                 t-ref="content"
+                 >
+
+                <!-- === STREAMING STATE === -->
+                <t t-if="messageView.message.isStreaming">
+                    <!-- Assistant Streaming -->
+                    <t t-if="messageView.message.messageSubtypeXmlid === 'llm_mail_message_subtypes.mt_llm_assistant'">
+                        <div class="o_Message_prettyBody o_llm_streaming_content">
+                            <!-- Render accumulated markdown as HTML -->
+                            <t t-out="messageView.message.streamingContentFormatted"/>
+                            <!-- Blinking cursor indicator -->
+                            <span class="o_llm_cursor fa fa-circle ms-1 text-muted align-baseline"/>
+                        </div>
                     </t>
-                </div>
-            </t>
+                    <!-- Tool Executing -->
+                    <t t-elif="messageView.message.messageSubtypeXmlid === 'llm_mail_message_subtypes.mt_llm_tool_result'">
+                        <div class="o_Message_prettyBody o_llm_tool_executing">
+                            <i class="fa fa-spinner fa-spin me-1 text-muted" aria-label="Executing"/>
+                            <span class="text-muted fst-italic">
+                                Executing: <strong t-esc="messageView.message.toolCallDefinitionFormatted?.function?.name || 'tool'"/>...
+                                <span class="o_llm_tool_executing_id text-muted small ms-1">(ID: <t t-esc="messageView.message.initialStreamData?.tool_call_id"/>)</span>
+                            </span>
+                            <!-- Optional: Display arguments in a collapsible section -->
+                            <details class="o_llm_tool_executing_args small mt-1">
+                                <summary class="text-muted" style="cursor: pointer;">Show Arguments</summary>
+                                 <pre class="bg-light p-1 rounded small mt-1"><code t-esc="messageView.message.initialStreamData?.definition?.function?.arguments or '{}'"/></pre>
+                             </details>
+                        </div>
+                    </t>
+                    <!-- Fallback for unexpected streaming state -->
+                    <t t-else="">
+                         <div class="o_Message_prettyBody text-muted fst-italic">
+                            <i class="fa fa-spinner fa-spin me-1" aria-hidden="true"/> Processing...
+                        </div>
+                    </t>
+                </t>
+
+                <!-- === STREAM ERROR STATE === -->
+                <t t-elif="messageView.message.streamError">
+                     <div class="o_Message_prettyBody text-danger border border-danger rounded p-2">
+                        <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"/>
+                        <strong class="me-1">Streaming Error:</strong>
+                        <span t-esc="messageView.message.streamError"/>
+                     </div>
+                </t>
+
+                <!-- === FINAL CONTENT STATE === -->
+                <t t-else="">
+                    <!-- Assistant Final Content -->
+                    <t t-if="messageView.message.messageSubtypeXmlid === 'llm_mail_message_subtypes.mt_llm_assistant'">
+                        <!-- Render final message body (processed by mail) -->
+                        <t t-if="!messageView.composerViewInEditing">
+                            <div class="o_Message_prettyBody" t-ref="prettyBody"/>
+                        </t>
+                        <!-- Display requested tool calls if any -->
+                        <t t-if="messageView.message.formattedToolCalls and messageView.message.formattedToolCalls.length > 0">
+                            <div class="o_llm_tool_calls mt-2 small text-muted border-top pt-1">
+                                <strong class="me-1">Tools Requested:</strong>
+                                <t t-foreach="messageView.message.formattedToolCalls" t-as="toolCall" t-key="toolCall.id">
+                                    <span class="badge bg-light text-dark border me-1 mb-1" t-att-title="'ID: ' + toolCall.id + '\nArgs: ' + toolCall.function?.arguments">
+                                        <i class="fa fa-cog me-1" aria-hidden="true"/>
+                                        <t t-esc="toolCall.function?.name"/>
+                                    </span>
+                                </t>
+                            </div>
+                        </t>
+                    </t>
+                    <!-- Tool Result Final Content -->
+                    <t t-elif="messageView.message.messageSubtypeXmlid === 'llm_mail_message_subtypes.mt_llm_tool_result'">
+                         <div class="o_Message_prettyBody o_llm_tool_result">
+                             <div class="o_llm_tool_result_header small mb-1">
+                                 <strong class="me-2">
+                                     <i t-attf-class="fa me-1 {{ messageView.message.toolCallResultIsError ? 'fa-exclamation-circle text-danger' : 'fa-check-circle text-success' }}"/>
+                                     Tool: <t t-esc="messageView.message.toolCallDefinitionFormatted?.function?.name || 'Unknown Tool'"/>
+                                 </strong>
+                                 <span class="text-muted small">(ID: <t t-esc="messageView.message.toolCallId || 'N/A'"/>)</span>
+                             </div>
+                             <!-- Display Arguments (optional, could be default collapsed) -->
+                             <details class="o_llm_tool_result_args small mb-1">
+                                 <summary class="text-muted" style="cursor: pointer;">Arguments</summary>
+                                 <pre class="bg-light p-1 rounded small mt-1"><code t-esc="messageView.message.toolCallDefinitionFormatted?.function?.arguments || '{}'"/></pre>
+                             </details>
+                             <!-- Display Result/Error Content -->
+                             <div class="o_llm_tool_result_content mt-1">
+                                 <strong class="small">Result:</strong>
+                                 <t t-if="messageView.message.toolCallResultIsError">
+                                     <pre class="bg-danger-light border border-danger text-danger p-1 rounded small mt-1"><code t-esc="messageView.message.toolCallResultData?.error || 'Unknown Error'"/></pre>
+                                 </t>
+                                 <t t-else="">
+                                     <!-- Render result nicely - assumes pretty print JSON -->
+                                     <pre class="bg-light border p-1 rounded small mt-1"><code t-esc="messageView.message.toolCallResultFormatted"/></pre>
+                                 </t>
+                             </div>
+                         </div>
+                    </t>
+                    <!-- User Message Final Content (or other standard subtypes) -->
+                    <t t-else="">
+                      <t t-if="!messageView.composerViewInEditing">
+                        <div class="o_Message_prettyBody" t-ref="prettyBody"/>
+                      </t>
+                      <t t-if="messageView.composerViewInEditing">
+                          <Composer
+                              className="'o_Message_composer'"
+                              record="messageView.composerViewInEditing"
+                          />
+                      </t>
+                      <t t-if="messageView.message.subtype_description and !messageView.message.isBodyEqualSubtypeDescription">
+                          <p t-esc="messageView.message.subtype_description" class="mb-0"/>
+                      </t>
+                      <t t-if="messageView.message.trackingValues.length > 0">
+                          <ul class="o_Message_trackingValues mb-0 ps-4">
+                            <t t-foreach="messageView.message.trackingValues" t-as="trackingValue" t-key="trackingValue.id">
+                                  <li>
+                                      <TrackingValue value="trackingValue"/>
+                                  </li>
+                              </t>
+                          </ul>
+                      </t>
+                    </t>
+                </t>
+
+                <!-- Standard Mail Elements (Keep these at the end of the content div) -->
+                <div class="o_Message_linkPreviews"/>
+                <!-- TODO: add default message view for different subtype ids based on odoo mail module -->
+            </div> <!-- End of o_Message_content -->
         </xpath>
+
     </t>
 </templates>

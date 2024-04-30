@@ -26,10 +26,10 @@ Contact: support@apexive.com
     """,
     "category": "Productivity, Discuss",
     "version": "16.0.1.1.1",
-    "depends": ["base", "mail", "web", "llm", "llm_tool"],
+    "depends": ["base", "mail", "mail_message_stream", "web", "llm", "llm_tool", "llm_mail_message_subtypes"],
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
-    "external_dependencies": {"python": ["emoji"]},
+    "external_dependencies": {"python": ["emoji", "markdown2"]},
     "data": [
         "security/llm_thread_security.xml",
         "security/ir.model.access.csv",
@@ -54,7 +54,6 @@ Contact: support@apexive.com
             "llm_thread/static/src/models/llm_chat_thread_header_view.js",
             "llm_thread/static/src/models/chatter.js",
             "llm_thread/static/src/models/llm_tool.js",
-            "llm_thread/static/src/models/llm_tool_message.js",
             "llm_thread/static/src/models/message.js",
             "llm_thread/static/src/models/message_action.js",
             "llm_thread/static/src/models/message_action_list.js",
@@ -88,6 +87,8 @@ Contact: support@apexive.com
             "llm_thread/static/src/components/llm_chatter_topbar/llm_chat_topbar.scss",
             "llm_thread/static/src/components/llm_chatter/llm_chatter.xml",
             "llm_thread/static/src/components/message/message.xml",
+            "llm_thread/static/src/components/message/message.scss",
+            "llm_thread/static/src/models/message_notification_handler.js",
             # Client Actions
             "llm_thread/static/src/llm_chat_client_action.js",
             # Styles
