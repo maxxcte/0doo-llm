@@ -64,6 +64,8 @@ class LLMThread(models.Model):
         help="Tools that can be used by the LLM in this thread",
     )
 
+    # TODO: need a way to lock this llm.thread if it is already looping
+
     @api.model_create_multi
     def create(self, vals_list):
         """Set default title if not provided"""
@@ -185,26 +187,31 @@ class LLMThread(models.Model):
         return messages
     
 
+    def _get_last_message_from_history(self):
+        """Get the last message from the message history."""
+        self.ensure_one()
+        last_message = None
+        result = self._get_message_history_recordset(order='DESC', limit=1)
+        if result:
+            last_message = result[0]
+        if not last_message:
+            raise UserError("No message found to process.")
+        return last_message
+
     def start_thread_loop(self, user_message_body):
         """
         Orchestrates the LLM interaction cycle synchronously in a loop.
         """
         self.ensure_one()
         last_message = None
-        if user_message_body is not None:
+        if user_message_body:
             last_message = self.create_new_message(
                 subtype_xmlid=LLM_USER_SUBTYPE_XMLID,
                 body=user_message_body,
                 author_id=self.env.user.partner_id.id,
             )
-        
-        if not last_message:
-            last_message_in_history = self._get_message_history_recordset(order='DESC', limit=1)
-            if last_message_in_history:
-                last_message = last_message_in_history[0]
-        
-        if not last_message:
-            raise UserError("No message found to process.")
+        else:
+            last_message = self._get_last_message_from_history()
 
         try:
             while True:
