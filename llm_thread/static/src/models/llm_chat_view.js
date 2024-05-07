@@ -18,18 +18,6 @@ registerModel({
      * @private
      */
     _onLLMChatActiveThreadChanged() {
-      const currentActiveThread = this.llmChat.activeThread;
-
-      // Also check and stop streaming on the *current* thread if it happens to be streaming
-      if (currentActiveThread) {
-        const currentThreadView = currentActiveThread.threadViews?.[0];
-        const currentComposerView = currentThreadView?.composerView;
-        if (currentComposerView?.isStreaming) {
-          currentComposerView._stopStreaming();
-        }
-      }
-
-      // Original logic to update router state
       this.env.services.router.pushState({
         action: this.llmChat.llmChatView.actionId,
         active_id: this.llmChat.activeId,
