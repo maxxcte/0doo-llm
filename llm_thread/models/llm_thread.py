@@ -82,6 +82,7 @@ class LLMThread(models.Model):
             raise ValueError("Subtype XML ID is required for create_new_message")
 
         try:
+            # TODO: cache this subtype -> subtype id if possible
             subtype = self.env.ref(subtype_xmlid)
         except ValueError: # Catches if XML ID format is wrong or module not installed
             raise MissingError(f"Subtype with XML ID '{subtype_xmlid}' not found.")
