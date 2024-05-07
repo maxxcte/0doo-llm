@@ -27,17 +27,13 @@ class LLMThreadController(http.Controller):
         # Use a cursor block to ensure the cursor remains open for the duration of the generator
         with registry(dbname).cursor() as cr:
             env = api.Environment(cr, env.uid, env.context)
-
-            # Convert string data to bytes for all yields
-            yield f"data: {json.dumps({'type': 'start'})}\n\n".encode()
-
             # Stream responses
             thread = env["llm.thread"].browse(int(thread_id))
             for response in thread.generate(
                 user_message_body
             ):
-                yield f"data: {json.dumps({'type':'processing'})}\n\n".encode()
-            # Send end event
+                # TODO: need to just yield data
+                yield f"data: {json.dumps(response)}\n\n".encode()  
             yield f"data: {json.dumps({'type': 'end'})}\n\n".encode()
 
     @http.route('/llm/thread/run', type="http", auth='user', csrf=True)
