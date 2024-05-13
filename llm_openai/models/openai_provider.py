@@ -38,21 +38,17 @@ class LLMProvider(models.Model):
             Dictionary in OpenAI tool format
         """
         try:
-            # First use the explicit input_schema if available
             if tool.input_schema:
                 try:
                     schema = json.loads(tool.input_schema)
                     return self._create_openai_tool_from_schema(schema, tool)
                 except json.JSONDecodeError:
                     _logger.error(f"Invalid JSON schema for tool {tool.name}")
-                    # Continue to next approach
 
-            # Next generate schema from the tool's method signature
             schema = tool.get_input_schema()
             if schema:
                 return self._create_openai_tool_from_schema(schema, tool)
 
-            # If we still don't have a schema, use minimal fallback
             _logger.warning(
                 f"Could not get schema for tool {tool.name}, using fallback"
             )
@@ -61,7 +57,6 @@ class LLMProvider(models.Model):
 
         except Exception as e:
             _logger.error(f"Error formatting tool {tool.name}: {str(e)}")
-            # Use minimal fallback schema
             schema = {
                 "title": tool.name,
                 "description": tool.description,
@@ -75,27 +70,20 @@ class LLMProvider(models.Model):
         if not isinstance(schema_node, dict):
             return
 
-        # Handle 'items' for arrays
         if "items" in schema_node and isinstance(schema_node["items"], dict):
             items_dict = schema_node["items"]
             if "type" not in items_dict:
-                items_dict["type"] = "string"  # Default patch type
-            # Recurse into items
+                items_dict["type"] = "string"
             self._recursively_patch_schema_items(items_dict)
 
-        # Handle 'properties' for objects
         if "properties" in schema_node and isinstance(schema_node["properties"], dict):
             for prop_schema in schema_node["properties"].values():
                 self._recursively_patch_schema_items(prop_schema)
 
-        # Handle schema combiners (anyOf, allOf, oneOf)
         for combiner in ["anyOf", "allOf", "oneOf"]:
             if combiner in schema_node and isinstance(schema_node[combiner], list):
                 for sub_schema in schema_node[combiner]:
                     self._recursively_patch_schema_items(sub_schema)
-
-        # Note: This doesn't handle every possible JSON schema structure,
-        # but covers common cases like nested arrays and objects.
 
     def _create_openai_tool_from_schema(self, schema, tool):
         """Convert a JSON schema dictionary to an OpenAI tool format,
@@ -173,43 +161,34 @@ class LLMProvider(models.Model):
             formatted_messages = self.openai_format_messages(messages, system_prompt)
             params["messages"] = formatted_messages
 
-        # Add tools if specified
         if tools:
             formatted_tools = self.openai_format_tools(tools)
             if formatted_tools:
                 params["tools"] = formatted_tools
                 params["tool_choice"] = tool_choice
 
-                # Check if any tools require consent
                 consent_required_tools = tools.filtered(
                     lambda t: t.requires_user_consent
                 )
 
-                # Only add consent instructions if there are tools requiring consent
                 if consent_required_tools:
-                    # Get names of tools requiring consent for more specific instructions
                     consent_tool_names = ", ".join(
                         [f"'{t.name}'" for t in consent_required_tools]
                     )
 
-                    # Get consent message template from config
                     config = self.env["llm.tool.consent.config"].get_active_config()
                     consent_instruction = config.system_message_template.format(
                         tool_names=consent_tool_names
                     )
 
-                    # Check if a system message already exists
                     has_system_message = False
                     for msg in params["messages"]:
                         if msg.get("role") == "system":
-                            # Add to existing system message
                             msg["content"] += f"\n\n{consent_instruction}"
                             has_system_message = True
                             break
 
-                    # If no system message exists, add one
                     if not has_system_message:
-                        # Insert system message at the beginning
                         params["messages"].insert(
                             0, {"role": "system", "content": consent_instruction}
                         )
@@ -222,47 +201,41 @@ class LLMProvider(models.Model):
         try:
             choice = response.choices[0]
             message = choice.message
-            result = {} # Standardized result dictionary
+            result = {}
 
-            # Add content if present
             if message.content:
                 result['content'] = message.content
 
-            # Add tool calls if present, converting to standard format
             if message.tool_calls:
                 result['tool_calls'] = [
                     {
                         "id": tc.id,
-                        "type": tc.type, # Should be 'function'
+                        "type": tc.type,
                         "function": {
                             "name": tc.function.name,
                             "arguments": tc.function.arguments,
                          }
                     } for tc in message.tool_calls
                 ]
-                _logger.info(f"Processed {len(result['tool_calls'])} non-streaming tool calls.")
 
-            # Only return the dict if it has content or tool calls
             if 'content' in result or 'tool_calls' in result:
                 return result
             else:
-                 _logger.warning("OpenAI non-streaming response had no content or tool calls.")
-                 return {} # Return empty dict if nothing to process
+                _logger.warning("OpenAI non-streaming response had no content or tool calls.")
+                return {} # Return empty dict if nothing to process
 
         except (AttributeError, IndexError, Exception) as e:
-             _logger.exception("Error processing OpenAI non-streaming response")
-             # Return structure indicates error
-             return {'error': f"Error processing response: {e}"}
+            _logger.exception("Error processing OpenAI non-streaming response")
+            return {'error': f"Error processing response: {e}"}
 
     def _openai_process_streaming_response(self, response_stream):
         """
         Processes OpenAI stream and yields standardized dicts for start_thread_loop.
         Yields: {'content': str} OR {'tool_calls': list} OR {'error': str}
         """
-        _logger.info("Starting to process OpenAI stream...")
-        assembled_tool_calls = {} # key: index, value: assembled tool call dict
-        final_tool_calls_list = [] # List of fully completed tool calls to yield
-        stream_has_tools = False # Flag if any tool chunks were received
+        assembled_tool_calls = {}
+        final_tool_calls_list = []
+        stream_has_tools = False
         finish_reason = None
 
         try:
@@ -271,42 +244,32 @@ class LLMProvider(models.Model):
                 delta = choice.delta if choice else None
                 chunk_finish_reason = choice.finish_reason if choice else None
                 if chunk_finish_reason:
-                    finish_reason = chunk_finish_reason # Store the final reason
+                    finish_reason = chunk_finish_reason
 
                 if not delta:
-                    _logger.info("Stream chunk had no delta.")
                     continue
 
-                # 1. Yield Content Chunks
                 if delta.content:
-                    # Directly yield content in the standardized format
                     yield {'content': delta.content}
 
-                # 2. Process Tool Call Chunks (Accumulate)
                 if delta.tool_calls:
-                    stream_has_tools = True # Mark that we encountered tool calls
+                    stream_has_tools = True
+                    # index can be null, so we use a counter as fallback
+                    call_counter = 0
                     for tool_call_chunk in delta.tool_calls:
-                        index = tool_call_chunk.index
-                        # Use helper to assemble fragments
+                        index = tool_call_chunk.index or call_counter
                         assembled_tool_calls = self._update_tool_call_chunk(
                             assembled_tool_calls, tool_call_chunk, index
                         )
-
-            # --- End of Stream ---
-            _logger.info(f"OpenAI stream finished. Finish Reason: {finish_reason}")
-
-            # 3. Process and Yield Completed Tool Calls (after stream ends)
+                        call_counter += 1
             if stream_has_tools:
-                # Only yield tool_calls if the finish reason indicates tools were intended
-                # Or if we successfully assembled some (covers cases where finish_reason might be null/stop but tools were sent)
                 if finish_reason == 'tool_calls' or (finish_reason != 'error' and assembled_tool_calls):
                     for index, call_data in sorted(assembled_tool_calls.items()):
-                        # Check our internal '_complete' flag set by the helper
                         if call_data.get("_complete"):
-                            # Format into the standard structure {id, type, function:{name, args}}
+                            tool_call_id = call_data.get("id").strip() or str(uuid.uuid4())
                             final_tool_calls_list.append({
                                 # Generate a UUID for id if it's empty, google apis don't give tool call id for example
-                                "id": call_data.get("id") or str(uuid.uuid4()),
+                                "id": tool_call_id,
                                 "type": call_data.get("type", "function"), # Default type
                                 "function": {
                                     "name": call_data["function"]["name"],
@@ -314,17 +277,12 @@ class LLMProvider(models.Model):
                                 }
                             })
                         else:
-                            # Incomplete for other reasons, log error
-                            _logger.error(f"OpenAI stream ended but tool call at index {index} was incomplete for reasons other than missing ID: {call_data}")
                             yield {'error': f"Received incomplete tool call data from provider for tool index {index}."}
 
-                    # Yield the list of completed tool calls ONCE
                     if final_tool_calls_list:
-                        _logger.info(f"Yielding {len(final_tool_calls_list)} completed tool calls.")
                         yield {'tool_calls': final_tool_calls_list}
                     elif assembled_tool_calls:
                          _logger.warning("Stream indicated tool calls, but none were successfully assembled.")
-                         # Decide: yield empty list or error? Let's yield nothing more for now.
 
                 elif finish_reason != 'error':
                      _logger.warning(f"OpenAI stream had tool chunks but finished with reason '{finish_reason}'. Not yielding tool calls.")
@@ -342,7 +300,7 @@ class LLMProvider(models.Model):
                 "id": tool_call_chunk.id,
                 "type": tool_call_chunk.type,
                 "function": {"name": "", "arguments": ""},
-                "_complete": False # Internal flag to track assembly
+                "_complete": False
             }
 
         current_call = tool_call_chunks[index]
@@ -365,7 +323,7 @@ class LLMProvider(models.Model):
                 json.loads(current_call["function"]["arguments"])
                 current_call["_complete"] = True
             except json.JSONDecodeError:
-                current_call["_complete"] = False # Not valid JSON yet
+                current_call["_complete"] = False
 
         return tool_call_chunks
 
