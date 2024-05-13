@@ -29,25 +29,42 @@ registerPatch({
       
       const messageBody = this.textInputContent.trim();
       if (!messageBody || !thread) {
-          return; // Or show warning
+          this.messaging.notify({ message: this.env._t("Please enter a message."), type: 'danger' });
+          return;
       }
   
-      this.update({ textInputContent: '' });
+      this._reset();
   
       try {
-          this.eventSource = new EventSource(
+          const eventSource = new EventSource(
             `/llm/thread/generate?thread_id=${thread.id}&message=${messageBody}`,
           );
-          this.eventSource.onmessage = async (event) =>{
+          this.update({ eventSource });
+          
+          eventSource.onmessage = async (event) =>{
             const data = JSON.parse(event.data);
             switch (data.type) {
-              case 'end':
+              case 'message_create':
+                this._handleMessageCreate(data.message);
+                break;
+              case 'message_chunk':
+                this._handleMessageUpdate(data.message);
+                break;
+              case 'message_update':
+                this._handleMessageUpdate(data.message);
+                break;
+              case 'error':
+                this._closeEventSource();
+                this.messaging.notify({ message: data.error, type: 'danger' });
+                break;
+              case 'done':
                 this._closeEventSource();
                 break;
             }
           }
-          this.eventSource.onerror = (error) => {
+          eventSource.onerror = (error) => {
             console.error("EventSource failed:", error);
+            this.messaging.notify({ message: this.env._t("An unknown error occurred"), type: 'danger' });
             this._closeEventSource();
           };
       } catch (error) {
@@ -59,12 +76,27 @@ registerPatch({
         }
       }
     },
+    _closeEventSource(){
+      if(this.eventSource){
+        this.eventSource.close();
+        this.update({ eventSource: null });
+      }
+    },
+  
+    _handleMessageCreate(message) {
+      const result = this.messaging.models.Message.insert(
+        this.messaging.models.Message.convertData(message)
+      );
+      return result;
+    },
+  
+    _handleMessageUpdate(message) {
+      const result = this.messaging.models.Message.findFromIdentifyingData({ id: message.id });
+      console.log("_handleMessageUpdate", message, result);
+      if (result) {
+        result.update(this.messaging.models.Message.convertData(message));
+      }
+      return result;
+    },
   },
-
-  _closeEventSource(){
-    if(this.eventSource){
-      this.eventSource.close();
-      this.update({ eventSource: null });
-    }
-  }
 });

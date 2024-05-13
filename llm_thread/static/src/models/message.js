@@ -2,8 +2,6 @@
 
 import { attr } from "@mail/model/model_field";
 import { registerPatch } from "@mail/model/model_core";
-import { markdownToHtml } from '@llm_thread/utils/markdown_utils'; // Import your markdown util
-import { markup } from "@odoo/owl";
 
 /**
  * Helper function to safely parse JSON strings.
@@ -58,24 +56,6 @@ registerPatch({
       default: 0,
     }),
     /**
-         * Compute formatted streaming content (e.g., markdown to HTML).
-         */
-    streamingContentFormatted: attr({
-      compute() {
-          if (!this.streamingContent) {
-              return "";
-          }
-          try {
-              // Assuming streamingContent is markdown text
-              return markup(markdownToHtml(this.streamingContent));
-          } catch (e) {
-              console.error("Markdown conversion failed:", e);
-              return this.streamingContent; // Fallback to raw text
-          }
-      },
-      default: "",
-    }),
-    /**
      * Compute parsed tool call definition from llm_tool_call_definition field.
      */
     toolCallDefinition: attr({}),
@@ -85,7 +65,7 @@ registerPatch({
     },
     }),
     toolCallResult: attr({
-      
+      default: "",
     }),
     toolCallId: attr({
       default: null,

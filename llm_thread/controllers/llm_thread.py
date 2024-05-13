@@ -32,11 +32,14 @@ class LLMThreadController(http.Controller):
             if not llmThread.exists():
                 yield f"data: {json.dumps({'type': 'error', 'error': 'LLM Thread not found.'})}\n\n".encode()
                 return
-            for response in llmThread.generate(
-                user_message_body
-            ):
-                json_data = json.dumps(response)
-                yield f"data: {json_data}\n\n".encode()
+            try:
+                for response in llmThread.generate(
+                    user_message_body
+                ):
+                    json_data = json.dumps(response, default=str)
+                    yield f"data: {json_data}\n\n".encode()
+            except Exception as e:
+                yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n".encode()
             yield f"data: {json.dumps({'type': 'done'})}\n\n".encode()
 
     @http.route('/llm/thread/generate', type="http", auth='user', csrf=True)

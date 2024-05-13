@@ -1,7 +1,5 @@
 import json
 import logging
-from datetime import datetime
-from tkinter import Y
 import emoji
 import markdown2
 
@@ -21,7 +19,7 @@ _logger = logging.getLogger(__name__)
 class LLMThread(models.Model):
     _name = "llm.thread"
     _description = "LLM Chat Thread"
-    _inherit = ["mail.thread", "bus.immediate.send.mixin"]
+    _inherit = ["mail.thread"]
     _order = "write_date DESC"
 
     name = fields.Char(
@@ -193,6 +191,7 @@ class LLMThread(models.Model):
                 body=user_message_body,
                 author_id=self.env.user.partner_id.id,
             )
+            yield {'type': 'message_create', 'message': last_message.message_format()[0]}
         else:
             last_message = self._get_last_message_from_history()
 
@@ -204,7 +203,7 @@ class LLMThread(models.Model):
                 # Process user message or tool result, in both cases we get assistant_msg
                 # some assistant message has tool_calls, some don't
                 for ev in self._get_assistant_response():
-                    if ev.get('event') == 'message_finalize':
+                    if ev.get('type') == 'message_finalize':
                         last_message = ev.get('message')
                     else:
                         yield ev
@@ -214,7 +213,7 @@ class LLMThread(models.Model):
                 if last_message.tool_calls:
                     # Process tool calls
                     for ev in self._process_tool_calls(last_message):
-                        if ev.get('event') == 'message_finalize':
+                        if ev.get('type') == 'message_finalize':
                             last_message = ev.get('message')
                         yield ev
                     continue
@@ -235,25 +234,27 @@ class LLMThread(models.Model):
                     continue
                 
                 for ev in self._execute_tool_call(tool_call_def):
-                    current_tool_msg = ev.get('event') == 'message_finalize' and ev.get('message')
+                    current_tool_msg = ev.get('type') == 'message_finalize' and ev.get('message')
                     if current_tool_msg:
+                        # Keep the object to keep track of last tool result
                         last_tool_msg = current_tool_msg
+                        # dipsatch it for frontend it update for each tool result
+                        yield {'type': 'message_update', 'message': last_tool_msg.message_format()[0]}
                     else:
                         yield ev
                 
-            yield {'event': 'message_finalize', 'message': last_tool_msg}
+            yield {'type': 'message_finalize', 'message': last_tool_msg}
                 
     def _get_assistant_response(self):
         self.ensure_one()
         message_history_rs = self._get_message_history_recordset()
         tool_rs = self.tool_ids
         stream_response = self.model_id.chat(
-                messages=message_history_rs,
-                tools=tool_rs,
-                stream=True
-            )
+            messages=message_history_rs,
+            tools=tool_rs,
+            stream=True
+        )
         assistant_msg = None
-        assistant_stream_id = None
         
         accumulated_content = ""
         received_tool_calls = []
@@ -266,15 +267,16 @@ class LLMThread(models.Model):
                     author_id=False
                 )
                 assistant_msg_payload = assistant_msg.message_format()[0]
-                yield {'event': 'message_create', 'message': assistant_msg_payload}
+                yield {'type': 'message_create', 'message': assistant_msg_payload}
 
-            # Process content chunks
-            if assistant_stream_id and chunk.get('content'):
+            if chunk.get('content'):
                 content_chunk = chunk.get('content')
                 accumulated_content += content_chunk
-                yield {'event': 'message_chunk', 'message': assistant_msg_payload, 'accumulated_content': accumulated_content}
+                updated_body = markdown2.markdown(accumulated_content)
+                updated_payload = assistant_msg_payload.copy()
+                updated_payload['body'] = updated_body
+                yield {'type': 'message_chunk', 'message': updated_payload}
 
-            # Process tool call definitions
             if chunk.get('tool_calls'):
                 calls = chunk.get('tool_calls')
                 if isinstance(calls, list):
@@ -285,9 +287,9 @@ class LLMThread(models.Model):
                 else: 
                     _logger.warning(f"Thread {self.id}: Received non-list tool_calls: {calls}")
 
-            # Handle error directly from stream chunk
             if chunk.get('error'):
-                raise UserError(_("Error from Language Model: %s", chunk['error']))
+                yield {'type': 'error', 'error': chunk['error']}
+                return
         
         update_vals = {}
         if accumulated_content:
@@ -295,11 +297,10 @@ class LLMThread(models.Model):
         if received_tool_calls:
             update_vals['tool_calls'] = json.dumps(received_tool_calls)
 
-        if accumulated_content or received_tool_calls: # Check if update needed
+        if accumulated_content or received_tool_calls:
             assistant_msg.write(update_vals)
-            
-        assistant_msg_payload = assistant_msg.message_format()[0]
-        yield {'event': 'message_finalize', 'message': assistant_msg_payload}
+        # Always send finalize event with direct object, but top generator would not dispatch it
+        yield {'type': 'message_finalize', 'message': assistant_msg}
 
     def _create_tool_response(self, tool_name, arguments_str, tool_call_id, result_data):
         """Create a standardized tool response structure."""
@@ -363,7 +364,7 @@ class LLMThread(models.Model):
             )
 
             tool_msg_payload = tool_msg.message_format()[0]
-            yield {'event': 'message_create', 'message': tool_msg_payload}
+            yield {'type': 'message_create', 'message': tool_msg_payload}
             
             args_str = tool_function.get('arguments')
             tool_response_dict = self._execute_tool(tool_name, args_str, tool_call_id)
@@ -377,10 +378,9 @@ class LLMThread(models.Model):
             }
             tool_msg.write(tool_msg_vals)
             
-            tool_msg_payload = tool_msg.message_format()[0]
-            yield {'event': 'message_finalize', 'message': tool_msg_payload}
+            yield {'type': 'message_finalize', 'message': tool_msg}
 
         except Exception as tool_err:
             error_msg = f"Error processing tool call {tool_call_id} ({tool_name}): {tool_err}"
             tool_msg.write({'tool_call_result': json.dumps({'error': error_msg}), 'body': f"Error executing {tool_name}"})
-            yield {'event': 'message_finalize', 'message': tool_msg.message_format()[0]}
+            yield {'type': 'message_finalize', 'message': tool_msg}

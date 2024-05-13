@@ -28,11 +28,7 @@ export class LLMChatComposer extends Component {
   }
 
   get isStreaming(){
-    return this.composerView.composer.thread.state === 'streaming';
-  }
-
-  get isRequestedStop(){
-    return false;
+    return this.composerView.composer.eventSource !== null;
   }
 
   // --------------------------------------------------------------------------
@@ -48,7 +44,7 @@ export class LLMChatComposer extends Component {
       return;
     }
 
-    this.composerView.postUserMessageForLLM();
+    this.composerView.composer.postUserMessageForLLM();
   }
   /**
    * Handles click on the stop button.
@@ -56,7 +52,7 @@ export class LLMChatComposer extends Component {
    * @private
    */
   _onClickStop() {
-    this.composerView.stopLLMThreadLoop();
+    this.composerView.composer.stopLLMThreadLoop();
   }
 }
 
