@@ -299,6 +299,8 @@ class LLMThread(models.Model):
 
         if accumulated_content or received_tool_calls:
             assistant_msg.write(update_vals)
+
+        yield {'type': 'message_update', 'message': assistant_msg.message_format()[0]}
         # Always send finalize event with direct object, but top generator would not dispatch it
         yield {'type': 'message_finalize', 'message': assistant_msg}
 
