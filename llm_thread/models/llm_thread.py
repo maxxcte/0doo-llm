@@ -204,7 +204,7 @@ class LLMThread(models.Model):
                 # some assistant message has tool_calls, some don't
                 for ev in self._get_assistant_response():
                     if ev.get('type') == 'message_finalize':
-                        last_message = ev.get('message')
+                        last_message = self._event_to_message_obj(ev)
                     else:
                         yield ev
                 continue
@@ -214,7 +214,7 @@ class LLMThread(models.Model):
                     for ev in self._process_tool_calls(last_message):
                         if ev.get('type') == 'message_finalize':
                             # catch and keep track of last_message, don't yield it
-                            last_message = ev.get('message')
+                            last_message = self._event_to_message_obj(ev)
                         yield ev
                     continue
                 else:
@@ -234,7 +234,7 @@ class LLMThread(models.Model):
                     continue
                 
                 for ev in self._execute_tool_call(tool_call_def):
-                    current_tool_msg = ev.get('type') == 'message_finalize' and ev.get('message')
+                    current_tool_msg = self._event_to_message_obj(ev)
                     if current_tool_msg:
                         # Keep the object to keep track of last tool result
                         last_tool_msg = current_tool_msg
@@ -244,7 +244,15 @@ class LLMThread(models.Model):
                         yield ev
                 
             yield {'type': 'message_finalize', 'message': last_tool_msg}
-                
+
+    def _event_to_message_obj(self, event):
+        self.ensure_one()
+        if event.get('type') == 'message_finalize' and event.get('message'):
+            return event['message']
+        else:
+            return None
+        
+
     def _get_assistant_response(self):
         self.ensure_one()
         message_history_rs = self._get_message_history_recordset()
