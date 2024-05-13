@@ -92,7 +92,6 @@ registerPatch({
   
     _handleMessageUpdate(message) {
       const result = this.messaging.models.Message.findFromIdentifyingData({ id: message.id });
-      console.log("_handleMessageUpdate", message, result);
       if (result) {
         result.update(this.messaging.models.Message.convertData(message));
       }
