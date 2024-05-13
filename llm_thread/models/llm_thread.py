@@ -211,9 +211,9 @@ class LLMThread(models.Model):
             
             if last_message.is_llm_assistant_message():
                 if last_message.tool_calls:
-                    # Process tool calls
                     for ev in self._process_tool_calls(last_message):
                         if ev.get('type') == 'message_finalize':
+                            # catch and keep track of last_message, don't yield it
                             last_message = ev.get('message')
                         yield ev
                     continue
