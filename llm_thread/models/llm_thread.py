@@ -202,20 +202,12 @@ class LLMThread(models.Model):
             if last_message.is_llm_user_message() or last_message.is_llm_tool_result_message():
                 # Process user message or tool result, in both cases we get assistant_msg
                 # some assistant message has tool_calls, some don't
-                for ev in self._get_assistant_response():
-                    if ev.get('type') == 'message_finalize':
-                        last_message = self._event_to_message_obj(ev)
-                    else:
-                        yield ev
+                last_message = yield from self._get_assistant_response()
                 continue
             
             if last_message.is_llm_assistant_message():
                 if last_message.tool_calls:
-                    for ev in self._process_tool_calls(last_message):
-                        if ev.get('type') == 'message_finalize':
-                            # catch and keep track of last_message, don't yield it
-                            last_message = self._event_to_message_obj(ev)
-                        yield ev
+                    last_message = yield from self._process_tool_calls(last_message)
                     continue
                 else:
                     break
@@ -233,25 +225,14 @@ class LLMThread(models.Model):
                 if not tool_call_id or not tool_name:
                     continue
                 
-                for ev in self._execute_tool_call(tool_call_def):
-                    current_tool_msg = self._event_to_message_obj(ev)
-                    if current_tool_msg:
-                        # Keep the object to keep track of last tool result
-                        last_tool_msg = current_tool_msg
-                        # dipsatch it for frontend it update for each tool result
-                        yield {'type': 'message_update', 'message': last_tool_msg.message_format()[0]}
-                    else:
-                        yield ev
+                tool_msg = yield from self._execute_tool_call(tool_call_def)
+                if tool_msg:
+                    # Keep the object to keep track of last tool result
+                    last_tool_msg = tool_msg
+                    # dipsatch it for frontend it update for each tool result
+                    yield {'type': 'message_update', 'message': last_tool_msg.message_format()[0]}
                 
-            yield {'type': 'message_finalize', 'message': last_tool_msg}
-
-    def _event_to_message_obj(self, event):
-        self.ensure_one()
-        if event.get('type') == 'message_finalize' and event.get('message'):
-            return event['message']
-        else:
-            return None
-        
+            return last_tool_msg        
 
     def _get_assistant_response(self):
         self.ensure_one()
@@ -309,8 +290,8 @@ class LLMThread(models.Model):
             assistant_msg.write(update_vals)
 
         yield {'type': 'message_update', 'message': assistant_msg.message_format()[0]}
-        # Always send finalize event with direct object, but top generator would not dispatch it
-        yield {'type': 'message_finalize', 'message': assistant_msg}
+        
+        return assistant_msg
 
     def _create_tool_response(self, tool_name, arguments_str, tool_call_id, result_data):
         """Create a standardized tool response structure."""
@@ -388,9 +369,9 @@ class LLMThread(models.Model):
             }
             tool_msg.write(tool_msg_vals)
             
-            yield {'type': 'message_finalize', 'message': tool_msg}
+            return tool_msg
 
         except Exception as tool_err:
             error_msg = f"Error processing tool call {tool_call_id} ({tool_name}): {tool_err}"
             tool_msg.write({'tool_call_result': json.dumps({'error': error_msg}), 'body': f"Error executing {tool_name}"})
-            yield {'type': 'message_finalize', 'message': tool_msg}
+            return tool_msg
