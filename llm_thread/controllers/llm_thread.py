@@ -4,7 +4,6 @@ from odoo import http, api, registry
 from odoo.http import request, Response
 from odoo.exceptions import MissingError
 from odoo.tools.translate import _
-from ..models.odoo_record_action_thread import OdooRecordActionThread
 
 _logger = logging.getLogger(__name__)
 
