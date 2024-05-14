@@ -1,5 +1,5 @@
-# Part of Odoo. See LICENSE file for full copyright and licensing details.
-
+import markdown2
+import json
 from odoo import fields, models, api
 from odoo.exceptions import ValidationError
 
@@ -56,3 +56,47 @@ class MailMessage(models.Model):
         message.sudo().write({"user_vote": vote_value}) # Write on the found message
 
         return vote_value
+    
+    @api.model
+    def stream_llm_response(self, thread, stream, subtype_xmlid, placeholder_text="…"):
+        """
+        thread: the llm.thread record
+        stream: iterator of provider chunks (content/tool_calls/error)
+        subtype_xmlid: assistant vs tool result XMLID
+
+        Yields UI events, and finally returns the full message record.
+        """
+        msg = None
+        acc, calls = "", []
+
+        for chunk in stream:
+            if msg is None and (chunk.get("content") or chunk.get("tool_calls")):
+                msg = thread.create_new_message(
+                    subtype_xmlid=subtype_xmlid,
+                    body=placeholder_text,
+                    author_id=False,
+                )
+                yield {"type": "message_create", "message": msg.message_format()[0]}
+
+            if chunk.get("content"):
+                acc += chunk["content"]
+                msg.write({"body": markdown2.markdown(acc)})
+                yield {"type": "message_chunk", "message": msg.message_format()[0]}
+
+            if chunk.get("tool_calls"):
+                valid = [c for c in chunk["tool_calls"] if isinstance(c, dict) and c.get("id")]
+                calls.extend(valid)
+                msg.write({"tool_calls": json.dumps(calls)})
+                yield {"type": "message_update", "message": msg.message_format()[0]}
+
+            if chunk.get("error"):
+                yield {"type": "error", "error": chunk["error"]}
+                return
+
+        # final write & update
+        msg.write({
+            **({"body": markdown2.markdown(acc)} if acc else {}),
+            **({"tool_calls": json.dumps(calls)} if calls else {}),
+        })
+        yield {"type": "message_update", "message": msg.message_format()[0]}
+        return msg

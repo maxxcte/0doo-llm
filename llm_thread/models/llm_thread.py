@@ -1,7 +1,6 @@
 import json
 import logging
 import emoji
-import markdown2
 
 from odoo import _, api, fields, models
 
@@ -197,7 +196,8 @@ class LLMThread(models.Model):
 
         while True:
             if not last_message:
-                raise UserError("No message found to process.")
+                yield {'type': 'error', 'error': 'No message found to process.'}
+                break
             
             if last_message.is_llm_user_message() or last_message.is_llm_tool_result_message():
                 # Process user message or tool result, in both cases we get assistant_msg
@@ -243,55 +243,15 @@ class LLMThread(models.Model):
             tools=tool_rs,
             stream=True
         )
-        assistant_msg = None
-        
-        accumulated_content = ""
-        received_tool_calls = []
+        assistant_msg = yield from self.env["mail.message"].stream_llm_response(
+            self,
+            stream_response,
+            LLM_ASSISTANT_SUBTYPE_XMLID,
+            placeholder_text="Thinking..."
+        )
 
-        for chunk in stream_response:
-            if assistant_msg is None and (chunk.get('content') or chunk.get('tool_calls')):
-                assistant_msg = self.create_new_message(
-                    subtype_xmlid=LLM_ASSISTANT_SUBTYPE_XMLID,
-                    body="Thinking...", # Start empty
-                    author_id=False
-                )
-                assistant_msg_payload = assistant_msg.message_format()[0]
-                yield {'type': 'message_create', 'message': assistant_msg_payload}
-
-            if chunk.get('content'):
-                content_chunk = chunk.get('content')
-                accumulated_content += content_chunk
-                updated_body = markdown2.markdown(accumulated_content)
-                updated_payload = assistant_msg_payload.copy()
-                updated_payload['body'] = updated_body
-                yield {'type': 'message_chunk', 'message': updated_payload}
-
-            if chunk.get('tool_calls'):
-                calls = chunk.get('tool_calls')
-                if isinstance(calls, list):
-                    valid_calls = [c for c in calls if isinstance(c, dict) and c.get('id') and c.get('function')]
-                    received_tool_calls.extend(valid_calls)
-                    if len(valid_calls) != len(calls):
-                        _logger.warning(f"Thread {self.id}: Invalid tool calls received: {calls}")
-                else: 
-                    _logger.warning(f"Thread {self.id}: Received non-list tool_calls: {calls}")
-
-            if chunk.get('error'):
-                yield {'type': 'error', 'error': chunk['error']}
-                return
-        
-        update_vals = {}
-        if accumulated_content:
-            update_vals['body'] = markdown2.markdown(accumulated_content)
-        if received_tool_calls:
-            update_vals['tool_calls'] = json.dumps(received_tool_calls)
-
-        if accumulated_content or received_tool_calls:
-            assistant_msg.write(update_vals)
-
-        yield {'type': 'message_update', 'message': assistant_msg.message_format()[0]}
-        
         return assistant_msg
+        
 
     def _create_tool_response(self, tool_name, arguments_str, tool_call_id, result_data):
         """Create a standardized tool response structure."""
