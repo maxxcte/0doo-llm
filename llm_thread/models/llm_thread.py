@@ -214,25 +214,14 @@ class LLMThread(models.Model):
         
     def _process_tool_calls(self, assistant_msg):
         self.ensure_one()
-        if assistant_msg and assistant_msg.tool_calls:
-            # Load validated definitions from the saved field
-            tool_call_definitions = json.loads(assistant_msg.tool_calls or '[]')
-            last_tool_msg = None
-            for tool_call_def in tool_call_definitions:
-                tool_call_id = tool_call_def.get('id')
-                tool_function = tool_call_def.get('function', {})
-                tool_name = tool_function.get('name', 'unknown_tool')
-                if not tool_call_id or not tool_name:
-                    continue
-                
-                tool_msg = yield from self._execute_tool_call(tool_call_def)
-                if tool_msg:
-                    # Keep the object to keep track of last tool result
-                    last_tool_msg = tool_msg
-                    # dipsatch it for frontend it update for each tool result
-                    yield {'type': 'message_update', 'message': last_tool_msg.message_format()[0]}
-                
-            return last_tool_msg        
+        defs = json.loads(assistant_msg.tool_calls or "[]")
+        last_tool_msg = None
+        for tool_def in defs:
+            last_tool_msg = yield from self.env["mail.message"].stream_llm_tool_result(
+                thread=self,
+                tool_call_def=tool_def,
+            )
+        return last_tool_msg       
 
     def _get_assistant_response(self):
         self.ensure_one()
@@ -290,48 +279,3 @@ class LLMThread(models.Model):
             return self._create_tool_response(
                 tool_name, arguments_str, tool_call_id, {"error": str(e)}
             )
-
-    def _execute_tool_call(self, tool_call_def):
-        """Executes a single tool call, creates tool message, and streams updates."""
-        tool_msg = None
-        tool_call_id = tool_call_def.get('id')
-        tool_function = tool_call_def.get('function', {})
-        tool_name = tool_function.get('name', 'unknown_tool')
-
-        if not tool_call_id or not tool_name:
-            _logger.warning(f"Thread {self.id}: Skipping tool call due to missing id or name: {tool_call_def}")
-            yield None
-
-        try:
-            # 1. Create Placeholder Message
-            tool_msg = self.create_new_message(
-                subtype_xmlid=LLM_TOOL_RESULT_SUBTYPE_XMLID,
-                tool_call_id=tool_call_id,
-                tool_call_definition=json.dumps(tool_call_def),
-                tool_call_result=None,
-                body=f"Executing: {tool_name}...",
-                author_id=False,
-                tool_name=tool_name
-            )
-
-            tool_msg_payload = tool_msg.message_format()[0]
-            yield {'type': 'message_create', 'message': tool_msg_payload}
-            
-            args_str = tool_function.get('arguments')
-            tool_response_dict = self._execute_tool(tool_name, args_str, tool_call_id)
-
-            # 4. Process Result & Update Message
-            result_str = tool_response_dict.get("result", json.dumps({"error": "Tool execution failed to return a 'result' key"}))
-            final_body = f"Result for {tool_name}"
-            tool_msg_vals = {
-                'tool_call_result': result_str,
-                'body': final_body
-            }
-            tool_msg.write(tool_msg_vals)
-            
-            return tool_msg
-
-        except Exception as tool_err:
-            error_msg = f"Error processing tool call {tool_call_id} ({tool_name}): {tool_err}"
-            tool_msg.write({'tool_call_result': json.dumps({'error': error_msg}), 'body': f"Error executing {tool_name}"})
-            return tool_msg

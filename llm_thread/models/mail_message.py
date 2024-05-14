@@ -100,3 +100,46 @@ class MailMessage(models.Model):
         })
         yield {"type": "message_update", "message": msg.message_format()[0]}
         return msg
+
+    @api.model
+    def stream_llm_tool_result(self, thread, tool_call_def):
+        """
+        Stream a single tool call:
+         1) create a placeholder tool‐result message,
+         2) yield the "message_create",
+         3) execute the tool,
+         4) write the result & yield a "message_update",
+         5) return the final message record.
+        """
+        call_id = tool_call_def.get("id")
+        fn      = tool_call_def.get("function", {})
+        name    = fn.get("name", "unknown_tool")
+        args    = fn.get("arguments")
+
+        # 1) placeholder
+        msg = thread.create_new_message(
+            subtype_xmlid=LLM_TOOL_RESULT_SUBTYPE_XMLID,
+            tool_call_id=call_id,
+            tool_call_definition=json.dumps(tool_call_def),
+            tool_call_result=None,
+            body=f"Executing: {name}…",
+            author_id=False,
+            tool_name=name,
+        )
+        yield {"type": "message_create", "message": msg.message_format()[0]}
+
+        # 2) execute + update
+        try:
+            resp = thread._execute_tool(name, args, call_id)
+            result = resp.get("result", json.dumps({"error": "no result"}))
+            body   = f"Result for {name}"
+            write_vals = {"tool_call_result": result, "body": body}
+        except Exception as e:
+            write_vals = {
+                "tool_call_result": json.dumps({"error": str(e)}),
+                "body": f"Error executing {name}",
+            }
+        msg.write(write_vals)
+        yield {"type": "message_update", "message": msg.message_format()[0]}
+
+        return msg
