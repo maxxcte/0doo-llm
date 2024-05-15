@@ -75,8 +75,6 @@ class LLMThread(models.Model):
         self.ensure_one()
         Message = self.env['mail.message']
         subtype_xmlid = kwargs['subtype_xmlid']
-        Message.validate_subtype(subtype_xmlid)
-    
         author_id = kwargs.get('author_id')
         body = kwargs.get('body', '')
         email_from = Message.get_email_from(self.provider_id.name, self.model_id.name, subtype_xmlid, author_id, kwargs.get('tool_name'))

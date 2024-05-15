@@ -147,17 +147,6 @@ class MailMessage(models.Model):
 
         return msg
 
-    @api.model
-    def validate_subtype(self, xmlid):
-        """Ensure subtype XML ID exists or raise."""
-        try:
-            subtype = self.env.ref(xmlid)
-        except ValueError:
-            raise MissingError(f"Subtype '{xmlid}' not found.")
-        if not subtype.exists():
-            raise MissingError(f"Subtype '{xmlid}' not found.")
-        return subtype
-
     @staticmethod
     def get_email_from(provider_name, provider_model_name, subtype_xmlid, author_id, tool_name=None):
         if not author_id:    
