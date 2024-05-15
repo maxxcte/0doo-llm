@@ -40,6 +40,7 @@
                 <t t-elif="messageView.message.messageSubtypeXmlid === 'llm_mail_message_subtypes.mt_llm_tool_result'">
                     <div class="o_Message_prettyBody o_llm_tool_result">
                         <div class="o_llm_tool_result_header small mb-1">
+                            <p class="mb-2" t-ref="prettyBody"/>
                             <strong class="me-2">
                                 <i t-attf-class="fa me-1 {{ messageView.message.toolCallResultIsError ? 'fa-exclamation-circle text-danger' : 'fa-check-circle text-success' }}"/>
                                 Tool: <t t-esc="messageView.message.toolCallDefinitionFormatted?.function?.name || 'Unknown Tool'"/>
