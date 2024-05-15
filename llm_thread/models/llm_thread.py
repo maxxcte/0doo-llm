@@ -1,10 +1,9 @@
 import json
 import logging
-import emoji
 
 from odoo import _, api, fields, models
 
-from odoo.exceptions import MissingError, UserError
+from odoo.exceptions import UserError
 
 from odoo.addons.llm_mail_message_subtypes.const import (
     LLM_TOOL_RESULT_SUBTYPE_XMLID,
@@ -73,69 +72,25 @@ class LLMThread(models.Model):
         return super().create(vals_list)
 
     def create_new_message(self, **kwargs):
-        """Save a message to the thread with support for tool messages"""
         self.ensure_one()
-        subtype_xmlid = kwargs.get("subtype_xmlid")
-        if not subtype_xmlid:
-            raise ValueError("Subtype XML ID is required for create_new_message")
-
-        try:
-            # TODO: cache this subtype -> subtype id if possible
-            subtype = self.env.ref(subtype_xmlid)
-        except ValueError: # Catches if XML ID format is wrong or module not installed
-            raise MissingError(f"Subtype with XML ID '{subtype_xmlid}' not found.")
-        if not subtype.exists():
-            raise MissingError(f"Subtype with XML ID '{subtype_xmlid}' not found.")
-
-        body = emoji.demojize(kwargs.get("body"))
-
-        email_from = False # Let Odoo handle default unless we override
-        is_tool_result = subtype_xmlid == LLM_TOOL_RESULT_SUBTYPE_XMLID
-        is_assistant = subtype_xmlid == LLM_ASSISTANT_SUBTYPE_XMLID
-        author_id = kwargs.get("author_id")
-        # Handle tool messages
-        tool_call_id = kwargs.get("tool_call_id")
-        tool_calls = kwargs.get("tool_calls")
-        tool_name = kwargs.get("tool_name")
-        tool_call_definition = kwargs.get("tool_call_definition")
-        tool_call_result = kwargs.get("tool_call_result")
-
-        if not author_id: # AI or System messages
-            if is_tool_result:
-                tool_name = kwargs.get('tool_name', 'Tool') # Get optional tool name
-                email_from = f"{tool_name} <tool@{self.provider_id.name.lower().replace(' ', '')}.ai>"
-            elif is_assistant:
-                model_name = self.model_id.name or 'Assistant'
-                provider_name = self.provider_id.name or 'provider'
-                email_from = f"{model_name} <ai@{provider_name.lower().replace(' ', '')}.ai>"
-
-        post_vals = {
-            'body': body,
-            'message_type': 'comment',
-            'subtype_xmlid': subtype_xmlid,
-            'author_id': author_id,
-            'email_from': email_from or None,
-            'partner_ids': [],
-        }
-        if is_assistant:
-            extra_vals = {
-                'tool_calls': tool_calls,
-            }
-        elif is_tool_result:
-            extra_vals = {
-                'tool_call_id': tool_call_id,
-                'tool_call_definition': tool_call_definition,
-                'tool_call_result': tool_call_result,
-            }
-        else:
-            extra_vals = {}
-        extra_vals = {k: v for k, v in extra_vals.items() if v is not None}
-
+        Message = self.env['mail.message']
+        subtype_xmlid = kwargs['subtype_xmlid']
+        Message.validate_subtype(subtype_xmlid)
+    
+        author_id = kwargs.get('author_id')
+        body = kwargs.get('body', '')
+        email_from = Message.get_email_from(self.provider_id.name, self.model_id.name, subtype_xmlid, author_id, kwargs.get('tool_name'))
+        post_vals = Message.build_post_vals(subtype_xmlid, body, author_id, email_from)
         message = self.message_post(**post_vals)
-
+        extra_vals = Message.build_update_vals(
+            subtype_xmlid,
+            tool_call_id=kwargs.get('tool_call_id'),
+            tool_calls=kwargs.get('tool_calls'),
+            tool_call_definition=kwargs.get('tool_call_definition'),
+            tool_call_result=kwargs.get('tool_call_result'),
+        )
         if extra_vals:
             message.write(extra_vals)
-
         return message
 
     def _get_message_history_recordset(self, order='ASC', limit=None):

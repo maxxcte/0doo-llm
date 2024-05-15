@@ -1,10 +1,13 @@
-import markdown2
+import emoji
 import json
+import markdown2
+
 from odoo import fields, models, api
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, MissingError, UserError
 
 from odoo.addons.llm_mail_message_subtypes.const import (
     LLM_TOOL_RESULT_SUBTYPE_XMLID,
+    LLM_ASSISTANT_SUBTYPE_XMLID,
 )
 
 class MailMessage(models.Model):
@@ -143,3 +146,52 @@ class MailMessage(models.Model):
         yield {"type": "message_update", "message": msg.message_format()[0]}
 
         return msg
+
+    @api.model
+    def validate_subtype(self, xmlid):
+        """Ensure subtype XML ID exists or raise."""
+        try:
+            subtype = self.env.ref(xmlid)
+        except ValueError:
+            raise MissingError(f"Subtype '{xmlid}' not found.")
+        if not subtype.exists():
+            raise MissingError(f"Subtype '{xmlid}' not found.")
+        return subtype
+
+    @staticmethod
+    def get_email_from(provider_name, provider_model_name, subtype_xmlid, author_id, tool_name=None):
+        if not author_id:    
+            if subtype_xmlid == LLM_TOOL_RESULT_SUBTYPE_XMLID:
+                name = tool_name or 'Tool'
+                return f"{name} <tool@{provider_name.lower().replace(' ', '')}.ai>"
+            elif subtype_xmlid == LLM_ASSISTANT_SUBTYPE_XMLID:
+                model = provider_model_name or 'Assistant'
+                provider = provider_name.lower().replace(' ', '')
+                return f"{model} <ai@{provider}.ai>"
+            else:
+                return None
+        return None
+
+    @staticmethod
+    def build_post_vals(subtype_xmlid, body, author_id, email_from):
+        return {
+            'body': markdown2.markdown(emoji.demojize(body)),
+            'message_type': 'comment',
+            'subtype_xmlid': subtype_xmlid,
+            'author_id': author_id,
+            'email_from': email_from or None,
+            'partner_ids': [],
+        }
+
+    @staticmethod
+    def build_update_vals(subtype_xmlid, tool_call_id=None, tool_calls=None, tool_call_definition=None, tool_call_result=None):
+        if subtype_xmlid == LLM_ASSISTANT_SUBTYPE_XMLID and tool_calls:
+            return {'tool_calls': tool_calls}
+        if subtype_xmlid == LLM_TOOL_RESULT_SUBTYPE_XMLID:
+            vals = {
+                'tool_call_id': tool_call_id,
+                'tool_call_definition': tool_call_definition,
+                'tool_call_result': tool_call_result,
+            }
+            return {k: v for k, v in vals.items() if v is not None}
+        return {}
