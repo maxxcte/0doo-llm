@@ -1,5 +1,4 @@
 import json
-import logging
 
 from odoo import _, api, fields, models
 
@@ -10,8 +9,6 @@ from odoo.addons.llm_mail_message_subtypes.const import (
     LLM_USER_SUBTYPE_XMLID,
     LLM_ASSISTANT_SUBTYPE_XMLID,
 )
-
-_logger = logging.getLogger(__name__)
 
 
 class LLMThread(models.Model):
@@ -74,7 +71,9 @@ class LLMThread(models.Model):
     def create_new_message(self, **kwargs):
         self.ensure_one()
         Message = self.env['mail.message']
-        subtype_xmlid = kwargs['subtype_xmlid']
+        # if subtype_xmlid is not provided or wrong,message_post automatically
+        # uses the default subtype
+        subtype_xmlid = kwargs.get('subtype_xmlid')
         author_id = kwargs.get('author_id')
         body = kwargs.get('body', '')
         email_from = Message.get_email_from(self.provider_id.name, self.model_id.name, subtype_xmlid, author_id, kwargs.get('tool_name'))
