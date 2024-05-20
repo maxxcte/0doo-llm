@@ -152,8 +152,6 @@ class LLMThread(models.Model):
                 break
             
             if last_message.is_llm_user_message() or last_message.is_llm_tool_result_message():
-                # Process user message or tool result, in both cases we get assistant_msg
-                # some assistant message has tool_calls, some don't
                 last_message = yield from self._get_assistant_response()
                 continue
             
@@ -207,23 +205,11 @@ class LLMThread(models.Model):
         }
 
     def _execute_tool(self, tool_name, arguments_str, tool_call_id):
-        """Execute a tool and return the result
-
-        Args:
-            tool_name: Name of the tool to execute
-            arguments_str: JSON string of arguments for the tool
-            tool_call_id: ID of the tool call
-
-        Returns:
-            Dictionary with tool execution result
-        """
-
-        tool = self.env["llm.tool"].search([("name", "=", tool_name)], limit=1)
-
-        if not tool:
-            raise UserError(f"Tool '{tool_name}' not found")
-
+        """Execute a tool and return the result."""
         try:
+            tool = self.env["llm.tool"].search([("name", "=", tool_name)], limit=1)
+            if not tool:
+                raise UserError(f"Tool '{tool_name}' not found")
             arguments = json.loads(arguments_str)
             result = tool.execute(arguments)
             return self._create_tool_response(tool_name, arguments_str, tool_call_id, result)
