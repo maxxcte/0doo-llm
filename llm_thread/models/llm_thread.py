@@ -68,7 +68,7 @@ class LLMThread(models.Model):
                 vals["name"] = f"Chat with {self.model_id.name}"
         return super().create(vals_list)
 
-    def create_new_message(self, **kwargs):
+    def _post_message(self, **kwargs):
         self.ensure_one()
         Message = self.env['mail.message']
         # if subtype_xmlid is not provided or wrong,message_post automatically
@@ -133,7 +133,7 @@ class LLMThread(models.Model):
     def _init_message(self, user_message_body):
         """Initialize first message: user input or history."""
         if user_message_body:
-            return self.create_new_message(
+            return self._post_message(
                 subtype_xmlid=LLM_USER_SUBTYPE_XMLID,
                 body=user_message_body,
                 author_id=self.env.user.partner_id.id,

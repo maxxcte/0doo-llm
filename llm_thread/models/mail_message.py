@@ -74,7 +74,7 @@ class MailMessage(models.Model):
 
         for chunk in stream:
             if msg is None and (chunk.get("content") or chunk.get("tool_calls")):
-                msg = thread.create_new_message(
+                msg = thread._post_message(
                     subtype_xmlid=subtype_xmlid,
                     body=placeholder_text,
                     author_id=False,
@@ -120,7 +120,7 @@ class MailMessage(models.Model):
         args    = fn.get("arguments")
 
         # 1) placeholder
-        msg = thread.create_new_message(
+        msg = thread._post_message(
             subtype_xmlid=LLM_TOOL_RESULT_SUBTYPE_XMLID,
             tool_call_id=call_id,
             tool_call_definition=json.dumps(tool_call_def),
