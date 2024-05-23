@@ -130,38 +130,44 @@ class LLMThread(models.Model):
             raise UserError("No message found to process.")
         return last_message
 
-    def generate(self, user_message_body):
-        """
-        Orchestrates the LLM interaction cycle synchronously in a loop.
-        """
-        self.ensure_one()
-        last_message = None
+    def _init_message(self, user_message_body):
+        """Initialize first message: user input or history."""
         if user_message_body:
-            last_message = self.create_new_message(
+            return self.create_new_message(
                 subtype_xmlid=LLM_USER_SUBTYPE_XMLID,
                 body=user_message_body,
                 author_id=self.env.user.partner_id.id,
             )
-            yield {'type': 'message_create', 'message': last_message.message_format()[0]}
-        else:
-            last_message = self._get_last_message_from_history()
+        return self._get_last_message_from_history()
 
-        while True:
-            if not last_message:
-                yield {'type': 'error', 'error': 'No message found to process.'}
-                break
-            
-            if last_message.is_llm_user_message() or last_message.is_llm_tool_result_message():
-                last_message = yield from self._get_assistant_response()
-                continue
-            
-            if last_message.is_llm_assistant_message():
-                if last_message.tool_calls:
-                    last_message = yield from self._process_tool_calls(last_message)
-                    continue
-                else:
-                    break
-        
+    def _should_continue(self, last_message):
+        """Whether to keep looping on the last_message."""
+        if not last_message:
+            return False
+        if last_message.is_llm_user_message() or last_message.is_llm_tool_result_message():
+            return True
+        if last_message.is_llm_assistant_message() and last_message.tool_calls:
+            return True
+        return False
+
+    def _next_step(self, last_message):
+        """Dispatch to the next generator based on message type."""
+        if last_message.is_llm_user_message() or last_message.is_llm_tool_result_message():
+            return self._get_assistant_response()
+        if last_message.is_llm_assistant_message() and last_message.tool_calls:
+            return self._process_tool_calls(last_message)
+        return last_message
+
+    def generate(self, user_message_body):
+        # orchestrate via hooks
+        self.ensure_one()
+        last = self._init_message(user_message_body)
+        if user_message_body:
+            yield {'type': 'message_create', 'message': last.message_format()[0]}
+        while self._should_continue(last):
+            last = yield from self._next_step(last)
+        return last
+
     def _process_tool_calls(self, assistant_msg):
         self.ensure_one()
         defs = json.loads(assistant_msg.tool_calls or "[]")
