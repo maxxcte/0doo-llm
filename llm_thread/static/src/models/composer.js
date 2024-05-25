@@ -18,6 +18,11 @@ registerPatch({
     eventSource: attr({
       default: null,
     }),
+    isStreaming: attr({
+      compute() {
+        return this.eventSource !== null;
+      },
+    }),
   },
   recordMethods: {
     stopLLMThreadLoop() {

@@ -28,7 +28,7 @@ export class LLMChatComposer extends Component {
   }
 
   get isStreaming(){
-    return this.composerView.composer.eventSource !== null;
+    return this.composerView.composer.isStreaming;
   }
 
   // --------------------------------------------------------------------------
