@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <!-- Menu Item -->
-    <menuitem id="llm_prompt_tag_menu"
-              name="Tags"
-              parent="llm_prompt.llm_prompt_configuration_menu"
-              action="llm_prompt_tag_action"
-              sequence="20"/>
-</odoo>
