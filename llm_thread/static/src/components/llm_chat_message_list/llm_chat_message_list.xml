@@ -85,6 +85,10 @@
             />
                     </t>
                 </t>
+                <!-- STREAMING INDICATOR -->
+                <t t-if="isStreaming">
+                    <LLMStreamingIndicator />
+                </t>
                 <!-- LOADING (if order desc)-->
                 <t
           t-if="!messageListView.threadViewOwner.threadCache.hasLoadingFailed and messageListView.threadViewOwner.order === 'desc'"
