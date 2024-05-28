@@ -133,10 +133,11 @@ class MailMessage(models.Model):
 
         # 2) execute + update
         try:
-            resp = thread._execute_tool(name, args, call_id)
-            result = resp.get("result", json.dumps({"error": "no result"}))
+            result = thread._execute_tool(name, args)
+            if not result:
+                raise UserError(f"No result returned from tool '{name}'")
             body   = f"Result for {name}"
-            write_vals = {"tool_call_result": result, "body": body}
+            write_vals = {"tool_call_result": json.dumps(result), "body": body}
         except Exception as e:
             write_vals = {
                 "tool_call_result": json.dumps({"error": str(e)}),

@@ -197,18 +197,15 @@ class LLMThread(models.Model):
 
         return assistant_msg
 
-    def _execute_tool(self, tool_name, arguments_str, tool_call_id):
+    def _execute_tool(self, tool_name, arguments_str):
         """Execute a tool and return the result."""
         self.ensure_one()
         LLMTool = self.env["llm.tool"]
-        try:
-            tool = LLMTool.search([("name", "=", tool_name)], limit=1)
-            if not tool:
-                raise UserError(f"Tool '{tool_name}' not found")
-            arguments = json.loads(arguments_str)
-            result = tool.execute(arguments)
-            return LLMTool.create_tool_response_from_signature(tool_name, arguments_str, tool_call_id, result)
-        except Exception as e:
-            return LLMTool.create_tool_response_from_signature(
-                tool_name, arguments_str, tool_call_id, {"error": str(e)}
-            )
+        
+        tool = LLMTool.search([("name", "=", tool_name)], limit=1)
+        if not tool:
+            raise UserError(f"Tool '{tool_name}' not found")
+        arguments = json.loads(arguments_str)
+        result = tool.execute(arguments)
+        return result
+        
