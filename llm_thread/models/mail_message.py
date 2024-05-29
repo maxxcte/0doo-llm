@@ -61,7 +61,7 @@ class MailMessage(models.Model):
         return vote_value
     
     @api.model
-    def stream_llm_response(self, thread, stream, subtype_xmlid, placeholder_text="…"):
+    def create_message_from_stream(self, thread, stream, subtype_xmlid, placeholder_text="…"):
         """
         thread: the llm.thread record
         stream: iterator of provider chunks (content/tool_calls/error)

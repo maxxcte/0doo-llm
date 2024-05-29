@@ -188,7 +188,7 @@ class LLMThread(models.Model):
             tools=tool_rs,
             stream=True
         )
-        assistant_msg = yield from self.env["mail.message"].stream_llm_response(
+        assistant_msg = yield from self.env["mail.message"].create_message_from_stream(
             self,
             stream_response,
             LLM_ASSISTANT_SUBTYPE_XMLID,
