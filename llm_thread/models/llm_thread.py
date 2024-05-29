@@ -10,6 +10,8 @@ from odoo.addons.llm_mail_message_subtypes.const import (
     LLM_ASSISTANT_SUBTYPE_XMLID,
 )
 
+from .llm_thread_utils import LLMThreadUtils
+
 
 class LLMThread(models.Model):
     _name = "llm.thread"
@@ -70,16 +72,15 @@ class LLMThread(models.Model):
 
     def _post_message(self, **kwargs):
         self.ensure_one()
-        Message = self.env['mail.message']
         # if subtype_xmlid is not provided or wrong,message_post automatically
         # uses the default subtype
         subtype_xmlid = kwargs.get('subtype_xmlid')
         author_id = kwargs.get('author_id')
         body = kwargs.get('body', '')
-        email_from = Message.get_email_from(self.provider_id.name, self.model_id.name, subtype_xmlid, author_id, kwargs.get('tool_name'))
-        post_vals = Message.build_post_vals(subtype_xmlid, body, author_id, email_from)
+        email_from = LLMThreadUtils.get_email_from(self.provider_id.name, self.model_id.name, subtype_xmlid, author_id, kwargs.get('tool_name'))
+        post_vals = LLMThreadUtils.build_post_vals(subtype_xmlid, body, author_id, email_from)
         message = self.message_post(**post_vals)
-        extra_vals = Message.build_update_vals(
+        extra_vals = LLMThreadUtils.build_update_vals(
             subtype_xmlid,
             tool_call_id=kwargs.get('tool_call_id'),
             tool_calls=kwargs.get('tool_calls'),

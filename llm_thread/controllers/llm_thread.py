@@ -1,9 +1,8 @@
 import logging
 import json
-from odoo import http, api, registry
+from odoo import _, http, api, registry
 from odoo.http import request, Response
 from odoo.exceptions import MissingError
-from odoo.tools.translate import _
 
 _logger = logging.getLogger(__name__)
 
