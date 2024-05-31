@@ -201,7 +201,6 @@ class LLMThread(models.Model):
     def _execute_tool(self, tool_name, arguments_str):
         """Execute a tool and return the result."""
         self.ensure_one()
-        # find the tool in this thread's assigned tools
         tool = self.tool_ids.filtered(lambda t: t.name == tool_name)[:1]
         if not tool:
             raise UserError(f"Tool '{tool_name}' not found in this thread")
