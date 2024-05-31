@@ -63,10 +63,6 @@ registerPatch({
                 this.messaging.notify({ message: data.error, type: 'danger' });
                 break;
               case 'done':
-                const sameThread = this.thread.id === this.thread.llmChat.activeThread.id;
-                if (!sameThread) {
-                  this.messaging.notify({ message: this.env._t("Generation completed for ") + this.thread.displayName, type: 'success' });
-                }
                 this._closeEventSource();
                 break;
             }
