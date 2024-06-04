@@ -26,7 +26,7 @@ Contact: support@apexive.com
     """,
     "category": "Productivity, Discuss",
     "version": "16.0.1.1.1",
-    "depends": ["base", "mail", "mail_message_stream", "web", "llm", "llm_tool", "llm_mail_message_subtypes"],
+    "depends": ["base", "mail", "web", "llm", "llm_tool", "llm_mail_message_subtypes"],
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
     "external_dependencies": {"python": ["emoji", "markdown2"]},
@@ -91,8 +91,6 @@ Contact: support@apexive.com
             # Streaming indicator component
             "llm_thread/static/src/components/llm_streaming_indicator/llm_streaming_indicator.js",
             "llm_thread/static/src/components/llm_streaming_indicator/llm_streaming_indicator.xml",
-            # Models
-            "llm_thread/static/src/models/message_notification_handler.js",
             # Client Actions
             "llm_thread/static/src/llm_chat_client_action.js",
             # Styles

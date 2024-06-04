@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { useRef } from "@odoo/owl";
+import { useRef, useEffect } from "@odoo/owl";
 
 import { MessageList } from "@mail/components/message_list/message_list";
 import { registerMessagingComponent } from "@mail/utils/messaging_component";
@@ -10,16 +10,15 @@ export class LLMChatMessageList extends MessageList {
   setup() {
     super.setup();
     this.rootRef = useRef("root");
-    // TODO Need to do it via addComponentHint probably
-    // TODO state is now removed, we probably need to check via eventsource
-    // useEffect(
-    //   () => {
-    //     if (this.thread && this.thread.state === 'streaming') {
-    //       this._scrollToEnd();
-    //     }
-    //   },
-    //   () => [this.thread.state]
-    // );
+    // TODO check if we can do this also when chunks updates
+    useEffect(
+      () => {
+        if (this.thread) {
+          this._scrollToEnd();
+        }
+      },
+      () => [this.thread, this.isStreaming]
+    );
   }
 
   get thread() {
