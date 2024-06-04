@@ -2,6 +2,8 @@ from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 import json
 import re
+import jsonschema
+from .arguments_schema import ARGUMENTS_JSON_SCHEMA, validate_arguments_schema
 
 
 class LLMPrompt(models.Model):
@@ -186,16 +188,15 @@ class LLMPrompt(models.Model):
                 prompt.undefined_arguments = False
 
     @api.constrains("arguments_json")
-    def _validate_json_syntax(self):
-        """Validate that the JSON is syntactically valid"""
+    def _validate_arguments_schema(self):
+        """Validate arguments JSON against schema"""
         for prompt in self:
             if not prompt.arguments_json:
                 continue
 
-            try:
-                json.loads(prompt.arguments_json)
-            except json.JSONDecodeError as e:
-                raise ValidationError(_("Invalid JSON in arguments schema: %s") % str(e))
+            is_valid, error = validate_arguments_schema(prompt.arguments_json)
+            if not is_valid:
+                raise ValidationError(error)
 
     @api.constrains("example_args")
     def _validate_example_args_syntax(self):
@@ -249,6 +250,9 @@ class LLMPrompt(models.Model):
         self.ensure_one()
         arguments = arguments or {}
 
+        # Fill default values for missing arguments
+        arguments = self._fill_default_values(arguments)
+
         # Validate arguments against schema
         self._validate_arguments(arguments)
 
@@ -273,6 +277,30 @@ class LLMPrompt(models.Model):
 
         return messages
 
+    def _fill_default_values(self, arguments):
+        """
+        Fill in default values for missing arguments
+
+        Args:
+            arguments (dict): Provided argument values
+
+        Returns:
+            dict: Arguments with defaults filled in
+        """
+        result = arguments.copy()
+
+        try:
+            schema = json.loads(self.arguments_json or "{}")
+        except json.JSONDecodeError:
+            return result
+
+        # Add default values for missing arguments
+        for arg_name, arg_schema in schema.items():
+            if arg_name not in result and "default" in arg_schema:
+                result[arg_name] = arg_schema["default"]
+
+        return result
+
     def _validate_arguments(self, arguments):
         """
         Validate provided arguments against the schema
@@ -295,6 +323,21 @@ class LLMPrompt(models.Model):
         for arg_name, arg_schema in schema.items():
             if arg_schema.get("required", False) and arg_name not in arguments:
                 raise ValidationError(_("Missing required argument: %s") % arg_name)
+
+        # Handle special types like context and resource
+        for arg_name, value in arguments.items():
+            if arg_name in schema:
+                arg_type = schema[arg_name].get("type")
+
+                # Handle context type (automatically filled from Odoo context)
+                if arg_type == "context" and not value:
+                    # This would be filled in runtime
+                    pass
+
+                # Handle resource type validation
+                if arg_type == "resource" and not value:
+                    # Resource validation would happen at runtime
+                    pass
 
     @api.model
     def _extract_arguments_from_template(self, template_content):
@@ -361,3 +404,34 @@ class LLMPrompt(models.Model):
             self.arguments_json = json.dumps(arguments, indent=2)
 
         return True
+
+    def action_test_prompt(self):
+        """
+        Test the prompt with example arguments
+
+        Returns:
+            dict: Action to show test result
+        """
+        self.ensure_one()
+
+        try:
+            example_args = json.loads(self.example_args or "{}")
+        except json.JSONDecodeError:
+            raise ValidationError(_("Invalid example arguments JSON"))
+
+        messages = self.get_messages(example_args)
+
+        # Create a wizard to show the result
+        wizard = self.env['llm.prompt.test'].create({
+            'prompt_id': self.id,
+            'messages': json.dumps(messages, indent=2),
+        })
+
+        return {
+            'name': _('Prompt Test Result'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'llm.prompt.test',
+            'view_mode': 'form',
+            'res_id': wizard.id,
+            'target': 'new',
+        }
