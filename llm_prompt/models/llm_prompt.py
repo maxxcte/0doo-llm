@@ -75,18 +75,6 @@ class LLMPrompt(models.Model):
         string="Template Count",
     )
 
-    # Resources
-    resource_ids = fields.One2many(
-        "llm.prompt.resource",
-        "prompt_id",
-        string="Resources",
-        help="Additional context resources included with the prompt",
-    )
-    resource_count = fields.Integer(
-        compute="_compute_resource_count",
-        string="Resource Count",
-    )
-
     # Arguments JSON field
     arguments_json = fields.Text(
         string="Arguments Schema",
@@ -140,11 +128,6 @@ class LLMPrompt(models.Model):
         for prompt in self:
             prompt.template_count = len(prompt.template_ids)
 
-    @api.depends("resource_ids")
-    def _compute_resource_count(self):
-        for prompt in self:
-            prompt.resource_count = len(prompt.resource_ids)
-
     @api.depends("arguments_json")
     def _compute_argument_count(self):
         for prompt in self:
@@ -154,7 +137,7 @@ class LLMPrompt(models.Model):
             except json.JSONDecodeError:
                 prompt.argument_count = 0
 
-    @api.depends("arguments_json", "template_ids.content", "resource_ids.content")
+    @api.depends("arguments_json", "template_ids.content")
     def _compute_argument_validation(self):
         for prompt in self:
             # Get defined arguments
@@ -164,7 +147,7 @@ class LLMPrompt(models.Model):
             except json.JSONDecodeError:
                 defined_args = set()
 
-            # Extract used arguments from templates and resources
+            # Extract used arguments from templates
             used_args = set()
 
             # Check templates
@@ -172,12 +155,6 @@ class LLMPrompt(models.Model):
                 if template.content:
                     template_args = self._extract_arguments_from_template(template.content)
                     used_args.update(template_args)
-
-            # Check resources
-            for resource in prompt.resource_ids:
-                if resource.content:
-                    resource_args = self._extract_arguments_from_template(resource.content)
-                    used_args.update(resource_args)
 
             # Find undefined arguments
             undefined_args = [name for name in used_args if name not in defined_args]
@@ -264,13 +241,6 @@ class LLMPrompt(models.Model):
             if template_message:
                 messages.append(template_message)
 
-                # Include resources if specified
-                if template.include_resources and template.resource_ids:
-                    for resource in template.resource_ids:
-                        resource_message = resource.get_resource_message(arguments)
-                        if resource_message:
-                            messages.append(resource_message)
-
         # Update usage statistics
         self.usage_count += 1
         self.last_used = fields.Datetime.now()
@@ -334,11 +304,6 @@ class LLMPrompt(models.Model):
                     # This would be filled in runtime
                     pass
 
-                # Handle resource type validation
-                if arg_type == "resource" and not value:
-                    # Resource validation would happen at runtime
-                    pass
-
     @api.model
     def _extract_arguments_from_template(self, template_content):
         """
@@ -361,7 +326,7 @@ class LLMPrompt(models.Model):
 
     def auto_detect_arguments(self):
         """
-        Auto-detect arguments from templates and resources and add them to schema
+        Auto-detect arguments from templates and add them to schema
 
         Returns:
             bool: True if successful
@@ -374,7 +339,7 @@ class LLMPrompt(models.Model):
         except json.JSONDecodeError:
             arguments = {}
 
-        # Extract used arguments from templates and resources
+        # Extract used arguments from templates
         used_args = set()
 
         # Check templates
@@ -382,12 +347,6 @@ class LLMPrompt(models.Model):
             if template.content:
                 template_args = self._extract_arguments_from_template(template.content)
                 used_args.update(template_args)
-
-        # Check resources
-        for resource in self.resource_ids:
-            if resource.content:
-                resource_args = self._extract_arguments_from_template(resource.content)
-                used_args.update(resource_args)
 
         # Add any missing arguments to schema
         updated = False

@@ -27,18 +27,6 @@
                                     You can access argument values directly by name (e.g., 'debug' in arguments or input_type == 'analysis').</p>
                             </div>
                         </page>
-                        <page string="Resources" name="resources">
-                            <group>
-                                <field name="include_resources"/>
-                            </group>
-                            <field name="resource_ids" attrs="{'invisible': [('include_resources', '=', False)]}">
-                                <tree>
-                                    <field name="name"/>
-                                    <field name="resource_type"/>
-                                    <field name="resource_role"/>
-                                </tree>
-                            </field>
-                        </page>
                     </notebook>
                 </sheet>
             </form>
@@ -57,7 +45,6 @@
                 <field name="content"/>
                 <field name="used_arguments"/>
                 <field name="condition"/>
-                <field name="include_resources"/>
             </tree>
         </field>
     </record>

@@ -6,7 +6,6 @@
         This module extends the LLM integration base to support:
         - Creating reusable prompt templates
         - Dynamic arguments within prompts
-        - Resource context inclusion
         - Multi-step prompt workflows
         - Prompt discovery and retrieval
     """,
@@ -19,6 +18,7 @@
         "security/llm_prompt_security.xml",
         "security/ir.model.access.csv",
         "views/llm_prompt_views.xml",
+        "views/llm_prompt_template_views.xml",
         "views/llm_prompt_menu.xml",
     ],
     "license": "LGPL-3",

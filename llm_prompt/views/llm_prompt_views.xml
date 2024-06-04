@@ -27,7 +27,6 @@
                         </group>
                         <group>
                             <field name="template_count" readonly="1"/>
-                            <field name="resource_count" readonly="1"/>
                             <field name="argument_count" readonly="1"/>
                             <field name="usage_count" readonly="1"/>
                             <field name="last_used" readonly="1"/>
@@ -81,17 +80,6 @@
                                 </ul>
                                 <p>Referenced in templates using <strong>{{argument_name}}</strong> placeholders.</p>
                             </div>
-                        </page>
-                        <page string="Resources" name="resources">
-                            <field name="resource_ids" context="{'default_prompt_id': active_id}">
-                                <tree>
-                                    <field name="sequence" widget="handle"/>
-                                    <field name="name"/>
-                                    <field name="resource_type"/>
-                                    <field name="resource_role"/>
-                                    <field name="mime_type"/>
-                                </tree>
-                            </field>
                         </page>
                         <page string="Testing" name="testing">
                             <group>

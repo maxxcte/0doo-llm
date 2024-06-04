@@ -50,23 +50,6 @@ class LLMPromptTemplate(models.Model):
         help="Python expression determining whether to include this template (e.g., 'debug' in arguments)",
     )
 
-    # Includes resources
-    include_resources = fields.Boolean(
-        string="Include Resources",
-        default=False,
-        help="Whether to include resources with this template",
-    )
-
-    # Resource association
-    resource_ids = fields.Many2many(
-        "llm.prompt.resource",
-        "llm_template_resource_rel",
-        "template_id",
-        "resource_id",
-        string="Resources",
-        help="Resources to include with this template",
-    )
-
     # Computed field to show used arguments
     used_arguments = fields.Char(
         string="Used Arguments",
@@ -113,7 +96,7 @@ class LLMPromptTemplate(models.Model):
         # Replace argument placeholders in content
         content = self.content
         for arg_name, arg_value in arguments.items():
-            placeholder = "{{{" + arg_name + "}}}"
+            placeholder = "{{" + arg_name + "}}"
             if placeholder in content:
                 content = content.replace(placeholder, str(arg_value))
 
