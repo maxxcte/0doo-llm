@@ -8,6 +8,7 @@
         - Dynamic arguments within prompts
         - Multi-step prompt workflows
         - Prompt discovery and retrieval
+        - Categories and tags for organization
     """,
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
@@ -15,11 +16,15 @@
     "version": "16.0.1.0.0",
     "depends": ["llm"],
     "data": [
-        "security/llm_prompt_security.xml",
         "security/ir.model.access.csv",
+        "data/llm_prompt_tag_data.xml",
+        "data/llm_prompt_category_data.xml",
         "views/llm_prompt_views.xml",
         "views/llm_prompt_template_views.xml",
-        "views/llm_prompt_menu.xml",
+        "views/llm_prompt_tag_views.xml",
+        "views/llm_prompt_category_views.xml",
+        "views/menu.xml",
+        "wizards/llm_prompt_test_views.xml",
     ],
     "license": "LGPL-3",
     "installable": True,

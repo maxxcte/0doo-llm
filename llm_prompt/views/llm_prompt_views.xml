@@ -144,4 +144,19 @@
             </search>
         </field>
     </record>
+    <!-- Prompts Menu -->
+    <record id="llm_prompt_action" model="ir.actions.act_window">
+        <field name="name">Prompts</field>
+        <field name="res_model">llm.prompt</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first prompt template
+            </p>
+            <p>
+                Prompt templates help you create reusable messages for LLM interactions.
+            </p>
+        </field>
+    </record>
+
 </odoo>
