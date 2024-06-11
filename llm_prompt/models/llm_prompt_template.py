@@ -9,8 +9,10 @@ class LLMPromptTemplate(models.Model):
 
     name = fields.Char(
         string="Template Name",
-        required=True,
-        help="Name of this template",
+        compute="_compute_name",
+        store=True,
+        readonly=False,
+        help="Name of this template (auto-generated if not specified)",
     )
     sequence = fields.Integer(
         string="Sequence",
@@ -56,6 +58,19 @@ class LLMPromptTemplate(models.Model):
         compute="_compute_used_arguments",
         help="Arguments used in this template",
     )
+
+    @api.depends('role', 'sequence')
+    def _compute_name(self):
+        """Auto-generate template name if not provided"""
+        for template in self:
+            if not template.name:
+                role_names = {
+                    'user': 'User',
+                    'assistant': 'Assistant',
+                    'system': 'System'
+                }
+                role_name = role_names.get(template.role, template.role)
+                template.name = f"{role_name} Message #{template.sequence}"
 
     @api.depends('content')
     def _compute_used_arguments(self):
