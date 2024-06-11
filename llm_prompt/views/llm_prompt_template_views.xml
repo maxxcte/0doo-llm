@@ -5,10 +5,10 @@
         <field name="name">llm.prompt.template.form</field>
         <field name="model">llm.prompt.template</field>
         <field name="arch" type="xml">
-            <form string="Prompt Step">
+            <form string="Prompt Template">
                 <sheet>
                     <group>
-                        <field name="name" placeholder="Auto-generated if empty"/>
+                        <field name="name" placeholder="e.g. System Instructions"/>
                         <field name="prompt_id" invisible="context.get('hide_prompt_id', False)"/>
                         <field name="role"/>
                         <field name="sequence"/>
@@ -38,9 +38,9 @@
         <field name="name">llm.prompt.template.tree</field>
         <field name="model">llm.prompt.template</field>
         <field name="arch" type="xml">
-            <tree string="Prompt Steps" editable="bottom">
+            <tree string="Prompt Templates" editable="bottom">
                 <field name="sequence" widget="handle"/>
-                <field name="name" optional="show"/>
+                <field name="name"/>
                 <field name="role"/>
                 <field name="content"/>
                 <field name="used_arguments"/>

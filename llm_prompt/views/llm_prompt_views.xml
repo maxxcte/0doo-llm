@@ -36,18 +36,67 @@
                         <page string="Description" name="description">
                             <field name="description" placeholder="Describe the purpose and usage of this prompt..."/>
                         </page>
-                        <page string="Prompt Steps" name="templates">
+                        <page string="Templates" name="templates">
                             <field name="template_ids" context="{'default_prompt_id': active_id}">
                                 <tree editable="bottom">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="name" optional="show"/>
+                                    <field name="name"/>
                                     <field name="role"/>
                                     <field name="content"/>
                                     <field name="condition"/>
                                 </tree>
                             </field>
                         </page>
-                        <!-- Other pages remain unchanged -->
+                        <page string="Arguments" name="arguments">
+                            <div class="alert alert-warning" role="alert" attrs="{'invisible': [('undefined_arguments', '=', False)]}">
+                                <strong>Warning:</strong> The following arguments are used in templates but not defined in the schema:
+                                <field name="undefined_arguments" readonly="1" class="oe_inline"/>
+                            </div>
+                            <group>
+                                <field name="arguments_json" widget="ace" options="{'mode': 'json'}" placeholder="{
+  'system_prompt': {
+    'type': 'string',
+    'description': 'The system instructions for the LLM',
+    'required': true,
+    'default': 'You are a helpful assistant.'
+  },
+  'user_input': {
+    'type': 'string',
+    'description': 'The user input to process',
+    'required': true
+  }
+}"/>
+                            </group>
+                            <div class="alert alert-info" role="alert">
+                                <p><strong>Arguments Schema Format:</strong></p>
+                                <p>Define arguments as a JSON object where each key is the argument name and the value is its schema.</p>
+                                <p>Each argument schema can include:</p>
+                                <ul>
+                                    <li><strong>type</strong>: string, number, boolean, etc.</li>
+                                    <li><strong>description</strong>: Human-readable description</li>
+                                    <li><strong>required</strong>: Whether the argument is required (boolean)</li>
+                                    <li><strong>default</strong>: Default value if not provided</li>
+                                    <li><strong>examples</strong>: Array of example values</li>
+                                </ul>
+                                <p>Referenced in templates using <strong>{{argument_name}}</strong> placeholders.</p>
+                            </div>
+                        </page>
+                        <page string="Testing" name="testing">
+                            <group>
+                                <field name="example_args" widget="ace" options="{'mode': 'json'}" placeholder="{
+  'system_prompt': 'You are a helpful data analysis assistant.',
+  'user_input': 'Please analyze this dataset...'
+}"/>
+                            </group>
+                            <div class="alert alert-info" role="alert">
+                                <p>Enter example arguments in JSON format to test this prompt.</p>
+                            </div>
+                            <button name="action_test_prompt" string="Test Prompt" type="object" class="oe_highlight"/>
+                        </page>
+                        <page string="Providers" name="providers">
+                            <field name="provider_ids" widget="many2many_tags"/>
+                            <field name="publisher_ids" widget="many2many_tags"/>
+                        </page>
                     </notebook>
                 </sheet>
                 <div class="oe_chatter">

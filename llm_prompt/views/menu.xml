@@ -9,7 +9,7 @@
 
     <!-- Configuration Menu -->
     <menuitem id="llm_prompt_configuration_menu"
-              name="Prompts"
+              name="Prompts Configuration"
               parent="llm.menu_llm_config"
               sequence="30"/>
 
