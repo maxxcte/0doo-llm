@@ -319,7 +319,7 @@ class LLMPrompt(models.Model):
             return set()
 
         # Find all {{argument}} placeholders
-        pattern = r"\{\{([a-zA-Z0-9_]+)\}\}"
+        pattern = r"\{\{\s*([a-zA-Z0-9_]+)\s*\}\}"
         matches = re.findall(pattern, template_content)
 
         return set(matches)

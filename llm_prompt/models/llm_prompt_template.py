@@ -7,11 +7,6 @@ class LLMPromptTemplate(models.Model):
     _description = "LLM Prompt Template"
     _order = "sequence, id"
 
-    name = fields.Char(
-        string="Template Name",
-        required=True,
-        help="Name of this template",
-    )
     sequence = fields.Integer(
         string="Sequence",
         default=10,
@@ -89,7 +84,7 @@ class LLMPromptTemplate(models.Model):
             except Exception as e:
                 # Log but don't fail if condition evaluation fails
                 self.prompt_id.message_post(
-                    body=_("Error evaluating condition for template %s: %s") % (self.name, str(e))
+                    body=_("Error evaluating condition for template %s: %s") % (self.id, str(e))
                 )
                 return None
 

@@ -40,7 +40,6 @@
                             <field name="template_ids" context="{'default_prompt_id': active_id}">
                                 <tree editable="bottom">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="name"/>
                                     <field name="role"/>
                                     <field name="content"/>
                                     <field name="condition"/>
