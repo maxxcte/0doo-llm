@@ -9,7 +9,7 @@
                 <field name="name" />
                 <field name="provider_id" />
                 <field name="model_id" />
-                <field name="role" />
+                <field name="prompt_id" />
                 <field name="thread_count" />
                 <field name="active" />
             </tree>
@@ -25,23 +25,23 @@
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button
-              name="action_view_threads"
-              type="object"
-              class="oe_stat_button"
-              icon="fa-comments"
-            >
+                                name="action_view_threads"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-comments"
+                        >
                             <field
-                name="thread_count"
-                widget="statinfo"
-                string="Threads"
-              />
+                                    name="thread_count"
+                                    widget="statinfo"
+                                    string="Threads"
+                            />
                         </button>
                         <button
-              name="toggle_active"
-              type="object"
-              class="oe_stat_button"
-              icon="fa-archive"
-            >
+                                name="toggle_active"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-archive"
+                        >
                             <field name="active" widget="boolean_toggle" />
                         </button>
                     </div>
@@ -53,37 +53,45 @@
                         <group>
                             <field name="provider_id" />
                             <field name="model_id" />
-                            <field name="role" />
+                        </group>
+                        <group>
+                            <field name="prompt_id" options="{'no_create': False, 'no_open': False}" />
                         </group>
                     </group>
                     <notebook>
-                        <page
-              string="Agent Configuration"
-              name="agent_configuration"
-            >
+                        <page string="Configuration" name="configuration">
                             <group>
-                                <field name="goal" />
-                                <field name="background" />
-                                <field name="instructions" />
-                            </group>
-                        </page>
-                        <page string="System Prompt" name="system_prompt">
-                            <group>
-                                <field name="system_prompt" />
+                                <field
+                                        name="default_values"
+                                        widget="ace"
+                                        options="{'mode': 'json'}"
+                                        placeholder="{
+  &quot;role&quot;: &quot;Customer Support Assistant&quot;,
+  &quot;goal&quot;: &quot;Help customers solve their problems efficiently&quot;,
+  &quot;background&quot;: &quot;You are a support assistant for our product.&quot;,
+  &quot;instructions&quot;: &quot;Always be polite and helpful.&quot;
+}"
+                                />
+                                <div class="alert alert-info" role="alert">
+                                    <p>Define default values for prompt variables in JSON format. These will be used as inputs to the prompt template.</p>
+                                </div>
                             </group>
                         </page>
                         <page string="Tools" name="tools">
                             <group>
                                 <field
-                  name="tool_ids"
-                  widget="many2many_tags"
-                  options="{'no_create': True}"
-                  placeholder="Select tools for this agent..."
-                />
+                                        name="tool_ids"
+                                        widget="many2many_tags"
+                                        options="{'no_create': True}"
+                                        placeholder="Select tools for this agent..."
+                                />
                             </group>
                             <div class="text-muted px-3 py-2">
                                 Select the tools this agent may need. These tools will be auto selected when you assign this agent on LLM Chat Thread
                             </div>
+                        </page>
+                        <page string="Preview" name="preview">
+                            <field name="system_prompt_preview" widget="ace" options="{'mode': 'markdown'}" readonly="1"/>
                         </page>
                         <page string="Related Threads" name="related_threads">
                             <field name="thread_ids" readonly="1">
@@ -92,11 +100,11 @@
                                     <field name="user_id" />
                                     <field name="write_date" />
                                     <button
-                    name="action_open_thread"
-                    string="Open"
-                    type="object"
-                    class="btn btn-primary btn-sm"
-                  />
+                                            name="action_open_thread"
+                                            string="Open"
+                                            type="object"
+                                            class="btn btn-primary btn-sm"
+                                    />
                                 </tree>
                             </field>
                         </page>
@@ -119,26 +127,32 @@
                 <field name="name" />
                 <field name="provider_id" />
                 <field name="model_id" />
-                <field name="role" />
+                <field name="prompt_id" />
                 <separator />
                 <filter
-          string="Archived"
-          name="inactive"
-          domain="[('active', '=', False)]"
-        />
+                        string="Archived"
+                        name="inactive"
+                        domain="[('active', '=', False)]"
+                />
                 <group expand="0" string="Group By">
                     <filter
-            string="Provider"
-            name="provider"
-            domain="[]"
-            context="{'group_by': 'provider_id'}"
-          />
+                            string="Provider"
+                            name="provider"
+                            domain="[]"
+                            context="{'group_by': 'provider_id'}"
+                    />
                     <filter
-            string="Model"
-            name="model"
-            domain="[]"
-            context="{'group_by': 'model_id'}"
-          />
+                            string="Model"
+                            name="model"
+                            domain="[]"
+                            context="{'group_by': 'model_id'}"
+                    />
+                    <filter
+                            string="Prompt Template"
+                            name="prompt"
+                            domain="[]"
+                            context="{'group_by': 'prompt_id'}"
+                    />
                 </group>
             </search>
         </field>

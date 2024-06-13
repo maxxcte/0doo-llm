@@ -1,3 +1,4 @@
+import json
 import logging
 
 from odoo import api, fields, models
@@ -22,43 +23,34 @@ class LLMAgent(models.Model):
     provider_id = fields.Many2one(
         "llm.provider",
         string="Provider",
-        required=True,
         ondelete="restrict",
         tracking=True,
     )
     model_id = fields.Many2one(
         "llm.model",
         string="Model",
-        required=True,
         domain="[('provider_id', '=', provider_id), ('model_use', 'in', ['chat', 'multimodal'])]",
         ondelete="restrict",
         tracking=True,
+        required=False,
     )
 
-    # Agent capabilities
-    role = fields.Char(
-        string="Role",
-        help="The role of the agent (e.g., 'Assistant', 'Customer Support', 'Data Analyst')",
+    # Prompt template integration
+    prompt_id = fields.Many2one(
+        "llm.prompt",
+        string="Prompt Template",
+        ondelete="restrict",
         tracking=True,
         required=True,
+        help="Prompt template to use for generating system prompts",
     )
-    goal = fields.Text(
-        string="Goal",
-        help="The primary goal or objective of this agent",
+
+    # Default values for prompt variables as JSON
+    default_values = fields.Text(
+        string="Default Values",
+        help="JSON object with default values for prompt variables",
+        default="{}",
         tracking=True,
-        required=True,
-    )
-    background = fields.Text(
-        string="Background",
-        help="Background information for the agent to understand its context",
-        tracking=True,
-        required=True,
-    )
-    instructions = fields.Text(
-        string="Instructions",
-        help="Specific instructions for the agent to follow",
-        tracking=True,
-        required=True,
     )
 
     # Tools configuration
@@ -66,20 +58,6 @@ class LLMAgent(models.Model):
         "llm.tool",
         string="Preferred Tools",
         help="Tools that this agent can use",
-        tracking=True,
-    )
-
-    # System prompt template
-    system_prompt = fields.Text(
-        string="System Prompt Template",
-        default="""You are a {{ role }}.
-
-Your goal is to {{ goal }}
-
-Background: {{ background }}
-
-Instructions: {{ instructions }}""",
-        help="Template for the system prompt. Use {{ field_name }} placeholders for variable substitution.",
         tracking=True,
     )
 
@@ -95,6 +73,19 @@ Instructions: {{ instructions }}""",
         string="Threads",
         help="Threads using this agent",
     )
+
+    system_prompt_preview = fields.Text(
+        string="System Prompt Preview",
+        compute="_compute_system_prompt_preview",
+        help="Preview of the formatted system prompt based on the prompt template",
+    )
+
+    @api.depends('prompt_id', 'default_values')
+    def _compute_system_prompt_preview(self):
+        """Compute preview of the formatted system prompt"""
+        for agent in self:
+            agent.system_prompt_preview = agent.get_formatted_system_prompt()
+
 
     @api.depends("thread_ids")
     def _compute_thread_count(self):
@@ -112,24 +103,66 @@ Instructions: {{ instructions }}""",
         action["context"] = {"default_agent_id": self.id}
         return action
 
+    @api.model
+    def create(self, vals):
+        """Override create to ensure default_values is valid JSON"""
+        if 'default_values' in vals and vals['default_values']:
+            try:
+                json.loads(vals['default_values'])
+            except json.JSONDecodeError:
+                vals['default_values'] = "{}"
+        return super(LLMAgent, self).create(vals)
+
+    @api.onchange('prompt_id')
+    def _onchange_prompt_id(self):
+        """Update default_values when prompt_id changes"""
+        if self.prompt_id:
+            # Get the prompt arguments schema
+            try:
+                args_schema = json.loads(self.prompt_id.arguments_json or "{}")
+                default_values = {}
+
+                # Extract default values from schema
+                for arg_name, arg_schema in args_schema.items():
+                    if "default" in arg_schema:
+                        default_values[arg_name] = arg_schema["default"]
+
+                # If we have any defaults, update default_values
+                if default_values:
+                    self.default_values = json.dumps(default_values, indent=2)
+            except json.JSONDecodeError:
+                pass
+
     def get_formatted_system_prompt(self):
-        """Generate a formatted system prompt based on the template and agent's configuration"""
+        """Generate a formatted system prompt based on the prompt template"""
         self.ensure_one()
-        if not self.system_prompt:
+
+        if not self.prompt_id:
             return ""
 
-        # Create a dictionary with the field values for template substitution
-        values = {
-            "role": self.role,
-            "goal": self.goal,
-            "background": self.background,
-            "instructions": self.instructions,
-        }
+        try:
+            # Get the argument values from default_values
+            arg_values = json.loads(self.default_values or "{}")
 
-        # Replace template variables with actual values
-        prompt = self.system_prompt
-        for key, value in values.items():
-            placeholder = "{{ " + key + " }}"
-            prompt = prompt.replace(placeholder, value)
+            # Get messages from the prompt template
+            messages = self.prompt_id.get_messages(arg_values)
 
-        return prompt
+            # Find the system message
+            system_message = next((msg for msg in messages if msg.get('role') == 'system'), None)
+            if system_message and 'content' in system_message:
+                if isinstance(system_message['content'], dict) and 'text' in system_message['content']:
+                    return system_message['content']['text']
+                elif isinstance(system_message['content'], str):
+                    return system_message['content']
+
+            # If no system message found, return the first message content
+            if messages and 'content' in messages[0]:
+                if isinstance(messages[0]['content'], dict) and 'text' in messages[0]['content']:
+                    return messages[0]['content']['text']
+                elif isinstance(messages[0]['content'], str):
+                    return messages[0]['content']
+
+        except Exception as e:
+            _logger.error("Error generating system prompt from template: %s", str(e))
+
+        return ""

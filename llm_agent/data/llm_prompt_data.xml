@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+        <!-- Agent Prompt Template -->
+        <record id="llm_prompt_agent" model="llm.prompt">
+            <field name="name">Agent Template</field>
+            <field name="description">Template for agent system prompts with role, goal, background, and instructions</field>
+            <field name="category_id" ref="llm_prompt.category_general" />
+            <field name="tag_ids" eval="[(6, 0, [ref('llm_prompt.tag_agent')])]" />
+            <field name="arguments_json"><![CDATA[{
+            "role": {
+            "type": "string",
+            "description": "The role of the agent (e.g., 'Assistant', 'Customer Support', 'Data Analyst')",
+            "required": true
+            },
+            "goal": {
+            "type": "string",
+            "description": "The primary goal or objective of this agent",
+            "required": true
+            },
+            "background": {
+            "type": "string",
+            "description": "Background information for the agent to understand its context",
+            "required": true
+            },
+            "instructions": {
+            "type": "string",
+            "description": "Specific instructions for the agent to follow",
+            "required": true
+            },
+            "footer": {
+            "type": "string",
+            "description": "Optional footer text to add to the end of the prompt",
+            "required": false,
+            "default": ""
+            }
+            }]]></field>
+            <field name="active" eval="True" />
+        </record>
+
+        <!-- Template for the system message -->
+        <record id="llm_prompt_template_agent_system" model="llm.prompt.template">
+            <field name="prompt_id" ref="llm_prompt_agent" />
+            <field name="role">system</field>
+            <field name="sequence">10</field>
+            <field name="content"><![CDATA[You are a {{ role }}.
+
+Your goal is to {{ goal }}
+
+Background: {{ background }}
+
+Instructions: {{ instructions }}
+
+{{ footer }}]]></field>
+        </record>
+</odoo>

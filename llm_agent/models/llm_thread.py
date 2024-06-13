@@ -43,8 +43,8 @@ class LLMThread(models.Model):
         return self.write(
             {
                 "agent_id": agent_id,
-                "provider_id": agent.provider_id.id,
-                "model_id": agent.model_id.id,
+                "provider_id": agent.provider_id.id if agent.provider_id else False,
+                "model_id": agent.model_id.id if agent.model_id else False,
                 "tool_ids": [(6, 0, agent.tool_ids.ids)],
             }
         )
