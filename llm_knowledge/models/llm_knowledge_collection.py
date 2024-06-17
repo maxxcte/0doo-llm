@@ -6,9 +6,9 @@ from odoo.tools.safe_eval import safe_eval
 _logger = logging.getLogger(__name__)
 
 
-class LLMDocumentCollection(models.Model):
-    _name = "llm.document.collection"
-    _description = "Document Collection for RAG"
+class LLMKnowledgeCollection(models.Model):
+    _name = "llm.knowledge.collection"
+    _description = "Knowledge Collection for RAG"
     _inherit = ["mail.thread", "mail.activity.mixin"]
     _order = "name"
 
@@ -34,71 +34,78 @@ class LLMDocumentCollection(models.Model):
         tracking=True,
         help="The model used to create embeddings for documents in this collection",
     )
-    document_ids = fields.Many2many(
-        "llm.document",
-        string="Documents",
-        relation="llm_document_collection_rel",
+    resource_ids = fields.Many2many(
+        "llm.resource",
+        string="Resources",
+        relation="llm_knowledge_resource_collection_rel",
         column1="collection_id",
-        column2="document_id",
+        column2="resource_id",
     )
-    # New field to replace source_domains
+    # Domain filters for automatically adding resources
     domain_ids = fields.One2many(
-        "llm.collection.domain",
+        "llm.knowledge.domain",
         "collection_id",
         string="Domain Filters",
         help="Domain filters to select records for RAG document creation",
     )
-    document_count = fields.Integer(
-        string="Document Count",
-        compute="_compute_document_count",
+    resource_count = fields.Integer(
+        string="Resource Count",
+        compute="_compute_resource_count",
     )
     chunk_count = fields.Integer(
         string="Chunk Count",
         compute="_compute_chunk_count",
     )
+    chunk_ids = fields.Many2many(
+        "llm.knowledge.chunk",
+        string="Chunks",
+        relation="llm_knowledge_chunk_collection_rel",
+        column1="collection_id",
+        column2="chunk_id",
+    )
 
-    @api.depends("document_ids")
-    def _compute_document_count(self):
+    @api.depends("resource_ids")
+    def _compute_resource_count(self):
         for record in self:
-            record.document_count = len(record.document_ids)
+            record.resource_count = len(record.resource_ids)
 
     def _compute_chunk_count(self):
         for record in self:
-            chunks = self.env["llm.document.chunk"].search(
+            chunks = self.env["llm.knowledge.chunk"].search(
                 [("collection_ids", "=", record.id)]
             )
             record.chunk_count = len(chunks)
 
-    def action_view_documents(self):
-        """Open a view with all documents in this collection"""
+    def action_view_resources(self):
+        """Open a view with all resources in this collection"""
         self.ensure_one()
         return {
-            "name": _("Collection Documents"),
+            "name": _("Collection Resources"),
             "view_mode": "tree,form",
-            "res_model": "llm.document",
-            "domain": [("id", "in", self.document_ids.ids)],
+            "res_model": "llm.resource",
+            "domain": [("id", "in", self.resource_ids.ids)],
             "type": "ir.actions.act_window",
             "context": {"default_collection_ids": [(6, 0, [self.id])]},
         }
 
     def action_view_chunks(self):
-        """Open a view with all chunks from documents in this collection"""
+        """Open a view with all chunks from resources in this collection"""
         self.ensure_one()
 
         return {
             "name": _("Collection Chunks"),
             "view_mode": "tree,form",
-            "res_model": "llm.document.chunk",
+            "res_model": "llm.knowledge.chunk",
             "domain": [("collection_ids", "=", self.id)],
             "type": "ir.actions.act_window",
         }
 
-    def sync_documents(self):
+    def sync_resources(self):
         """
-        Synchronize collection documents with domain filters.
+        Synchronize collection resources with domain filters.
         This will:
-        1. Add new documents for records matching domain filters
-        2. Remove documents that no longer match domain filters
+        1. Add new resources for records matching domain filters
+        2. Remove resources that no longer match domain filters
         """
         for collection in self:
             if not collection.domain_ids:
@@ -144,20 +151,20 @@ class LLMDocumentCollection(models.Model):
                     matching_records.append((model_name, record.id))
                     model_map[(model_name, record.id)] = domain_filter.model_id
 
-            # Get all existing documents in the collection
-            existing_docs = collection.document_ids
+            # Get all existing resources in the collection
+            existing_docs = collection.resource_ids
 
-            # Track which existing documents should be kept
-            docs_to_keep = self.env["llm.document"]
+            # Track which existing resources should be kept
+            docs_to_keep = self.env["llm.resource"]
 
-            # Process all matching records to create/link documents
+            # Process all matching records to create/link resources
             for model_name, record_id in matching_records:
                 # Get actual record
                 record = self.env[model_name].browse(record_id)
                 model_id = model_map[(model_name, record_id)].id
 
-                # Check if document already exists for this record
-                existing_doc = self.env["llm.document"].search(
+                # Check if resource already exists for this record
+                existing_doc = self.env["llm.resource"].search(
                     [
                         ("model_id", "=", model_id),
                         ("res_id", "=", record_id),
@@ -170,12 +177,12 @@ class LLMDocumentCollection(models.Model):
                     if existing_doc in existing_docs:
                         docs_to_keep |= existing_doc
                     # Otherwise link it if not already in the collection
-                    elif existing_doc.id not in collection.document_ids.ids:
-                        collection.write({"document_ids": [(4, existing_doc.id)]})
+                    elif existing_doc.id not in collection.resource_ids.ids:
+                        collection.write({"resource_ids": [(4, existing_doc.id)]})
                         linked_count += 1
                         docs_to_keep |= existing_doc
                 else:
-                    # Create new document with meaningful name
+                    # Create new resource with meaningful name
                     if hasattr(record, "display_name") and record.display_name:
                         name = record.display_name
                     elif hasattr(record, "name") and record.name:
@@ -184,7 +191,7 @@ class LLMDocumentCollection(models.Model):
                         model_display = self.env["ir.model"]._get(model_name).name
                         name = f"{model_display} #{record_id}"
 
-                    new_doc = self.env["llm.document"].create(
+                    new_doc = self.env["llm.resource"].create(
                         {
                             "name": name,
                             "model_id": model_id,
@@ -195,14 +202,14 @@ class LLMDocumentCollection(models.Model):
                     docs_to_keep |= new_doc
                     created_count += 1
 
-            # Find documents to remove (those in the collection but not matching any domains)
+            # Find resources to remove (those in the collection but not matching any domains)
             docs_to_remove = existing_docs - docs_to_keep
 
-            # Remove documents that no longer match any domains
+            # Remove resources that no longer match any domains
             if docs_to_remove:
-                # Only remove from this collection, not delete the documents
+                # Only remove from this collection, not delete the resources
                 collection.write(
-                    {"document_ids": [(3, doc.id) for doc in docs_to_remove]}
+                    {"resource_ids": [(3, doc.id) for doc in docs_to_remove]}
                 )
                 removed_count = len(docs_to_remove)
 
@@ -210,9 +217,9 @@ class LLMDocumentCollection(models.Model):
             if created_count > 0 or linked_count > 0 or removed_count > 0:
                 collection.message_post(
                     body=_(
-                        f"Synchronization complete: Created {created_count} new documents, "
-                        f"linked {linked_count} existing documents, "
-                        f"removed {removed_count} documents no longer matching domains."
+                        f"Synchronization complete: Created {created_count} new resources, "
+                        f"linked {linked_count} existing resources, "
+                        f"removed {removed_count} resources no longer matching domains."
                     ),
                     message_type="notification",
                 )
@@ -224,21 +231,21 @@ class LLMDocumentCollection(models.Model):
                     message_type="notification",
                 )
 
-    def process_documents(self):
-        """Process documents through retrieval, parsing, and chunking (up to chunked state)"""
+    def process_resources(self):
+        """Process resources through retrieval, parsing, and chunking (up to chunked state)"""
         for collection in self:
-            collection.document_ids.process_document()
+            collection.resource_ids.process_resource()
 
     def reindex_collection(self):
         """
-        Reindex all documents in the collection.
+        Reindex all resources in the collection.
         This will clear all chunk embeddings (setting them to NULL),
-        reset document states from 'ready' to 'chunked',
+        reset resource states from 'ready' to 'chunked',
         and rebuild the index to exclude NULL embeddings.
         """
         for collection in self:
-            ready_docs = collection.document_ids.filtered(lambda d: d.state == "ready")
-            chunks = self.env["llm.document.chunk"].search(
+            ready_docs = collection.resource_ids.filtered(lambda d: d.state == "ready")
+            chunks = self.env["llm.knowledge.chunk"].search(
                 [("collection_ids", "=", collection.id)]
             )
             if ready_docs:
@@ -266,7 +273,7 @@ class LLMDocumentCollection(models.Model):
                     # Now create the index - it will automatically exclude NULL embeddings
                     # due to the WHERE embedding IS NOT NULL clause in create_embedding_index
                     if dimensions:
-                        self.env["llm.document.chunk"].create_embedding_index(
+                        self.env["llm.knowledge.chunk"].create_embedding_index(
                             embedding_model_id=embedding_model_id,
                             dimensions=dimensions,
                         )
@@ -291,28 +298,28 @@ class LLMDocumentCollection(models.Model):
                 )
 
     def action_open_upload_wizard(self):
-        """Open the upload document wizard with this collection pre-selected"""
+        """Open the upload resource wizard with this collection pre-selected"""
         self.ensure_one()
         return {
-            "name": "Upload Documents",
+            "name": "Upload Resources",
             "type": "ir.actions.act_window",
-            "res_model": "llm.upload.document.wizard",
+            "res_model": "llm.upload.resource.wizard",
             "view_mode": "form",
             "target": "new",
             "context": {
                 "default_collection_id": self.id,
-                "default_document_name_template": "{filename}",
+                "default_resource_name_template": "{filename}",
             },
         }
 
-    def embed_documents(self, specific_document_ids=None, batch_size=20):
+    def embed_resources(self, specific_resource_ids=None, batch_size=20):
         """
-        Embed all chunked documents using the collection's embedding model.
-        Optimized to directly filter chunks instead of searching documents first.
+        Embed all chunked resources using the collection's embedding model.
+        Optimized to directly filter chunks instead of searching resources first.
 
         Args:
-            specific_document_ids: Optional list of document IDs to process.
-                                 If provided, only chunks from these documents will be processed.
+            specific_resource_ids: Optional list of resource IDs to process.
+                                 If provided, only chunks from these resources will be processed.
             batch_size: Number of chunks to process in each batch
         """
         for collection in self:
@@ -323,23 +330,23 @@ class LLMDocumentCollection(models.Model):
                 )
                 continue
 
-            # Directly search for chunks that belong to chunked documents in this collection
+            # Directly search for chunks that belong to chunked resources in this collection
             chunk_domain = [
-                ("document_id.state", "=", "chunked"),
+                ("resource_id.state", "=", "chunked"),
                 ("collection_ids", "=", collection.id),
             ]
 
-            # Add specific document filter if provided
-            if specific_document_ids:
-                chunk_domain.append(("document_id", "in", specific_document_ids))
+            # Add specific resource filter if provided
+            if specific_resource_ids:
+                chunk_domain.append(("resource_id", "in", specific_resource_ids))
 
             # Get all relevant chunks in one query
-            chunks = self.env["llm.document.chunk"].search(chunk_domain)
+            chunks = self.env["llm.knowledge.chunk"].search(chunk_domain)
 
             if not chunks:
-                message = _("No chunks found for documents in chunked state")
-                if specific_document_ids:
-                    message += _(" for the specified document IDs")
+                message = _("No chunks found for resources in chunked state")
+                if specific_resource_ids:
+                    message += _(" for the specified resource IDs")
                 collection.message_post(
                     body=message,
                     message_type="notification",
@@ -352,9 +359,9 @@ class LLMDocumentCollection(models.Model):
             # Process chunks in batches for efficiency
             total_chunks = len(chunks)
             processed_chunks = 0
-            processed_document_ids = (
+            processed_resource_ids = (
                 set()
-            )  # Track which document IDs had chunks processed
+            )  # Track which resource IDs had chunks processed
 
             # Process in batches
             for i in range(0, total_chunks, batch_size):
@@ -374,8 +381,8 @@ class LLMDocumentCollection(models.Model):
                             "collection_ids": [(4, collection.id)],
                         }
                     )
-                    # Track the document ID for this chunk
-                    processed_document_ids.add(chunk.document_id.id)
+                    # Track the resource ID for this chunk
+                    processed_resource_ids.add(chunk.resource_id.id)
 
                 processed_chunks += len(batch)
                 _logger.info(f"Processed {processed_chunks}/{total_chunks} chunks")
@@ -383,17 +390,17 @@ class LLMDocumentCollection(models.Model):
                 # Commit transaction after each batch to avoid timeout issues
                 self.env.cr.commit()
 
-            # Update document states to ready - only update documents that had chunks processed
-            if processed_document_ids:
-                self.env["llm.document"].browse(list(processed_document_ids)).write(
+            # Update resource states to ready - only update resources that had chunks processed
+            if processed_resource_ids:
+                self.env["llm.resource"].browse(list(processed_resource_ids)).write(
                     {"state": "ready"}
                 )
                 self.env.cr.commit()
 
-                # Prepare message with document details for clarity
-                doc_count = len(processed_document_ids)
+                # Prepare message with resource details for clarity
+                doc_count = len(processed_resource_ids)
                 msg = _(
-                    f"Embedded {processed_chunks} chunks from {doc_count} documents using {embedding_model.name}"
+                    f"Embedded {processed_chunks} chunks from {doc_count} resources using {embedding_model.name}"
                 )
 
                 collection.message_post(
@@ -408,14 +415,14 @@ class LLMDocumentCollection(models.Model):
                     if batch_embeddings and batch_embeddings[0]
                     else None
                 )
-                self.env["llm.document.chunk"].create_embedding_index(
+                self.env["llm.knowledge.chunk"].create_embedding_index(
                     embedding_model_id=embedding_model.id, dimensions=dimensions
                 )
 
                 return {
                     "success": True,
                     "processed_chunks": processed_chunks,
-                    "processed_documents": len(processed_document_ids),
+                    "processed_resources": len(processed_resource_ids),
                 }
             else:
                 collection.message_post(
@@ -426,5 +433,5 @@ class LLMDocumentCollection(models.Model):
                 return {
                     "success": False,
                     "processed_chunks": 0,
-                    "processed_documents": 0,
+                    "processed_resources": 0,
                 }

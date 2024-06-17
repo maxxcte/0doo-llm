@@ -1,32 +1,5 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <menuitem
-    id="menu_llm_knowledge"
-    name="Knowledge"
-    parent="llm.menu_llm_root"
-    sequence="30"
-  />
-
-    <menuitem
-    id="menu_llm_document"
-    name="Documents"
-    parent="menu_llm_knowledge"
-    action="action_llm_document"
-    sequence="10"
-  />
-  <menuitem
-    id="menu_llm_document_collection"
-    name="Collections"
-    parent="menu_llm_knowledge"
-    action="action_llm_document_collection"
-    sequence="5"
-  />
-   <menuitem
-    id="menu_llm_document_chunk"
-    name="Document Chunks"
-    parent="menu_llm_knowledge"
-    action="action_llm_document_chunk"
-    sequence="30"
-  />
-
+    <!-- This is a placeholder for the menu items -->
+    <!-- Menu structure for knowledge module would go here -->
 </odoo>
