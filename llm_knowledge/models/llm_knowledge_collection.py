@@ -9,7 +9,7 @@ _logger = logging.getLogger(__name__)
 class LLMKnowledgeCollection(models.Model):
     _name = "llm.knowledge.collection"
     _description = "Knowledge Collection for RAG"
-    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _inherit = ["llm.store.collection", "mail.thread", "mail.activity.mixin"]
     _order = "name"
 
     name = fields.Char(
