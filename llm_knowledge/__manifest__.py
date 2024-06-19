@@ -1,32 +1,39 @@
 {
-    "name": "LLM Knowledge",
+    "name": "LLM RAG",
     "summary": "Retrieval Augmented Generation for LLM with Vector Search",
     "description": """
-        Implements Retrieval Augmented Generation (chunking and embedding) for the LLM module.
+        Implements Retrieval Augmented Generation for the LLM module.
 
         Features:
-        - Document collections for RAG
-        - Document chunking pipeline
-        - Document embedding integration
+        - Document management for RAG
+        - Document processing pipeline (retrieve, parse, chunk, embed)
+        - Integration with LLM models
         - Vector search using pgvector
-        - PDF processing and text extraction
+        - HTTP retrieval for external URLs
     """,
     "category": "Technical",
     "version": "16.0.1.0.0",
-    "depends": ["llm", "llm_resource", "llm_store", "llm_pgvector"],
+    "depends": ["llm", "llm_pgvector"],
     "external_dependencies": {
-        "python": ["PyMuPDF", "numpy"],
+        "python": ["PyMuPDF", "numpy", "requests", "markdownify"],
     },
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
     "data": [
         "security/ir.model.access.csv",
-        "views/llm_knowledge_collection_views.xml",
-        "views/llm_knowledge_chunk_views.xml",
+        "views/llm_document_views.xml",
+        "views/llm_document_collection_views.xml",
+        "views/llm_document_chunk_views.xml",
+        "wizards/create_rag_document_wizard_views.xml",
+        "wizards/upload_document_wizard_views.xml",
+        "data/server_actions.xml",
         "views/menu.xml",
     ],
     "license": "LGPL-3",
     "installable": True,
     "application": False,
     "auto_install": False,
+    "images": [
+        "static/description/banner.jpeg",
+    ],
 }
