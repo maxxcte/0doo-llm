@@ -180,6 +180,11 @@ class LLMThread(models.Model):
             )
         return last_tool_msg       
 
+    def _get_system_prompt(self):
+        """Hook: return a system prompt for chat. Override in other modules. If needed"""
+        self.ensure_one()
+        return None
+
     def _get_assistant_response(self):
         self.ensure_one()
         message_history_rs = self._get_message_history_recordset()
@@ -187,7 +192,8 @@ class LLMThread(models.Model):
         stream_response = self.model_id.chat(
             messages=message_history_rs,
             tools=tool_rs,
-            stream=True
+            stream=True,
+            system_prompt=self._get_system_prompt()
         )
         assistant_msg = yield from self.env["mail.message"].create_message_from_stream(
             self,
@@ -195,7 +201,6 @@ class LLMThread(models.Model):
             LLM_ASSISTANT_SUBTYPE_XMLID,
             placeholder_text="Thinking..."
         )
-
         return assistant_msg
 
     def _execute_tool(self, tool_name, arguments_str):
