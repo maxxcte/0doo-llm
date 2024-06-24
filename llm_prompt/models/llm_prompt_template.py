@@ -92,8 +92,12 @@ class LLMPromptTemplate(models.Model):
         content = self.content
         for arg_name, arg_value in arguments.items():
             placeholder = "{{" + arg_name + "}}"
+            placeholderWithSpace = "{{ " + arg_name + " }}"
+            # maybe can be done via regex, kept it simple for now
             if placeholder in content:
                 content = content.replace(placeholder, str(arg_value))
+            elif placeholderWithSpace in content:
+                content = content.replace(placeholderWithSpace, str(arg_value))
 
         # Create the message
         return {
