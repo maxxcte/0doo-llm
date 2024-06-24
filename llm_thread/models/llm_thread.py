@@ -189,12 +189,13 @@ class LLMThread(models.Model):
         self.ensure_one()
         message_history_rs = self._get_message_history_recordset()
         tool_rs = self.tool_ids
-        stream_response = self.model_id.chat(
-            messages=message_history_rs,
-            tools=tool_rs,
-            stream=True,
-            system_prompt=self._get_system_prompt()
-        )
+        chat_kwargs = {
+            "messages": message_history_rs,
+            "tools": tool_rs,
+            "stream": True,
+            "system_prompt": self._get_system_prompt()
+        }
+        stream_response = self.model_id.chat(**chat_kwargs)
         assistant_msg = yield from self.env["mail.message"].create_message_from_stream(
             self,
             stream_response,
