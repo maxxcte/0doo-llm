@@ -72,10 +72,10 @@
   &quot;instructions&quot;: &quot;Always be polite and helpful.&quot;
 }"
                                 />
-                                <div class="alert alert-info" role="alert">
-                                    <p>Define default values for prompt variables in JSON format. These will be used as inputs to the prompt template.</p>
-                                </div>
                             </group>
+                            <div class="alert alert-info w-100 mt-3 mb-3" role="alert">
+                                <p class="mb-0">Define default values for prompt variables in JSON format. These will be used as inputs to the prompt template.</p>
+                            </div>
                         </page>
                         <page string="Tools" name="tools">
                             <group>
