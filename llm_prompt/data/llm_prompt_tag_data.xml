@@ -20,7 +20,7 @@
     <record id="tag_system" model="llm.prompt.tag">
         <field name="name">System</field>
     </record>
-    <record id="tag_agent" model="llm.prompt.tag">
-        <field name="name">Agent</field>
+    <record id="tag_assistant" model="llm.prompt.tag">
+        <field name="name">Assistant</field>
     </record>
 </odoo>

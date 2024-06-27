@@ -4,7 +4,7 @@
     "category": "Technical",
     "summary": "Function calling and tool execution for LLM models to interact with Odoo",
     "description": """
-        Automate Your Odoo Database with AI Agents & Chat AI | ChatGPT, Grok, Anthropic, DeepSeek
+        Automate Your Odoo Database with AI Assistants & Chat AI | ChatGPT, Grok, Anthropic, DeepSeek
 
         Boost your Odoo database automation with AI-powered agents using ChatGPT, Grok, Anthropic, and DeepSeek. Streamline
         workflows, optimize data management, and enhance productivity with AI tools seamlessly integrated into your Odoo

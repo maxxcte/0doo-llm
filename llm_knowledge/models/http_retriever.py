@@ -105,7 +105,7 @@ class IrAttachmentExtension(models.Model):
         _logger.info(f"Retrieving content from URL: {url}")
 
         # Get the content from the URL
-        headers = {"User-Agent": "Mozilla/5.0 (compatible; Odoo LLM RAG/1.0)"}
+        headers = {"User-Assistant": "Mozilla/5.0 (compatible; Odoo LLM RAG/1.0)"}
         response = requests.get(url, timeout=30, headers=headers)
         response.raise_for_status()  # Raise an exception for HTTP errors
 
