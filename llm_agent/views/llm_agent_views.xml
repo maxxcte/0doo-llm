@@ -64,7 +64,7 @@
                                 <field
                                         name="default_values"
                                         widget="ace"
-                                        options="{'mode': 'json'}"
+                                        options="{'mode': 'text'}"
                                         placeholder="{
   &quot;role&quot;: &quot;Customer Support Assistant&quot;,
   &quot;goal&quot;: &quot;Help customers solve their problems efficiently&quot;,

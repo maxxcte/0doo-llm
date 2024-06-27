@@ -12,7 +12,7 @@
                     </group>
                     <notebook>
                         <page string="Generated Messages">
-                            <field name="messages" widget="ace" options="{'mode': 'json'}" readonly="1"/>
+                            <field name="messages" widget="ace" options="{'mode': 'text'}" readonly="1"/>
                         </page>
                     </notebook>
                 </sheet>

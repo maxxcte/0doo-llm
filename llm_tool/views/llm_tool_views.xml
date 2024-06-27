@@ -75,7 +75,7 @@
                             <field
                 name="input_schema"
                 widget="ace"
-                options="{'mode': 'json'}"
+                options="{'mode': 'text'}"
                 placeholder="{
   'type': 'object',
   'properties': {

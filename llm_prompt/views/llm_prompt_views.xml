@@ -52,7 +52,7 @@
                                 <field name="undefined_arguments" readonly="1" class="oe_inline"/>
                             </div>
                             <group>
-                                <field name="arguments_json" widget="ace" options="{'mode': 'json'}" placeholder="{
+                                <field name="arguments_json" widget="ace" options="{'mode': 'text'}" placeholder="{
   'system_prompt': {
     'type': 'string',
     'description': 'The system instructions for the LLM',
@@ -82,7 +82,7 @@
                         </page>
                         <page string="Testing" name="testing">
                             <group>
-                                <field name="example_args" widget="ace" options="{'mode': 'json'}" placeholder="{
+                                <field name="example_args" widget="ace" options="{'mode': 'text'}" placeholder="{
   'system_prompt': 'You are a helpful data analysis assistant.',
   'user_input': 'Please analyze this dataset...'
 }"/>
