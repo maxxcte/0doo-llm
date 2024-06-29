@@ -1,7 +1,7 @@
 16.0.1.0.1 (2025-04-04)
 ------------------------
 
-* [ADD] Added Knowledge Bot agent that uses knowledge_retriever tool
+* [ADD] Added Knowledge Bot assistant that uses knowledge_retriever tool
 * [IMP] Integrated with OpenAI GPT-4o model for enhanced knowledge retrieval capabilities
 
 16.0.1.0.0 (2025-03-28)

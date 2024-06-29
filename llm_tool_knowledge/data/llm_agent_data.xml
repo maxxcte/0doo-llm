@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-    <record id="llm_agent_knowledge_bot" model="llm.agent">
+    <record id="llm_assistant_knowledge_bot" model="llm.assistant">
         <field name="name">Knowledge Bot</field>
         <field name="provider_id" ref="llm_openai.llm_provider_openai" />
         <field name="model_id" ref="llm_openai.llm_model_gpt4o" />
