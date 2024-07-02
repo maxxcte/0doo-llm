@@ -1,5 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- This is a placeholder for the menu items -->
-    <!-- Menu structure for knowledge module would go here -->
+    <!-- Top Level Knowledge Menu -->
+    <menuitem
+        id="menu_llm_knowledge_root"
+        name="Knowledge"
+        parent="llm.menu_llm_root"
+        sequence="30"
+    />
+
+    <!-- Resources Menu (points to action defined in llm_knowledge) -->
+    <menuitem
+        id="menu_llm_resource"
+        name="Resources"
+        parent="menu_llm_knowledge_root"
+        action="action_llm_resource_knowledge"
+        sequence="10"
+    />
+
+    <!-- Collections Menu -->
+    <menuitem
+        id="menu_llm_knowledge_collection"
+        name="Collections"
+        parent="menu_llm_knowledge_root"
+        action="action_llm_knowledge_collection"
+        sequence="5"
+    />
+
+   <!-- Chunks Menu -->
+   <menuitem
+        id="menu_llm_knowledge_chunk"
+        name="Knowledge Chunks"
+        parent="menu_llm_knowledge_root"
+        action="action_llm_knowledge_chunk"
+        sequence="30"
+    />
+
 </odoo>

@@ -64,6 +64,14 @@ class LLMKnowledgeCollection(models.Model):
         column2="chunk_id",
     )
 
+    store_id = fields.Many2one(
+        "llm.store", 
+        string="Vector Store", 
+        required=False, 
+        ondelete="cascade", 
+        tracking=True
+    )
+
     @api.depends("resource_ids")
     def _compute_resource_count(self):
         for record in self:

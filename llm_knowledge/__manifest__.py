@@ -20,9 +20,18 @@
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
     "data": [
+        # Security must come first
         "security/ir.model.access.csv",
+        # Views for models
+        "views/llm_resource_views.xml", # Defines views for llm.resource
         "views/llm_knowledge_collection_views.xml",
         "views/llm_knowledge_chunk_views.xml",
+        # Wizard Views
+        "wizards/create_rag_document_wizard_views.xml",
+        "wizards/upload_document_wizard_views.xml",
+        # Data / Actions
+        "data/server_actions.xml",
+        # Menus must come last
         "views/menu.xml",
     ],
     "license": "LGPL-3",
