@@ -12,8 +12,8 @@ from odoo import api, models
 _logger = logging.getLogger(__name__)
 
 
-class LLMResourceHTTPRetriever(models.Model):
-    _inherit = "llm.resource"
+class LLMDocumentRetrieverExtension(models.Model):
+    _inherit = "llm.document"
 
     @api.model
     def _get_available_retrievers(self):
@@ -26,19 +26,19 @@ class LLMResourceHTTPRetriever(models.Model):
 class IrAttachmentExtension(models.Model):
     _inherit = "ir.attachment"
 
-    def rag_retrieve(self, llm_resource):
+    def rag_retrieve(self, llm_document):
         """
-        Implementation for HTTP retrieval when the attachment has an external URL
+        Override to use HTTP retriever when the attachment has an external URL
         """
         self.ensure_one()
 
-        # If the attachment has a URL and the resource uses HTTP retriever, download content
+        # If the attachment has a URL and the document uses HTTP retriever, download content
         if self.type == "url" and self.url:
-            return self._http_retrieve(llm_resource)
+            return self._http_retrieve(llm_document)
         else:
             # Fall back to default behavior
             return (
-                super().rag_retrieve(llm_resource)
+                super().rag_retrieve(llm_document)
                 if hasattr(super(), "rag_retrieve")
                 else False
             )
@@ -83,20 +83,20 @@ class IrAttachmentExtension(models.Model):
         ]
         return any(content_type.startswith(t) for t in text_types)
 
-    def _http_retrieve(self, llm_resource):
+    def _http_retrieve(self, llm_document):
         """
         Retrieves content from an external URL.
-        For HTML, text, or markdown content, directly updates the llm.resource content.
+        For HTML, text, or markdown content, directly updates the llm.document content.
         For binary content, downloads and saves it to the attachment.
 
-        :param llm_resource: The llm.resource record being processed
+        :param llm_document: The llm.document record being processed
         :return: Dictionary with state or Boolean indicating success
         """
         self.ensure_one()
         url = self.url
 
         if not url:
-            llm_resource._post_message(
+            llm_document._post_message(
                 f"No URL found for attachment {self.name}", "error"
             )
             return False
@@ -105,7 +105,7 @@ class IrAttachmentExtension(models.Model):
         _logger.info(f"Retrieving content from URL: {url}")
 
         # Get the content from the URL
-        headers = {"User-Agent": "Mozilla/5.0 (compatible; Odoo LLM Resource/1.0)"}
+        headers = {"User-Agent": "Mozilla/5.0 (compatible; Odoo LLM RAG/1.0)"}
         response = requests.get(url, timeout=30, headers=headers)
         response.raise_for_status()  # Raise an exception for HTTP errors
 
@@ -139,7 +139,7 @@ class IrAttachmentExtension(models.Model):
 
         # Handle based on content type
         if self._is_text_content_type(content_type):
-            # For text content types, extract the text and update the llm.resource
+            # For text content types, extract the text and update the llm.document
             try:
                 text_content = content.decode("utf-8")
             except UnicodeDecodeError:
@@ -165,8 +165,8 @@ class IrAttachmentExtension(models.Model):
             # Ensure all links have full URLs
             markdown_content = self._ensure_full_urls(markdown_content, url)
 
-            # Update the llm.resource with markdown content
-            llm_resource.write({"content": markdown_content})
+            # Update the llm.document with markdown content
+            llm_document.write({"content": markdown_content})
 
             # Store as attachment anyway for reference
             content_base64 = base64.b64encode(content)
@@ -180,7 +180,7 @@ class IrAttachmentExtension(models.Model):
             )
 
             # Post success message
-            llm_resource._post_message(
+            llm_document._post_message(
                 f"Successfully retrieved and parsed content from URL: {url} ({len(text_content)} characters)",
                 "success",
             )
@@ -200,7 +200,7 @@ class IrAttachmentExtension(models.Model):
             )
 
             # Post success message
-            llm_resource._post_message(
+            llm_document._post_message(
                 f"Successfully retrieved content from URL: {url} ({len(content)} bytes, {content_type})",
                 "success",
             )
