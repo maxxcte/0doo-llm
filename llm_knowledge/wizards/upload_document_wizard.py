@@ -8,14 +8,14 @@ _logger = logging.getLogger(__name__)
 
 
 class UploadDocumentWizard(models.TransientModel):
-    _name = "llm.upload.document.wizard"
-    _description = "Upload RAG Documents Wizard"
+    _name = "llm.upload.document.wizard" # Keep original name or rename if preferred
+    _description = "Upload RAG Resources Wizard"
 
     collection_id = fields.Many2one(
-        "llm.document.collection",
+        "llm.knowledge.collection", # Target llm.knowledge.collection
         string="Collection",
-        required=True,
-        help="Collection to which documents will be added",
+        required=True, # Collection is required here
+        help="Collection to which resources will be added",
     )
     file_ids = fields.Many2many(
         "ir.attachment", string="Files", help="Local files to upload"
@@ -23,16 +23,17 @@ class UploadDocumentWizard(models.TransientModel):
     external_urls = fields.Text(
         string="External URLs", help="External URLs to include, one per line"
     )
-    document_name_template = fields.Char(
-        string="Document Name Template",
+    # Field renamed for clarity
+    resource_name_template = fields.Char(
+        string="Resource Name Template",
         default="{filename}",
-        help="Template for document names. Use {filename}, {collection}, and {index} as placeholders.",
+        help="Template for resource names. Use {filename}, {collection}, and {index} as placeholders.",
         required=True,
     )
     process_immediately = fields.Boolean(
         string="Process Immediately",
         default=False,
-        help="If checked, documents will be immediately processed through the RAG pipeline",
+        help="If checked, resources will be immediately processed through the RAG pipeline",
     )
     state = fields.Selection(
         [
@@ -41,20 +42,21 @@ class UploadDocumentWizard(models.TransientModel):
         ],
         default="confirm",
     )
-    created_document_ids = fields.Many2many(
-        "llm.document",
-        string="Created Documents",
+    # Field renamed and target model changed
+    created_resource_ids = fields.Many2many(
+        "llm.resource", # Target llm.resource
+        string="Created Resources",
     )
     created_count = fields.Integer(string="Created", compute="_compute_created_count")
 
-    @api.depends("created_document_ids")
+    @api.depends("created_resource_ids")
     def _compute_created_count(self):
         for wizard in self:
-            wizard.created_count = len(wizard.created_document_ids)
+            wizard.created_count = len(wizard.created_resource_ids)
 
     def _extract_filename_from_url(self, url):
         """Extract a clean filename from a URL"""
-        # Try to extract filename from the URL path
+        # This utility method remains the same
         match = re.search(r"/([^/]+)(?:\?.*)?$", url)
         if match:
             filename = match.group(1)
@@ -64,18 +66,21 @@ class UploadDocumentWizard(models.TransientModel):
             return filename
         return url
 
-    def action_upload_documents(self):
-        """Create RAG documents from uploaded files and external URLs"""
+    # Method renamed for clarity
+    def action_upload_resources(self):
+        """Create RAG resources from uploaded files and external URLs"""
         self.ensure_one()
         collection = self.collection_id
-        created_documents = self.env["llm.document"]
+        created_resources = self.env["llm.resource"] # Target llm.resource
 
         # Get the ir.model record for ir.attachment
-        attachment_model_id = (
-            self.env["ir.model"].search([("model", "=", "ir.attachment")], limit=1).id
+        # Renamed variable
+        attachment_model_id_rec = (
+            self.env["ir.model"].search([("model", "=", "ir.attachment")], limit=1)
         )
-        if not attachment_model_id:
+        if not attachment_model_id_rec:
             raise UserError(_("Could not find ir.attachment model"))
+        attachment_model_id = attachment_model_id_rec.id
 
         # Validate that at least one file or URL is provided
         if not self.file_ids and not self.external_urls:
@@ -83,27 +88,28 @@ class UploadDocumentWizard(models.TransientModel):
 
         # Process local files
         for index, attachment in enumerate(self.file_ids):
-            document_name = self.document_name_template.format(
+            # Use renamed field
+            resource_name = self.resource_name_template.format(
                 filename=attachment.name,
-                collection=collection.name,
+                collection=collection.name, # Use collection name
                 index=index + 1,
             )
 
-            # Create RAG document using model_id
-            document = self.env["llm.document"].create(
+            # Create RAG resource using model_id
+            resource = self.env["llm.resource"].create( # Target llm.resource
                 {
-                    "name": document_name,
+                    "name": resource_name,
                     "model_id": attachment_model_id,
                     "res_id": attachment.id,
-                    "collection_ids": [(4, collection.id)],
+                    "collection_ids": [(4, collection.id)], # Link to collection
                 }
             )
 
-            # Process document if requested
+            # Process resource if requested (full RAG pipeline)
             if self.process_immediately:
-                document.process_document()
+                resource.process_resource() # Calls overridden method
 
-            created_documents |= document
+            created_resources |= resource
 
         # Process external URLs
         if self.external_urls:
@@ -114,9 +120,10 @@ class UploadDocumentWizard(models.TransientModel):
                 # Extract filename from URL for naming
                 filename = self._extract_filename_from_url(url)
 
-                document_name = self.document_name_template.format(
+                # Use renamed field
+                resource_name = self.resource_name_template.format(
                     filename=filename,
-                    collection=collection.name,
+                    collection=collection.name, # Use collection name
                     index=len(self.file_ids) + index + 1,
                 )
 
@@ -126,50 +133,59 @@ class UploadDocumentWizard(models.TransientModel):
                         "name": filename,
                         "type": "url",
                         "url": url,
-                        "res_model": "llm.document.collection",
-                        "res_id": collection.id,
+                        # Don't link attachment directly to collection, link the resource instead
+                        # "res_model": "llm.knowledge.collection",
+                        # "res_id": collection.id,
                     }
                 )
 
-                # Create RAG document using model_id
-                document = self.env["llm.document"].create(
+                # Create RAG resource using model_id
+                resource = self.env["llm.resource"].create( # Target llm.resource
                     {
-                        "name": document_name,
+                        "name": resource_name,
                         "model_id": attachment_model_id,
                         "res_id": attachment.id,
-                        "collection_ids": [(4, collection.id)],
+                        "collection_ids": [(4, collection.id)], # Link to collection
+                        "retriever": "http", # Specify HTTP retriever
                     }
                 )
 
-                # Process document if requested
+                # Process resource if requested (full RAG pipeline)
                 if self.process_immediately:
-                    document.process_document()
+                    resource.process_resource() # Calls overridden method
 
-                created_documents |= document
+                created_resources |= resource
 
         # Update wizard state
         self.write(
             {
                 "state": "done",
-                "created_document_ids": [(6, 0, created_documents.ids)],
+                "created_resource_ids": [(6, 0, created_resources.ids)], # Use renamed field
             }
         )
 
         return {
             "type": "ir.actions.act_window",
-            "res_model": "llm.upload.document.wizard",
+            "res_model": self._name, # Use self._name for correct wizard model
             "res_id": self.id,
             "view_mode": "form",
             "target": "new",
             "context": self.env.context,
         }
 
-    def action_view_documents(self):
-        """Open the created documents"""
+    # Method renamed for clarity
+    def action_view_resources(self):
+        """Open the created resources"""
         return {
-            "name": "Uploaded RAG Documents",
+            "name": "Uploaded RAG Resources",
             "type": "ir.actions.act_window",
-            "res_model": "llm.document",
+            "res_model": "llm.resource", # Target llm.resource
             "view_mode": "tree,form,kanban",
-            "domain": [("id", "in", self.created_document_ids.ids)],
+            "domain": [("id", "in", self.created_resource_ids.ids)], # Use renamed field
+             # Use the specific views defined in llm_knowledge for llm.resource
+            "view_ids": [(5, 0, 0),
+                (0, 0, {'view_mode': 'kanban', 'view_id': self.env.ref('llm_knowledge.view_llm_resource_kanban').id}),
+                (0, 0, {'view_mode': 'tree', 'view_id': self.env.ref('llm_knowledge.view_llm_resource_tree').id}),
+                (0, 0, {'view_mode': 'form', 'view_id': self.env.ref('llm_knowledge.view_llm_resource_form').id})],
+            "search_view_id": [self.env.ref('llm_knowledge.view_llm_resource_search').id],
         }

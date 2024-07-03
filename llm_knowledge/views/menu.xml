@@ -1,32 +1,38 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Top Level Knowledge Menu -->
     <menuitem
-    id="menu_llm_knowledge"
-    name="Knowledge"
-    parent="llm.menu_llm_root"
-    sequence="30"
-  />
+        id="menu_llm_knowledge_root"
+        name="Knowledge"
+        parent="llm.menu_llm_root"
+        sequence="30"
+    />
 
+    <!-- Resources Menu (points to action defined in llm_knowledge) -->
     <menuitem
-    id="menu_llm_document"
-    name="Documents"
-    parent="menu_llm_knowledge"
-    action="action_llm_document"
-    sequence="10"
-  />
-  <menuitem
-    id="menu_llm_document_collection"
-    name="Collections"
-    parent="menu_llm_knowledge"
-    action="action_llm_document_collection"
-    sequence="5"
-  />
+        id="menu_llm_resource"
+        name="Resources"
+        parent="menu_llm_knowledge_root"
+        action="action_llm_resource_knowledge"
+        sequence="10"
+    />
+
+    <!-- Collections Menu -->
+    <menuitem
+        id="menu_llm_knowledge_collection"
+        name="Collections"
+        parent="menu_llm_knowledge_root"
+        action="action_llm_knowledge_collection"
+        sequence="5"
+    />
+
+   <!-- Chunks Menu -->
    <menuitem
-    id="menu_llm_document_chunk"
-    name="Document Chunks"
-    parent="menu_llm_knowledge"
-    action="action_llm_document_chunk"
-    sequence="30"
-  />
+        id="menu_llm_knowledge_chunk"
+        name="Knowledge Chunks"
+        parent="menu_llm_knowledge_root"
+        action="action_llm_knowledge_chunk"
+        sequence="30"
+    />
 
 </odoo>
