@@ -1,110 +1,100 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-    <!-- Server Action for Creating RAG Resources (from specific models like attachment) -->
-    <record id="action_create_rag_resource_knowledge" model="ir.actions.server">
-        <field name="name">Create RAG Resource</field>
-        <field name="model_id" ref="base.model_ir_attachment"/> <!-- Example binding -->
-        <field name="binding_model_id" ref="base.model_ir_attachment"/>
+    <!-- Server Action for Creating RAG Documents -->
+    <record id="action_create_rag_document" model="ir.actions.server">
+        <field name="name">Create RAG Document</field>
+        <field name="model_id" ref="base.model_ir_attachment" />
+        <field name="binding_model_id" ref="base.model_ir_attachment" />
         <field name="binding_view_types">list,form</field>
         <field name="state">code</field>
         <field name="code">
-if records:
-    action = {
-        "type": "ir.actions.act_window",
-        "name": "Create RAG Resources",
-        "res_model": "llm.create.rag.document.wizard", # Wizard in llm_knowledge
-        "view_mode": "form",
-        "target": "new",
-        "context": {"active_model": records._name, "active_ids": records.ids},
-    }
+            if records:
+            action = {
+            "type": "ir.actions.act_window",
+            "name": "Create RAG Documents",
+            "res_model": "llm.create.rag.document.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"active_model": records._name, "active_ids": records.ids},
+            }
         </field>
     </record>
 
-    <!-- Action Window for Resources (This might be redundant if defined in views/llm_resource_views.xml) -->
-    <!-- Keep only if needed as a separate action -->
-    <!--
-    <record id="action_llm_resource_standalone" model="ir.actions.act_window">
-        <field name="name">RAG Resources</field>
-        <field name="res_model">llm.resource</field>
+    <!-- Main Document Action -->
+    <record id="action_llm_document" model="ir.actions.act_window">
+        <field name="name">RAG Documents</field>
+        <field name="res_model">llm.document</field>
         <field name="view_mode">kanban,tree,form</field>
-        <field name="search_view_id" ref="view_llm_resource_search"/>
         <field name="context">{"search_default_group_by_state": 1}</field>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">Create your first RAG resource</p>
-            <p>Resources can be linked to any record in Odoo for RAG processing.</p>
+            <p
+        class="o_view_nocontent_smiling_face"
+      >Create your first RAG document
+            </p>
+            <p>Documents can be linked to any record in Odoo for RAG processing.
+            </p>
         </field>
     </record>
-    -->
 
-    <!-- Server Action for Re-indexing RAG Resources -->
-    <record id="action_reindex_rag_resources" model="ir.actions.server">
-        <field name="name">Re-index RAG Resources</field>
-        <field name="model_id" ref="llm_resource.model_llm_resource"/>
-        <field name="binding_model_id" ref="llm_resource.model_llm_resource"/>
+    <!-- Server Action for Re-indexing RAG Documents -->
+    <record id="action_reindex_rag_documents" model="ir.actions.server">
+        <field name="name">Re-index RAG Documents</field>
+        <field name="model_id" ref="model_llm_document" />
+        <field name="binding_model_id" ref="model_llm_document" />
         <field name="binding_view_types">list</field>
         <field name="state">code</field>
         <field name="code">
-# action_mass_reindex method is added by llm_knowledge inheriting llm.resource
-action = records.action_mass_reindex()
+            action = records.action_mass_reindex()
         </field>
     </record>
 
-    <!-- Server Action for Upload Resources button in llm.resource views -->
-    <record id="action_button_upload_resources_knowledge" model="ir.actions.server">
-        <field name="name">Upload Resources</field>
-        <field name="model_id" ref="llm_resource.model_llm_resource"/>
-        <field name="binding_model_id" ref="llm_resource.model_llm_resource"/>
+    <!-- Server Action for the Upload Documents button in document and collection list views -->
+    <record id="action_button_upload_documents" model="ir.actions.server">
+        <field name="name">Upload Documents</field>
+        <field name="model_id" ref="model_llm_document" />
+        <field name="binding_model_id" ref="model_llm_document" />
         <field name="binding_view_types">list,kanban</field>
         <field name="state">code</field>
         <field name="code">
-action = {
-    "type": "ir.actions.act_window",
-    "name": "Upload RAG Resources",
-    "res_model": "llm.upload.document.wizard", # Wizard in llm_knowledge
-    "view_mode": "form",
-    "target": "new",
-    "context": {}, # No collection pre-selected
-}
+            action = {
+            "type": "ir.actions.act_window",
+            "name": "Upload Documents",
+            "res_model": "llm.upload.document.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {},
+            }
         </field>
     </record>
 
-    <!-- Server Action for Upload Resources button in collection views -->
-    <record id="action_collection_upload_resources" model="ir.actions.server">
-        <field name="name">Upload Resources</field>
-        <field name="model_id" ref="model_llm_knowledge_collection"/>
-        <field name="binding_model_id" ref="model_llm_knowledge_collection"/>
-        <field name="binding_view_types">list,kanban,form</field> <!-- Added form -->
+    <!-- Server Action for the Upload Documents button in collection list views -->
+    <record id="action_collection_upload_documents" model="ir.actions.server">
+        <field name="name">Upload Documents</field>
+        <field name="model_id" ref="model_llm_document_collection" />
+        <field name="binding_model_id" ref="model_llm_document_collection" />
+        <field name="binding_view_types">list,kanban</field>
         <field name="state">code</field>
         <field name="code">
-# Pass current collection ID in context
-context = dict(env.context or {})
-if records and len(records) == 1:
-    context['default_collection_id'] = records.id
-# Handle context from form view
-elif env.context.get('active_id') and env.context.get('active_model') == 'llm.knowledge.collection':
-     context['default_collection_id'] = env.context.get('active_id')
-
-action = {
-    "type": "ir.actions.act_window",
-    "name": "Upload RAG Resources",
-    "res_model": "llm.upload.document.wizard", # Wizard in llm_knowledge
-    "view_mode": "form",
-    "target": "new",
-    "context": context,
-}
+            action = {
+            "type": "ir.actions.act_window",
+            "name": "Upload Documents",
+            "res_model": "llm.upload.document.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {},
+            }
         </field>
     </record>
 
-    <!-- Server Action for Mass Processing (Full RAG Pipeline) -->
-    <record id="action_mass_process_rag_resources" model="ir.actions.server">
-        <field name="name">Process Resources (Full RAG)</field>
-        <field name="model_id" ref="llm_resource.model_llm_resource"/>
-        <field name="binding_model_id" ref="llm_resource.model_llm_resource"/>
+    <!-- Server Action for Mass Processing of RAG Documents -->
+    <record id="action_mass_process_documents" model="ir.actions.server">
+        <field name="name">Process Documents (Mass)</field>
+        <field name="model_id" ref="model_llm_document" />
+        <field name="binding_model_id" ref="model_llm_document" />
         <field name="binding_view_types">list</field>
         <field name="state">code</field>
         <field name="code">
-# Calls the overridden process_resource method in llm_knowledge
-action = model.action_mass_process_resources()
+            action = model.action_mass_process_documents()
         </field>
     </record>
 
