@@ -1,8 +1,8 @@
 from odoo import api, fields, models
 
 
-class LLMCollectionDomain(models.Model):
-    _name = "llm.collection.domain"
+class LLMKnowledgeDomain(models.Model):
+    _name = "llm.knowledge.domain"
     _description = "Collection Domain Filter"
     _order = "sequence, id"
 
@@ -12,7 +12,7 @@ class LLMCollectionDomain(models.Model):
         store=True,
     )
     collection_id = fields.Many2one(
-        "llm.document.collection",
+        "llm.knowledge.collection",
         string="Collection",
         required=True,
         ondelete="cascade",
