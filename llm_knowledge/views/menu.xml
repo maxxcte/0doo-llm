@@ -8,15 +8,6 @@
         sequence="30"
     />
 
-    <!-- Resources Menu (points to action defined in llm_knowledge) -->
-    <menuitem
-        id="menu_llm_resource"
-        name="Resources"
-        parent="menu_llm_knowledge_root"
-        action="action_llm_resource_knowledge"
-        sequence="10"
-    />
-
     <!-- Collections Menu -->
     <menuitem
         id="menu_llm_knowledge_collection"

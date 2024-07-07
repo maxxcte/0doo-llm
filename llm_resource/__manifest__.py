@@ -20,6 +20,9 @@
     "website": "https://github.com/apexive/odoo-llm",
     "data": [
         "security/ir.model.access.csv",
+        "data/server_actions.xml",
+        "views/llm_resource_views.xml",
+        "views/menu.xml",
     ],
     "license": "LGPL-3",
     "installable": True,
