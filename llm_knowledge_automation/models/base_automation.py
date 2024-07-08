@@ -20,7 +20,7 @@ class BaseAutomation(models.Model):
             ("mail_post", "Post a Message"),
             ("followers", "Add Followers"),
             ("next_activity", "Create Next Activity"),
-            ("llm_update", "Update LLM Document"),
+            ("llm_update", "Update LLM Resource"),
         ],
         string="Action To Do",
         default="code",
@@ -30,27 +30,27 @@ class BaseAutomation(models.Model):
     )
 
     llm_collection_id = fields.Many2one(
-        "llm.document.collection",
+        "llm.knowledge.collection",
         string="LLM Collection",
         ondelete="cascade",
         help="LLM Collection that this automated action is linked to",
     )
 
     llm_auto_process = fields.Boolean(
-        string="Auto Process Documents",
+        string="Auto Process Resources",
         default=True,
-        help="Automatically process documents through the RAG pipeline",
+        help="Automatically process resources through the RAG pipeline",
     )
 
     @api.model
     def _get_states(self):
         """Add llm_update to the states dictionary."""
         states = super()._get_states()
-        states["llm_update"] = _("Update related LLM document")
+        states["llm_update"] = _("Update related LLM resource")
         return states
 
     def _process_llm_update(self, records):
-        """Process the update LLM document action."""
+        """Process the update LLM resource action."""
         self.ensure_one()
 
         if not self.llm_collection_id:
@@ -72,8 +72,8 @@ class BaseAutomation(models.Model):
 
         # Process matched records: either create new or add to collection
         for record in matched_records:
-            # Try to find existing document
-            existing_doc = self.env["llm.document"].search(
+            # Try to find existing resource
+            existing_doc = self.env["llm.knowledge"].search(
                 [("model_id", "=", model_id), ("res_id", "=", record.id)], limit=1
             )
 
@@ -82,7 +82,7 @@ class BaseAutomation(models.Model):
                 if collection.id not in existing_doc.collection_ids.ids:
                     existing_doc.write({"collection_ids": [(4, collection.id)]})
             else:
-                # Create a new document
+                # Create a new resource
                 # Get a meaningful name
                 if hasattr(record, "display_name") and record.display_name:
                     name = record.display_name
@@ -91,8 +91,8 @@ class BaseAutomation(models.Model):
                 else:
                     name = f"{self.model_id.name} #{record.id}"
 
-                # Create the document and add to collection
-                doc = self.env["llm.document"].create(
+                # Create the resource and add to collection
+                resource = self.env["llm.knowledge"].create(
                     {
                         "name": name,
                         "model_id": model_id,
@@ -101,27 +101,27 @@ class BaseAutomation(models.Model):
                     }
                 )
 
-                # Process the document if auto_process is enabled
+                # Process the resource if auto_process is enabled
                 if self.llm_auto_process:
-                    doc.process_document()
+                    resource.process_resource()
 
         # For on_write and on_unlink, handle records that no longer match the domain
         if self.trigger in ["on_write", "on_unlink"]:
             unmatched_records = records - matched_records
 
             for record in unmatched_records:
-                # Find document
-                doc = self.env["llm.document"].search(
+                # Find resource
+                resource = self.env["llm.knowledge"].search(
                     [("model_id", "=", model_id), ("res_id", "=", record.id)], limit=1
                 )
 
-                if doc and collection.id in doc.collection_ids.ids:
+                if resource and collection.id in resource.collection_ids.ids:
                     # Remove from this collection
-                    doc.write({"collection_ids": [(3, collection.id)]})
+                    resource.write({"collection_ids": [(3, collection.id)]})
 
-                    # If document doesn't belong to any collection, remove it
-                    if not doc.collection_ids:
-                        doc.unlink()
+                    # If resource doesn't belong to any collection, remove it
+                    if not resource.collection_ids:
+                        resource.unlink()
 
         return True
 
@@ -144,12 +144,12 @@ class BaseAutomation(models.Model):
         self = self.with_context(__action_done=action_done)
         records = records.with_context(__action_done=action_done)
 
-        # Update document modification date if field exists
+        # Update resource modification date if field exists
         values = {}
         if "date_action_last" in records._fields:
             values["date_action_last"] = fields.Datetime.now()
         if values:
             records.write(values)
 
-        # Process the LLM document update
+        # Process the LLM resource update
         self._process_llm_update(records)
