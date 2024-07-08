@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Base Kanban View for llm.resource -->
-    <record id="view_llm_resource_kanban_base" model="ir.ui.view">
-        <field name="name">llm.resource.kanban.base</field>
+    <record id="view_llm_resource_kanban" model="ir.ui.view">
+        <field name="name">llm.resource.kanban</field>
         <field name="model">llm.resource</field>
         <field name="arch" type="xml">
             <kanban default_group_by="state" class="o_kanban_small_column" sample="1">
@@ -57,8 +57,8 @@
     </record>
 
     <!-- Base Form View for llm.resource -->
-    <record id="view_llm_resource_form_base" model="ir.ui.view">
-        <field name="name">llm.resource.form.base</field>
+    <record id="view_llm_resource_form" model="ir.ui.view">
+        <field name="name">llm.resource.form</field>
         <field name="model">llm.resource</field>
         <field name="arch" type="xml">
             <form>
@@ -111,8 +111,8 @@
     </record>
 
     <!-- Base Tree View for llm.resource -->
-    <record id="view_llm_resource_tree_base" model="ir.ui.view">
-        <field name="name">llm.resource.tree.base</field>
+    <record id="view_llm_resource_tree" model="ir.ui.view">
+        <field name="name">llm.resource.tree</field>
         <field name="model">llm.resource</field>
         <field name="arch" type="xml">
             <tree>
@@ -128,8 +128,8 @@
     </record>
 
     <!-- Base Search View for llm.resource -->
-    <record id="view_llm_resource_search_base" model="ir.ui.view">
-        <field name="name">llm.resource.search.base</field>
+    <record id="view_llm_resource_search" model="ir.ui.view">
+        <field name="name">llm.resource.search</field>
         <field name="model">llm.resource</field>
         <field name="arch" type="xml">
             <search>
@@ -156,10 +156,10 @@
         <field name="res_model">llm.resource</field>
         <field name="view_mode">kanban,tree,form</field>
         <field name="view_ids" eval="[(5, 0, 0),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_llm_resource_kanban_base')}),
-            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_llm_resource_tree_base')}),
-            (0, 0, {'view_mode': 'form', 'view_id': ref('view_llm_resource_form_base')})]"/>
-        <field name="search_view_id" ref="view_llm_resource_search_base"/>
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_llm_resource_kanban')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_llm_resource_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_llm_resource_form')})]"/>
+        <field name="search_view_id" ref="view_llm_resource_search"/>
         <field name="context">{"search_default_group_by_state": 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Create your first resource</p>

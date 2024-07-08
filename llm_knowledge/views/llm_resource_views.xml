@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Inherit Kanban View to add RAG elements -->
-    <record id="view_llm_resource_kanban_knowledge" model="ir.ui.view">
-        <field name="name">llm.resource.kanban.knowledge</field>
+    <record id="view_llm_resource_kanban" model="ir.ui.view">
+        <field name="name">llm.resource.kanban</field>
         <field name="model">llm.resource</field>
         <!-- Inherit the base view from llm_resource -->
-        <field name="inherit_id" ref="llm_resource.view_llm_resource_kanban_base"/>
+        <field name="inherit_id" ref="llm_resource.view_llm_resource_kanban"/>
         <field name="arch" type="xml">
             <!-- Add chunk_count field definition -->
             <xpath expr="//field[@name='res_id']" position="after">
@@ -41,11 +41,11 @@
     </record>
 
     <!-- Inherit Form View to add RAG elements -->
-    <record id="view_llm_resource_form_knowledge" model="ir.ui.view">
-        <field name="name">llm.resource.form.knowledge</field>
+    <record id="view_llm_resource_form" model="ir.ui.view">
+        <field name="name">llm.resource.form</field>
         <field name="model">llm.resource</field>
          <!-- Inherit the base view from llm_resource -->
-        <field name="inherit_id" ref="llm_resource.view_llm_resource_form_base"/>
+        <field name="inherit_id" ref="llm_resource.view_llm_resource_form"/>
         <field name="arch" type="xml">
              <!-- Add RAG buttons to header -->
             <xpath expr="//header/button[@name='parse']" position="after">
@@ -100,11 +100,11 @@
     </record>
 
     <!-- Inherit Tree View to add chunk count -->
-     <record id="view_llm_resource_tree_knowledge" model="ir.ui.view">
-        <field name="name">llm.resource.tree.knowledge</field>
+     <record id="view_llm_resource_tree" model="ir.ui.view">
+        <field name="name">llm.resource.tree</field>
         <field name="model">llm.resource</field>
          <!-- Inherit the base view from llm_resource -->
-        <field name="inherit_id" ref="llm_resource.view_llm_resource_tree_base"/>
+        <field name="inherit_id" ref="llm_resource.view_llm_resource_tree"/>
         <field name="arch" type="xml">
              <!-- Add chunk_count field definition and display -->
             <xpath expr="//field[@name='state']" position="after">
@@ -114,11 +114,11 @@
     </record>
 
      <!-- Inherit Search View to add RAG state filters and grouping -->
-     <record id="view_llm_resource_search_knowledge" model="ir.ui.view">
-        <field name="name">llm.resource.search.knowledge</field>
+     <record id="view_llm_resource_search" model="ir.ui.view">
+        <field name="name">llm.resource.search</field>
         <field name="model">llm.resource</field>
          <!-- Inherit the base view from llm_resource -->
-        <field name="inherit_id" ref="llm_resource.view_llm_resource_search_base"/>
+        <field name="inherit_id" ref="llm_resource.view_llm_resource_search"/>
         <field name="arch" type="xml">
             <!-- Add RAG state filters -->
             <xpath expr="//filter[@name='state_parsed']" position="after">
