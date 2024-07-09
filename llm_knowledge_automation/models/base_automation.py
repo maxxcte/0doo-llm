@@ -73,7 +73,7 @@ class BaseAutomation(models.Model):
         # Process matched records: either create new or add to collection
         for record in matched_records:
             # Try to find existing resource
-            existing_doc = self.env["llm.knowledge"].search(
+            existing_doc = self.env["llm.resource"].search(
                 [("model_id", "=", model_id), ("res_id", "=", record.id)], limit=1
             )
 
@@ -92,7 +92,7 @@ class BaseAutomation(models.Model):
                     name = f"{self.model_id.name} #{record.id}"
 
                 # Create the resource and add to collection
-                resource = self.env["llm.knowledge"].create(
+                resource = self.env["llm.resource"].create(
                     {
                         "name": name,
                         "model_id": model_id,
@@ -111,7 +111,7 @@ class BaseAutomation(models.Model):
 
             for record in unmatched_records:
                 # Find resource
-                resource = self.env["llm.knowledge"].search(
+                resource = self.env["llm.resource"].search(
                     [("model_id", "=", model_id), ("res_id", "=", record.id)], limit=1
                 )
 
