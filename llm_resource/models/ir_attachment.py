@@ -17,6 +17,7 @@ class IrAttachment(models.Model):
 
         # Determine file type based on mimetype
         mimetype = self.mimetype or "application/octet-stream"
+        filename = self.name or ""
 
         try:
             # Handle different file types
@@ -37,6 +38,8 @@ class IrAttachment(models.Model):
                 image_url = f"/web/image/{self.id}"
                 llm_resource.content = f"![{self.name}]({image_url})"
                 success = True
+            elif filename.lower().endswith(".md") or mimetype == "text/markdown":
+                success = self._parse_markdown(llm_resource)
             else:
                 # Default to a generic description for unsupported types
                 llm_resource.content = f"""
@@ -81,3 +84,17 @@ class IrAttachment(models.Model):
 
         except Exception as e:
             raise models.UserError(f"Error parsing text file: {str(e)}") from e
+
+    def _parse_markdown(self, llm_resource):
+        """Parse Markdown file"""
+        try:
+            # Decode binary data as UTF-8 text
+            content_bytes = base64.b64decode(self.datas)
+            llm_resource.content = content_bytes.decode("utf-8")
+            llm_resource._post_message(
+                f"Successfully parsed Markdown file: {self.name}",
+                message_type="success",
+            )
+            return True
+        except Exception as e:
+            raise models.UserError(f"Error parsing Markdown file: {str(e)}") from e
