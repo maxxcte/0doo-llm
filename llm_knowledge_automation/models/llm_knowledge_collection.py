@@ -5,8 +5,8 @@ from odoo import _, api, fields, models
 _logger = logging.getLogger(__name__)
 
 
-class LLMDocumentCollection(models.Model):
-    _inherit = "llm.document.collection"
+class LLMKnowledgeCollection(models.Model):
+    _inherit = "llm.knowledge.collection"
 
     automated_sync = fields.Boolean(
         string="Automated Sync",
@@ -22,10 +22,10 @@ class LLMDocumentCollection(models.Model):
         help="Automated actions that keep this collection synchronized.",
     )
 
-    auto_process_documents = fields.Boolean(
-        string="Auto-Process Documents",
+    auto_process_resources = fields.Boolean(
+        string="Auto-Process Resources",
         default=True,
-        help="Automatically process newly created documents through the RAG pipeline.",
+        help="Automatically process newly created resources through the RAG pipeline.",
     )
 
     @api.model_create_multi
@@ -118,7 +118,7 @@ class LLMDocumentCollection(models.Model):
                     if trigger == "on_create"
                     else domain_filter.domain,
                     "active": domain_filter.active,
-                    "llm_auto_process": self.auto_process_documents,
+                    "llm_auto_process": self.auto_process_resources,
                 }
 
                 if key in existing_automations:

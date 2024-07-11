@@ -1,87 +1,59 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Form View for Wizard -->
     <record id="view_create_rag_document_wizard_form" model="ir.ui.view">
         <field name="name">llm.create.rag.document.wizard.form</field>
+        <!-- Model name should match the Python class _name -->
         <field name="model">llm.create.rag.document.wizard</field>
         <field name="arch" type="xml">
-            <form string="Create RAG Documents">
-                <field name="state" invisible="1" />
+            <!-- String updated for clarity -->
+            <form string="Create RAG Resources">
+                <field name="state" invisible="1"/>
                 <sheet>
                     <div states="confirm">
                         <div class="alert alert-info" role="alert">
-                            <p><strong
-                >You are about to create RAG documents for <field
-                    name="record_count"
-                  /> records.</strong></p>
-                            <p
-              >RAG (Retrieval Augmented Generation) documents will be used by AI models to retrieve relevant information during conversations.</p>
+                            <p><strong>You are about to create RAG resources for <field name="record_count"/> records.</strong></p>
+                            <p>RAG (Retrieval Augmented Generation) resources will be used by AI models to retrieve relevant information.</p>
                         </div>
                         <group>
-                            <field
-                name="document_name_template"
-                placeholder="e.g. RAG - {record_name}"
-              />
-                            <field name="process_immediately" />
+                            <!-- Field name updated -->
+                            <field name="resource_name_template" placeholder="e.g. RAG - {record_name}"/>
+                            <field name="process_immediately"/>
                         </group>
                         <div class="alert alert-info mt-3" role="alert">
-                            <p><strong
-                >Available placeholders for document name:</strong></p>
+                            <p><strong>Available placeholders for resource name:</strong></p>
                             <ul>
-                                <li><code
-                  >{record_name}</code> - Name of the record</li>
-                                <li><code
-                  >{model_name}</code> - Model description (e.g., "Product Template")</li>
+                                <li><code>{record_name}</code> - Name of the record</li>
+                                <li><code>{model_name}</code> - Model description (e.g., "Product Template")</li>
                                 <li><code>{id}</code> - Record ID</li>
                             </ul>
                         </div>
                     </div>
                     <div states="done">
                         <div class="alert alert-success" role="alert">
-                            <p><i
-                  class="fa fa-check-circle"
-                  title="Success"
-                  aria-label="Success"
-                /> <strong>Successfully created <field
-                    name="created_count"
-                  /> RAG documents!</strong></p>
+                            <p><i class="fa fa-check-circle" title="Success" aria-label="Success"/> <strong>Successfully created <field name="created_count"/> RAG resources!</strong></p>
                         </div>
                         <group>
-                            <field
-                name="created_document_ids"
-                nolabel="1"
-                readonly="1"
-              >
+                             <!-- Field name updated -->
+                            <field name="created_resource_ids" nolabel="1" readonly="1">
+                                <!-- Tree displays llm.resource fields -->
                                 <tree>
-                                    <field name="name" />
-                                    <field name="res_model" />
-                                    <field name="res_id" />
-                                    <field name="state" />
+                                    <field name="name"/>
+                                    <field name="res_model"/>
+                                    <field name="res_id"/>
+                                    <field name="state"/>
+                                    <!-- Add chunk_count if desired, requires view inheritance or adding field to base model -->
+                                    <!-- <field name="chunk_count"/> -->
                                 </tree>
                             </field>
                         </group>
                     </div>
                 </sheet>
                 <footer>
-                    <button
-            name="action_create_documents"
-            string="Create Documents"
-            type="object"
-            class="btn-primary"
-            attrs="{'invisible': [('state', '=', 'done')]}"
-          />
-                    <button
-            name="action_view_documents"
-            string="View Documents"
-            type="object"
-            class="btn-primary"
-            attrs="{'invisible': [('state', '=', 'confirm')]}"
-          />
-                    <button
-            special="cancel"
-            string="Close"
-            class="btn-secondary"
-          />
+                    <!-- Action names updated -->
+                    <button name="action_create_resources" string="Create Resources" type="object" class="btn-primary" attrs="{'invisible': [('state', '=', 'done')]}"/>
+                    <button name="action_view_resources" string="View Resources" type="object" class="btn-primary" attrs="{'invisible': [('state', '=', 'confirm')]}"/>
+                    <button special="cancel" string="Close" class="btn-secondary"/>
                 </footer>
             </form>
         </field>
