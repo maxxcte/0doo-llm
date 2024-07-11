@@ -17,10 +17,10 @@ Features:
 - Reusable document search functionality
 - Semantic and hybrid search capabilities
     """,
-    "depends": ["llm_knowledge", "llm_tool", "llm_assistant"],
+    "depends": ["llm_knowledge", "llm_tool", "llm_agent"],
     "data": [
         "data/llm_tool_data.xml",
-        "data/llm_assistant_data.xml",
+        "data/llm_agent_data.xml",
     ],
     "images": [
         "static/description/banner.jpeg",

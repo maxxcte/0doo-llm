@@ -1,1 +1,1 @@
-from . import llm_knowledge_llama_chunkers
+from . import llm_document_llama_chunkers

@@ -1,11 +1,7 @@
-import logging
 import json
 from odoo import _, http, api, registry
 from odoo.http import request, Response
 from odoo.exceptions import MissingError
-
-_logger = logging.getLogger(__name__)
-
 
 class LLMThreadController(http.Controller):
 
@@ -19,26 +15,54 @@ class LLMThreadController(http.Controller):
             return {'status': 'success'}
         except Exception as e:
             return {'status': 'error', 'error': str(e)}
-        
+
+    def _safe_yield(self, data_to_yield):
+        """Helper generator to yield data safely, handling BrokenPipeError(Disconnected user)."""
+        try:
+            yield data_to_yield
+            return True
+        except BrokenPipeError:
+            return False
+        except Exception:
+            return False
+
     def _llm_thread_generate(self, dbname, env, thread_id, user_message_body):
-        """Override generate method to handle tool messages"""
-        # Use a cursor block to ensure the cursor remains open for the duration of the generator
+        """Generate LLM responses with streaming and safe yielding."""
         with registry(dbname).cursor() as cr:
             env = api.Environment(cr, env.uid, env.context)
-            # Stream responses
             llmThread = env["llm.thread"].browse(int(thread_id))
             if not llmThread.exists():
-                yield f"data: {json.dumps({'type': 'error', 'error': 'LLM Thread not found.'})}\n\n".encode()
+                yield from self._safe_yield(f"data: {json.dumps({'type': 'error', 'error': 'LLM Thread not found.'})}\n\n".encode())
                 return
+
+            client_connected = True
             try:
-                for response in llmThread.generate(
-                    user_message_body
-                ):
+                for response in llmThread.generate(user_message_body):
                     json_data = json.dumps(response, default=str)
-                    yield f"data: {json_data}\n\n".encode()
+                    success = yield from self._safe_yield(f"data: {json_data}\n\n".encode())
+                    if not success:
+                        client_connected = False
+                        break
+
+            except GeneratorExit:
+                # Client disconnected explicitly
+                client_connected = False
+                if llmThread.exists() and llmThread._read_is_locked_decorated():
+                    llmThread._unlock()
+                return
+
             except Exception as e:
-                yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n".encode()
-            yield f"data: {json.dumps({'type': 'done'})}\n\n".encode()
+                if llmThread.exists() and llmThread._read_is_locked_decorated():
+                    llmThread._unlock()
+
+                if client_connected:
+                    success = yield from self._safe_yield(f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n".encode())
+                    if not success:
+                        client_connected = False
+
+            finally:
+                if client_connected:
+                    yield from self._safe_yield(f"data: {json.dumps({'type': 'done'})}\n\n".encode())
 
     @http.route('/llm/thread/generate', type="http", auth='user', csrf=True)
     def llm_thread_generate(self, thread_id, message=None, **kwargs):

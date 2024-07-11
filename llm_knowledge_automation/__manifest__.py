@@ -1,15 +1,15 @@
 {
     "name": "LLM Knowledge Automation",
-    "summary": "Automates RAG resource creation and synchronization with collections",
+    "summary": "Automates RAG document creation and synchronization with collections",
     "description": """
         Extends the LLM Knowledge module to automatically keep collections synchronized
         with updated records through automated actions.
 
         Features:
-        - Automatically create/update RAG resources when records change
+        - Automatically create/update RAG documents when records change
         - Synchronize collections with their domain filters via automated actions
-        - Remove resources from collections when they no longer match filters
-        - Trigger resource processing pipeline automatically
+        - Remove documents from collections when they no longer match filters
+        - Trigger document processing pipeline automatically
     """,
     "category": "Technical",
     "version": "16.0.1.0.0",
@@ -20,7 +20,7 @@
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
     "data": [
-        "views/llm_knowledge_collection_views.xml",
+        "views/llm_document_collection_views.xml",
     ],
     "license": "LGPL-3",
     "installable": True,

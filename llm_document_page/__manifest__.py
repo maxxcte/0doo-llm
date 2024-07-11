@@ -5,10 +5,10 @@
         Integrates the Document Page module with LLM RAG.
 
         Features:
-        - Parse document pages into LLM Knowledge resources
+        - Parse document pages into LLM Knowledge documents
         - Include document hierarchy in generated content
         - Maintain metadata like contributors and update dates
-        - Create RAG resources from document pages
+        - Create RAG documents from document pages
     """,
     "category": "Knowledge",
     "version": "16.0.1.0.0",

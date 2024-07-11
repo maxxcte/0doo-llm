@@ -1,3 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_llm_assistant_user,llm.assistant.user,model_llm_assistant,base.group_user,1,0,0,0
-access_llm_assistant_manager,llm.assistant.manager,model_llm_assistant,llm.group_llm_manager,1,1,1,1

@@ -355,6 +355,24 @@ class LLMProvider(models.Model):
                 },
             }
 
+    def chat(
+        self,
+        messages,
+        model=None,
+        stream=False,
+        tools=None,
+        tool_choice="auto",
+    ):
+        """Send chat messages using this provider"""
+        return self._dispatch(
+            "chat",
+            messages,
+            model=model,
+            stream=stream,
+            tools=tools,
+            tool_choice=tool_choice,
+        )
+
     def _validate_and_clean_messages(self, messages):
         """
         Validate and clean messages to ensure proper tool message structure for OpenAI.

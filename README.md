@@ -20,7 +20,7 @@ This repository provides a comprehensive framework for integrating Large Languag
 | `llm`           | Base module with core functionality and provider framework           |
 | `llm_tool`     | Adds tool functionality that allows LLMs to perform actions in Odoo  |
 | `llm_thread`    | Chat threads and conversation management                             |
-| `llm_assistant`     | Assistant management for specialized AI assistants with custom tools     |
+| `llm_agent`     | Agent management for specialized AI assistants with custom tools     |
 | `llm_openai`    | OpenAI (GPT) provider integration                                    |
 | `llm_anthropic` | Anthropic (Claude) provider integration                              |
 | `llm_ollama`    | Ollama provider for local model deployment                           |
@@ -52,14 +52,14 @@ After installation:
 
 ## 🔄 LLM Tools: Building AI-Driven ERP
 
-We're seeing tremendous potential by integrating reasoning/assistant models like ChatGPT, Claude, and others into Odoo. These models can query the Odoo database via functions and interact with server actions for data manipulation.
+We're seeing tremendous potential by integrating reasoning/agent models like ChatGPT, Claude, and others into Odoo. These models can query the Odoo database via functions and interact with server actions for data manipulation.
 
 ### Why This Matters
 
 This approach has the potential to revolutionize how users interact with Odoo:
 - AI-driven automation of repetitive tasks
 - Smart querying & decision-making inside Odoo
-- A flexible ecosystem for custom AI assistants
+- A flexible ecosystem for custom AI agents
 
 ### Help Wanted - Let's Build This Together!
 
@@ -93,7 +93,7 @@ We welcome contributions! Here's how you can help:
 - Multi-modal content handling (images, audio)
 - Advanced prompt templates and management
 - Integration with other Odoo modules (CRM, HR, etc.)
-- Improving assistant frameworks for complex task automation
+- Improving agent frameworks for complex task automation
 
 ## 📜 License
 

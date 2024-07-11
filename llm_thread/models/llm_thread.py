@@ -1,4 +1,5 @@
 import json
+import functools
 
 from odoo import _, api, fields, models
 
@@ -13,6 +14,20 @@ from odoo.addons.llm_mail_message_subtypes.const import (
 from .llm_thread_utils import LLMThreadUtils
 
 
+def execute_with_new_cursor(func_to_decorate):
+    """Decorator to execute a method within a new, immediately committed cursor context.
+
+    It injects the browsed record from the new environment as the first argument
+    after 'self'. Assumes the decorated method is called on a singleton recordset.
+    """
+    @functools.wraps(func_to_decorate)
+    def wrapper(self, *args, **kwargs):
+        self.ensure_one()
+        with self.pool.cursor() as cr:
+            env = api.Environment(cr, self.env.uid, self.env.context)
+            record_in_new_env = env[self._name].browse(self.ids)
+            return func_to_decorate(self, record_in_new_env, *args, **kwargs)
+    return wrapper
 class LLMThread(models.Model):
     _name = "llm.thread"
     _description = "LLM Chat Thread"
@@ -54,13 +69,19 @@ class LLMThread(models.Model):
     related_thread_model = fields.Char("Related Thread Model")
     related_thread_id = fields.Integer("Related Thread ID")
 
+    is_locked = fields.Boolean(
+        string="Locked, Preventing Concurrent Generation",
+        default=False,
+        readonly=True,
+        copy=False,
+        help="Indicates if the thread is currently locked to prevent concurrent generation."
+    )
+
     tool_ids = fields.Many2many(
         "llm.tool",
         string="Available Tools",
         help="Tools that can be used by the LLM in this thread",
     )
-
-    # TODO: need a way to lock this llm.thread if it is already looping
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -160,14 +181,21 @@ class LLMThread(models.Model):
         return last_message
 
     def generate(self, user_message_body):
-        # orchestrate via hooks
         self.ensure_one()
-        last = self._init_message(user_message_body)
-        if user_message_body:
-            yield {'type': 'message_create', 'message': last.message_format()[0]}
-        while self._should_continue(last):
-            last = yield from self._next_step(last)
-        return last
+        if self.is_locked:
+            raise UserError(_("This thread is already generating a response. Please wait."))
+        self._lock()
+ 
+        try:
+            # orchestrate via hooks
+            last = self._init_message(user_message_body)
+            if user_message_body:
+                yield {'type': 'message_create', 'message': last.message_format()[0]}
+            while self._should_continue(last):
+                last = yield from self._next_step(last)
+            return last
+        finally:
+            self._unlock()
 
     def _process_tool_calls(self, assistant_msg):
         self.ensure_one()
@@ -180,28 +208,22 @@ class LLMThread(models.Model):
             )
         return last_tool_msg       
 
-    def _get_system_prompt(self):
-        """Hook: return a system prompt for chat. Override in other modules. If needed"""
-        self.ensure_one()
-        return None
-
     def _get_assistant_response(self):
         self.ensure_one()
         message_history_rs = self._get_message_history_recordset()
         tool_rs = self.tool_ids
-        chat_kwargs = {
-            "messages": message_history_rs,
-            "tools": tool_rs,
-            "stream": True,
-            "system_prompt": self._get_system_prompt()
-        }
-        stream_response = self.model_id.chat(**chat_kwargs)
+        stream_response = self.model_id.chat(
+            messages=message_history_rs,
+            tools=tool_rs,
+            stream=True
+        )
         assistant_msg = yield from self.env["mail.message"].create_message_from_stream(
             self,
             stream_response,
             LLM_ASSISTANT_SUBTYPE_XMLID,
             placeholder_text="Thinking..."
         )
+
         return assistant_msg
 
     def _execute_tool(self, tool_name, arguments_str):
@@ -212,3 +234,28 @@ class LLMThread(models.Model):
             raise UserError(f"Tool '{tool_name}' not found in this thread")
         arguments = json.loads(arguments_str)
         return tool.execute(arguments)
+
+    def _lock(self):
+        """Acquires a lock on the thread, ensuring immediate commit."""
+        self.ensure_one()
+        if self._read_is_locked_decorated():
+            raise UserError(
+                _("Lock Error: This thread is already generating a response. Please wait.")
+            )
+        self._write_vals_decorated({'is_locked': True})
+
+    def _unlock(self):
+        """Releases the lock on the thread, ensuring immediate commit."""
+        self.ensure_one()
+        if self._read_is_locked_decorated():
+            self._write_vals_decorated({'is_locked': False})
+
+    @execute_with_new_cursor
+    def _read_is_locked_decorated(self, record_in_new_env):
+        """Reads the 'is_locked' status using a new cursor."""
+        return record_in_new_env.is_locked
+
+    @execute_with_new_cursor
+    def _write_vals_decorated(self, record_in_new_env, vals):
+        """Writes values using a new, immediately committed cursor."""
+        return record_in_new_env.write(vals)
