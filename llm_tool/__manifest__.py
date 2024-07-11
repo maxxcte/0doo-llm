@@ -4,9 +4,9 @@
     "category": "Technical",
     "summary": "Function calling and tool execution for LLM models to interact with Odoo",
     "description": """
-        Automate Your Odoo Database with AI Agents & Chat AI | ChatGPT, Grok, Anthropic, DeepSeek
+        Automate Your Odoo Database with AI Assistants & Chat AI | ChatGPT, Grok, Anthropic, DeepSeek
 
-        Boost your Odoo database automation with AI-powered agents using ChatGPT, Grok, Anthropic, and DeepSeek. Streamline
+        Boost your Odoo database automation with AI-powered assistants using ChatGPT, Grok, Anthropic, and DeepSeek. Streamline
         workflows, optimize data management, and enhance productivity with AI tools seamlessly integrated into your Odoo
         instance. This module provides a robust framework for integrating Large Language Models (LLMs) with Odoo, enabling
         intelligent interactions through configurable tools. Key features include:
@@ -19,7 +19,7 @@
         - Extensible architecture for adding new tool implementations
 
         Perfect for businesses looking to leverage AI-driven ERP management, this module empowers administrators to create,
-        configure, and customize LLM tools, supporting intelligent Odoo agents that automate workflows and enhance business
+        configure, and customize LLM tools, supporting intelligent Odoo assistants that automate workflows and enhance business
         automation.
     """,
     "author": "Apexive Solutions LLC",

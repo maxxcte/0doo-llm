@@ -6,7 +6,7 @@
     name="Chat"
     action="action_llm_chat"
     parent="llm.menu_llm_root"
-    sequence="20"
+    sequence="10"
   />
     <menuitem
     id="menu_llm_thread"
