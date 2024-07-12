@@ -36,12 +36,10 @@ class MailMessage(models.Model):
                         for call in parsed_calls:
                             if isinstance(call, dict) and 'id' in call and 'type' in call and 'function' in call:
                                 valid_calls.append(call)
-                            else:
-                                _logger.warning(f"OpenAI Format Msg {self.id}: Invalid tool call structure skipped: {call}")
                         if valid_calls:
                             api_tool_calls = valid_calls
                 except json.JSONDecodeError:
-                    _logger.warning(f"OpenAI Format Msg {self.id}: Failed to parse tool_calls JSON: {self.tool_calls}")
+                    _logger.warning(f"Ollama Format Msg {self.id}: Failed to parse tool_calls JSON: {self.tool_calls}")
 
             if api_tool_calls:
                 formatted_message['tool_calls'] = api_tool_calls
@@ -50,9 +48,10 @@ class MailMessage(models.Model):
 
         elif self.is_llm_tool_result_message():
             if not self.tool_call_id or self.tool_call_result is None:
-                _logger.warning(f"OpenAI Format: Skipping tool result message {self.id}: missing tool_call_id or result.")
+                _logger.warning(f"Ollama Format: Skipping tool result message {self.id}: missing tool_call_id or result.")
                 return None
-            formatted_message = {'role': 'tool', 'tool_call_id': self.tool_call_id, 'content': self.tool_call_result}
+            tool_name = ToolIdUtils.extract_tool_name_from_id(self.tool_call_id)
+            formatted_message = {'role': 'tool', 'name': tool_name, 'content': self.tool_call_result}
             return formatted_message
         else:
             return None
