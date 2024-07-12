@@ -73,7 +73,7 @@ class LLMThread(models.Model):
         """Hook: return a system prompt for chat. Override in other modules. If needed"""
         self.ensure_one()
         system_prompt = super()._get_system_prompt()
-        
+        assistant_system_prompt = None
         if self.assistant_id:
             assistant_system_prompt = self.assistant_id.get_formatted_system_prompt()
         

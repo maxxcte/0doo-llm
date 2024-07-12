@@ -5,8 +5,8 @@ from odoo import api, fields, models
 _logger = logging.getLogger(__name__)
 
 
-class LLMKnowledgeChunk(models.Model):
-    _name = "llm.knowledge.chunk"
+class LLMDocumentChunk(models.Model):
+    _name = "llm.document.chunk"
     _description = "Document Chunk for RAG"
     _inherit = ["llm.embedding.mixin"]
     _order = "sequence, id"
@@ -16,9 +16,9 @@ class LLMKnowledgeChunk(models.Model):
         compute="_compute_name",
         store=True,
     )
-    resource_id = fields.Many2one(
-        "llm.resource",
-        string="Resource",
+    document_id = fields.Many2one(
+        "llm.document",
+        string="Document",
         required=True,
         ondelete="cascade",
         index=True,
@@ -26,7 +26,7 @@ class LLMKnowledgeChunk(models.Model):
     sequence = fields.Integer(
         string="Sequence",
         default=10,
-        help="Order of the chunk within the resource",
+        help="Order of the chunk within the document",
     )
     content = fields.Text(
         string="Content",
@@ -38,19 +38,19 @@ class LLMKnowledgeChunk(models.Model):
         default={},
         help="Additional metadata for this chunk",
     )
+    # Simple collection_ids field as shown in the README
     collection_ids = fields.Many2many(
-        "llm.knowledge.collection",
+        "llm.document.collection",
         string="Collections",
-        relation="llm_knowledge_chunk_collection_rel",
-        column1="chunk_id", 
-        column2="collection_id",
+        related="document_id.collection_ids",
+        store=False,
     )
 
-    @api.depends("resource_id.name", "sequence")
+    @api.depends("document_id.name", "sequence")
     def _compute_name(self):
         for chunk in self:
-            if chunk.resource_id and chunk.resource_id.name:
-                chunk.name = f"{chunk.resource_id.name} - Chunk {chunk.sequence}"
+            if chunk.document_id and chunk.document_id.name:
+                chunk.name = f"{chunk.document_id.name} - Chunk {chunk.sequence}"
             else:
                 chunk.name = f"Chunk {chunk.sequence}"
 
@@ -59,7 +59,7 @@ class LLMKnowledgeChunk(models.Model):
         self.ensure_one()
         return {
             "type": "ir.actions.act_window",
-            "res_model": "llm.knowledge.chunk",
+            "res_model": "llm.document.chunk",
             "res_id": self.id,
             "view_mode": "form",
             "target": "new",
@@ -83,7 +83,8 @@ class LLMKnowledgeChunk(models.Model):
 
         if vector_search_term:
             # Get a default collection to use its embedding model
-            collection = self.env["llm.knowledge.collection"].search([], limit=1)
+            # TODO: Consider a more robust way to select the embedding model (e.g., config)
+            collection = self.env["llm.document.collection"].search([], limit=1)
             if collection and collection.embedding_model_id:
                 embedding_model = collection.embedding_model_id
                 vector = embedding_model.embedding(vector_search_term.strip())[0]

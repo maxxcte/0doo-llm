@@ -20,8 +20,8 @@ except ImportError:
     HAS_LLAMA_INDEX = False
 
 
-class LLMResourceLlamaChunker(models.Model):
-    _inherit = "llm.resource"
+class LLMDocumentLlamaChunker(models.Model):
+    _inherit = "llm.document"
 
     @api.model
     def _get_available_chunkers(self):
@@ -88,9 +88,9 @@ class LLMResourceLlamaChunker(models.Model):
         # Create chunks from the parsed nodes
         created_chunks = []
         for idx, node in enumerate(nodes, 1):
-            chunk = self.env["llm.knowledge.chunk"].create(
+            chunk = self.env["llm.document.chunk"].create(
                 {
-                    "resource_id": self.id,
+                    "document_id": self.id,
                     "sequence": idx,
                     "content": node.text,
                     "metadata": {
@@ -151,9 +151,9 @@ class LLMResourceLlamaChunker(models.Model):
         # Create chunks
         created_chunks = []
         for idx, node in enumerate(nodes, 1):
-            chunk = self.env["llm.knowledge.chunk"].create(
+            chunk = self.env["llm.document.chunk"].create(
                 {
-                    "resource_id": self.id,
+                    "document_id": self.id,
                     "sequence": idx,
                     "content": node.text,
                     "metadata": {
@@ -215,9 +215,9 @@ class LLMResourceLlamaChunker(models.Model):
         # Create chunks
         created_chunks = []
         for idx, node in enumerate(nodes, 1):
-            chunk = self.env["llm.resource.chunk"].create(
+            chunk = self.env["llm.document.chunk"].create(
                 {
-                    "resource_id": self.id,
+                    "document_id": self.id,
                     "sequence": idx,
                     "content": node.text,
                     "metadata": {
@@ -278,9 +278,9 @@ class LLMResourceLlamaChunker(models.Model):
         # Create chunks
         created_chunks = []
         for idx, node in enumerate(nodes, 1):
-            chunk = self.env["llm.knowledge.chunk"].create(
+            chunk = self.env["llm.document.chunk"].create(
                 {
-                    "resource_id": self.id,
+                    "document_id": self.id,
                     "sequence": idx,
                     "content": node.text,
                     "metadata": {
@@ -306,63 +306,63 @@ class LLMResourceLlamaChunker(models.Model):
 
     def chunk(self):
         """Override to add LlamaIndex chunking methods"""
-        for resource in self:
-            if resource.state != "parsed":
+        for document in self:
+            if document.state != "parsed":
                 _logger.warning(
-                    "Resource %s must be in parsed state to create chunks", resource.id
+                    "Document %s must be in parsed state to create chunks", document.id
                 )
                 continue
 
-        # Lock resources and process only the successfully locked ones
-        resources = self._lock()
-        if not resources:
+        # Lock documents and process only the successfully locked ones
+        documents = self._lock()
+        if not documents:
             return False
 
         try:
-            # Process each resource
-            for resource in resources:
+            # Process each document
+            for document in documents:
                 try:
                     success = False
 
                     # Use the appropriate chunker based on selection
-                    if resource.chunker == "llama_markdown":
-                        success = resource._chunk_llama_markdown()
-                    elif resource.chunker == "llama_sentence":
-                        success = resource._chunk_llama_sentence()
-                    elif resource.chunker == "llama_token":
-                        success = resource._chunk_llama_token()
-                    elif resource.chunker == "llama_hierarchical":
-                        success = resource._chunk_llama_hierarchical()
+                    if document.chunker == "llama_markdown":
+                        success = document._chunk_llama_markdown()
+                    elif document.chunker == "llama_sentence":
+                        success = document._chunk_llama_sentence()
+                    elif document.chunker == "llama_token":
+                        success = document._chunk_llama_token()
+                    elif document.chunker == "llama_hierarchical":
+                        success = document._chunk_llama_hierarchical()
                     else:
                         # Fall back to original chunking methods
-                        if resource.chunker == "default":
-                            success = resource._chunk_default()
+                        if document.chunker == "default":
+                            success = document._chunk_default()
                         else:
                             _logger.warning(
                                 "Unknown chunker %s, falling back to default",
-                                resource.chunker,
+                                document.chunker,
                             )
-                            success = resource._chunk_default()
+                            success = document._chunk_default()
 
                     if success:
                         # Mark as chunked
-                        resource.write({"state": "chunked"})
+                        document.write({"state": "chunked"})
                     else:
-                        resource._post_message(
+                        document._post_message(
                             "Failed to create chunks - no content or empty result",
                             "warning",
                         )
 
                 except Exception as e:
-                    resource._post_message(
-                        f"Error chunking resource: {str(e)}", "error"
+                    document._post_message(
+                        f"Error chunking document: {str(e)}", "error"
                     )
-                    resource._unlock()
+                    document._unlock()
 
-            # Unlock all successfully processed resources
-            resources._unlock()
+            # Unlock all successfully processed documents
+            documents._unlock()
             return True
 
         except Exception as e:
-            resources._unlock()
+            documents._unlock()
             raise UserError(_("Error in batch chunking: %s") % str(e)) from e
