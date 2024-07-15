@@ -1,4 +1,3 @@
-
 import json
 import logging
 
@@ -25,24 +24,31 @@ class MailMessage(models.Model):
 
         elif self.is_llm_assistant_message():
             formatted_message = {'role': 'assistant'}
-            if body:
-                formatted_message['content'] = body
-            api_tool_calls = None
+            content = tools.html2plaintext(self.body) if self.body else ""
+            if content:
+                formatted_message['content'] = content
+
             if self.tool_calls:
                 try:
                     parsed_calls = json.loads(self.tool_calls)
                     if isinstance(parsed_calls, list):
-                        valid_calls = []
                         for call in parsed_calls:
-                            if isinstance(call, dict) and 'id' in call and 'type' in call and 'function' in call:
-                                valid_calls.append(call)
-                        if valid_calls:
-                            api_tool_calls = valid_calls
+                            function_details = call.get('function', {})
+                            if isinstance(function_details, dict):
+                                arguments = function_details.get('arguments')
+                                if isinstance(arguments, str):
+                                    try:
+                                        function_details['arguments'] = json.loads(arguments)
+                                    except json.JSONDecodeError:
+                                        _logger.warning(
+                                            f"Ollama Format Msg {self.id}: Failed to parse arguments JSON string for tool call {call.get('id')}: {arguments}. Replacing with empty dict."
+                                        )
+                                        function_details['arguments'] = {}
+                        formatted_message['tool_calls'] = parsed_calls
+                    else:
+                        _logger.info(f"Ollama Format Msg {self.id}: Parsed tool_calls is not a list: {parsed_calls}")
                 except json.JSONDecodeError:
-                    _logger.warning(f"Ollama Format Msg {self.id}: Failed to parse tool_calls JSON: {self.tool_calls}")
-
-            if api_tool_calls:
-                formatted_message['tool_calls'] = api_tool_calls
+                    _logger.info(f"Ollama Format Msg {self.id}: Failed to parse tool_calls JSON: {self.tool_calls}")
 
             return formatted_message
 
