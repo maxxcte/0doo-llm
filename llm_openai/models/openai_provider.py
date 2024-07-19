@@ -258,7 +258,7 @@ class LLMProvider(models.Model):
                     call_counter = 0
                     for tool_call_chunk in delta.tool_calls:
                         index = tool_call_chunk.index or call_counter
-                        assembled_tool_calls = self._update_tool_call_chunk(
+                        assembled_tool_calls = self._update_openai_tool_call_chunk(
                             assembled_tool_calls, tool_call_chunk, index
                         )
                         call_counter += 1
@@ -290,7 +290,7 @@ class LLMProvider(models.Model):
         except Exception as e:
             yield {'error': f"Internal error processing stream: {e}"}
 
-    def _update_tool_call_chunk(self, tool_call_chunks, tool_call_chunk, index):
+    def _update_openai_tool_call_chunk(self, tool_call_chunks, tool_call_chunk, index):
         """
         Helper to assemble fragmented tool calls from OpenAI stream chunks.
         (Keep this helper as it's essential for stream processing)
