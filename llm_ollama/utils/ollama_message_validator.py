@@ -1,6 +1,6 @@
 import logging
 
-from ..utils.tool_id_utils import OllamaToolCallIdUtils
+from ..utils.ollama_tool_call_id_utils import OllamaToolCallIdUtils
 
 _logger = logging.getLogger(__name__)
 
