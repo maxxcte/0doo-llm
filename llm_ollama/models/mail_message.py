@@ -2,7 +2,7 @@ import json
 import logging
 
 from odoo import models, tools
-from ..utils.tool_id_utils import ToolIdUtils
+from ..utils.ollama_tool_call_id_utils import OllamaToolCallIdUtils
 _logger = logging.getLogger(__name__)
 
 
@@ -56,7 +56,7 @@ class MailMessage(models.Model):
             if not self.tool_call_id or self.tool_call_result is None:
                 _logger.warning(f"Ollama Format: Skipping tool result message {self.id}: missing tool_call_id or result.")
                 return None
-            tool_name = ToolIdUtils.extract_tool_name_from_id(self.tool_call_id)
+            tool_name = OllamaToolCallIdUtils.extract_tool_name_from_id(self.tool_call_id)
             formatted_message = {'role': 'tool', 'name': tool_name, 'content': self.tool_call_result}
             return formatted_message
         else:

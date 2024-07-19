@@ -1,6 +1,6 @@
 import logging
 
-from ..utils.tool_id_utils import ToolIdUtils
+from ..utils.tool_id_utils import OllamaToolCallIdUtils
 
 _logger = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ class OllamaMessageValidator:
             # Strategy 2: Check if tool name is encoded in any tool_call_id
             if not found_match:
                 for tool_id in self.tool_call_map.keys():
-                    extracted_tool_name = ToolIdUtils.extract_tool_name_from_id(tool_id)
+                    extracted_tool_name = OllamaToolCallIdUtils.extract_tool_name_from_id(tool_id)
                     if extracted_tool_name and extracted_tool_name == tool_name:
                         found_match = True
                         break
@@ -185,7 +185,7 @@ class OllamaMessageValidator:
 
             # Strategy 2: Match by extracted tool name from tool_call_id
             if not has_response:
-                extracted_tool_name = ToolIdUtils.extract_tool_name_from_id(
+                extracted_tool_name = OllamaToolCallIdUtils.extract_tool_name_from_id(
                     tool_call_id
                 )
                 if (

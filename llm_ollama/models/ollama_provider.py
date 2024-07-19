@@ -7,7 +7,7 @@ import ollama
 from odoo import api, models
 
 from ..utils.ollama_message_validator import OllamaMessageValidator
-from ..utils.tool_id_utils import ToolIdUtils
+from ..utils.ollama_tool_call_id_utils import OllamaToolCallIdUtils
 
 _logger = logging.getLogger(__name__)
 
@@ -257,7 +257,7 @@ class LLMProvider(models.Model):
                 for index, call_data in sorted(assembled_tool_calls.items()):
                     if call_data.get("_complete"):
                          tool_name = call_data["function"]["name"]
-                         tool_id = ToolIdUtils.create_tool_id(tool_name, str(uuid.uuid4()))
+                         tool_id = OllamaToolCallIdUtils.create_tool_id(tool_name, str(uuid.uuid4()))
                          final_tool_calls_list.append({
                             "id": tool_id,
                             "type": "function",

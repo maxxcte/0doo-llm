@@ -3,7 +3,7 @@ Utility functions for handling tool IDs and names in the Ollama integration.
 """
 
 
-class ToolIdUtils:
+class OllamaToolCallIdUtils:
     """
     Utility class for working with tool IDs and names.
 
