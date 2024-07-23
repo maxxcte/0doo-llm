@@ -285,18 +285,11 @@ class LLMProvider(models.Model):
                 current_call["function"]["arguments"] += new_args_part
             else:
                 _logger.warning(f"Unexpected argument type in Ollama stream chunk: {type(new_args_part)}")
-        marked_complete = False
-        if current_call["function"]["name"] and current_call["function"]["arguments"]:
-            args_str = current_call["function"]["arguments"].strip()
-            if args_str:
-                try:
-                    json.loads(args_str)
-                    if args_str.endswith('}') or args_str.endswith(']'):
-                        marked_complete = True
-                except json.JSONDecodeError:
-                    pass
 
-        current_call["_complete"] = marked_complete
+        # Use the common helper to determine completeness for Ollama
+        current_call["_complete"] = self._is_tool_call_complete(
+            current_call["function"], expected_endings=(']', '}')
+        )
         return assembled_tool_calls
 
     def ollama_embedding(self, texts, model=None):

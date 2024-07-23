@@ -317,13 +317,10 @@ class LLMProvider(models.Model):
             if func_chunk.arguments:
                 current_call["function"]["arguments"] += func_chunk.arguments
 
-        if (current_call["function"].get("name") and
-            current_call["function"]["arguments"].strip().endswith('}')):
-            try:
-                json.loads(current_call["function"]["arguments"])
-                current_call["_complete"] = True
-            except json.JSONDecodeError:
-                current_call["_complete"] = False
+        # Use the common helper to determine completeness for OpenAI
+        current_call["_complete"] = self._is_tool_call_complete(
+            current_call["function"], expected_endings=(']', '}')
+        )
 
         return tool_call_chunks
 
