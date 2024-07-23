@@ -100,13 +100,10 @@ class LLMProvider(models.Model):
         """Send chat messages using Ollama with tools support"""
         model = self.get_model(model, "chat")
 
-        # Prepare request parameters
         params = self._prepare_ollama_chat_params(model, messages, stream, tools=tools, system_prompt=system_prompt)
 
-        # Make the API call
         response = self.client.chat(**params)
 
-        # Process the response based on streaming mode
         if not stream:
             return self.ollama_process_non_streaming_response(response)
         else:
@@ -125,43 +122,34 @@ class LLMProvider(models.Model):
             formatted_messages = self.ollama_format_messages(messages, system_prompt)
             params["messages"] = formatted_messages
 
-        # Add tools if specified
         if tools:
             formatted_tools = self.ollama_format_tools(tools)
 
             if formatted_tools:
                 params["tools"] = formatted_tools
 
-                # Check if any tools require consent
                 consent_required_tools = tools.filtered(
                     lambda t: t.requires_user_consent
                 )
 
-                # Only add consent instructions if there are tools requiring consent
                 if consent_required_tools:
-                    # Get names of tools requiring consent for more specific instructions
                     consent_tool_names = ", ".join(
                         [f"'{t.name}'" for t in consent_required_tools]
                     )
 
-                    # Get consent message template from config
                     config = self.env["llm.tool.consent.config"].get_active_config()
                     consent_instruction = config.system_message_template.format(
                         tool_names=consent_tool_names
                     )
 
-                    # Check if a system message already exists
                     has_system_message = False
                     for msg in params["messages"]:
                         if msg.get("role") == "system":
-                            # Add to existing system message
                             msg["content"] += f"\n\n{consent_instruction}"
                             has_system_message = True
                             break
 
-                    # If no system message exists, add one
                     if not has_system_message:
-                        # Insert system message at the beginning
                         params["messages"].insert(
                             0, {"role": "system", "content": consent_instruction}
                         )
@@ -175,12 +163,10 @@ class LLMProvider(models.Model):
             "content": response["message"]["content"] or "",  # Handle None content
         }
 
-        # Handle tool calls if present
         if "tool_calls" in response["message"] and response["message"]["tool_calls"]:
             message["tool_calls"] = []
 
             for tool_call in response["message"]["tool_calls"]:
-                # Return the tool call without executing it
                 tool_call_data = {
                     "id": tool_call.get("id", ""),
                     "type": "function",
@@ -190,7 +176,6 @@ class LLMProvider(models.Model):
                     },
                 }
 
-                # Handle different types of arguments
                 if "function" in tool_call and "arguments" in tool_call["function"]:
                     arguments = tool_call["function"]["arguments"]
                     if isinstance(arguments, dict):
@@ -198,7 +183,6 @@ class LLMProvider(models.Model):
                     elif isinstance(arguments, str):
                         tool_call_data["function"]["arguments"] = arguments
                     else:
-                        # For any other type, convert to string via JSON
                         try:
                             tool_call_data["function"]["arguments"] = json.dumps(
                                 arguments
@@ -237,7 +221,7 @@ class LLMProvider(models.Model):
 
                 if error_msg:
                     yield {'error': f"Ollama stream error: {error_msg}"}
-                    return # Stop processing on stream error
+                    return
 
                 if chunk_done:
                     is_done = True
@@ -254,7 +238,7 @@ class LLMProvider(models.Model):
                         )
 
             if stream_has_tools and is_done:
-                for index, call_data in sorted(assembled_tool_calls.items()):
+                for _, call_data in sorted(assembled_tool_calls.items()):
                     if call_data.get("_complete"):
                          tool_name = call_data["function"]["name"]
                          tool_id = OllamaToolCallIdUtils.create_tool_id(tool_name, str(uuid.uuid4()))
@@ -266,16 +250,9 @@ class LLMProvider(models.Model):
                                 "arguments": call_data["function"]["arguments"],
                             }
                          })
-                    else:
-                        _logger.warning(f"Incomplete tool call data from Ollama index {index}: {call_data}")
 
                 if final_tool_calls_list:
                     yield {'tool_calls': final_tool_calls_list}
-                elif assembled_tool_calls:
-                    _logger.warning("Ollama stream had tool chunks, but none were completed.")
-
-            elif not is_done and not stream_has_tools and last_content == "":
-                _logger.warning("Ollama stream ended unexpectedly without content, tools, or done signal.")
 
         except Exception as e:
             _logger.error(f"Error processing Ollama stream: {e}", exc_info=True)
@@ -308,23 +285,18 @@ class LLMProvider(models.Model):
                 current_call["function"]["arguments"] += new_args_part
             else:
                 _logger.warning(f"Unexpected argument type in Ollama stream chunk: {type(new_args_part)}")
-
+        marked_complete = False
         if current_call["function"]["name"] and current_call["function"]["arguments"]:
             args_str = current_call["function"]["arguments"].strip()
             if args_str:
                 try:
                     json.loads(args_str)
                     if args_str.endswith('}') or args_str.endswith(']'):
-                        current_call["_complete"] = True
-                    else:
-                        current_call["_complete"] = False # Parsed but maybe incomplete
+                        marked_complete = True
                 except json.JSONDecodeError:
-                    current_call["_complete"] = False
-            else:
-                current_call["_complete"] = False
-        else:
-            current_call["_complete"] = False # Name or arguments missing
+                    pass
 
+        current_call["_complete"] = marked_complete
         return assembled_tool_calls
 
     def ollama_embedding(self, texts, model=None):
