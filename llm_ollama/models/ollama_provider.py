@@ -167,11 +167,14 @@ class LLMProvider(models.Model):
             message["tool_calls"] = []
 
             for tool_call in response["message"]["tool_calls"]:
+                tool_name = tool_call["function"]["name"]
+                tool_id = OllamaToolCallIdUtils.create_tool_id(tool_name, str(uuid.uuid4()))
+
                 tool_call_data = {
-                    "id": tool_call.get("id", ""),
+                    "id": tool_id,
                     "type": "function",
                     "function": {
-                        "name": tool_call["function"]["name"],
+                        "name": tool_name,
                         "arguments": "",
                     },
                 }
