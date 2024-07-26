@@ -100,7 +100,7 @@ class LLMProvider(models.Model):
         """Send chat messages using Ollama with tools support"""
         model = self.get_model(model, "chat")
 
-        params = self._prepare_ollama_chat_params(model, messages, stream, tools=tools, system_prompt=system_prompt)
+        params = self._prepare_chat_params(model, messages, stream, tools=tools, system_prompt=system_prompt)
 
         response = self.client.chat(**params)
 
@@ -108,53 +108,6 @@ class LLMProvider(models.Model):
             return self.ollama_process_non_streaming_response(response)
         else:
             return self.ollama_process_streaming_response(response)
-
-    def _prepare_ollama_chat_params(self, model, messages, stream, tools, system_prompt):
-        """Prepare parameters for Ollama API call"""
-        params = {
-            "model": model.name,
-            "stream": stream,
-        }
-
-        messages = messages or []
-        system_prompt = system_prompt or None
-        if messages or system_prompt:
-            formatted_messages = self.ollama_format_messages(messages, system_prompt)
-            params["messages"] = formatted_messages
-
-        if tools:
-            formatted_tools = self.ollama_format_tools(tools)
-
-            if formatted_tools:
-                params["tools"] = formatted_tools
-
-                consent_required_tools = tools.filtered(
-                    lambda t: t.requires_user_consent
-                )
-
-                if consent_required_tools:
-                    consent_tool_names = ", ".join(
-                        [f"'{t.name}'" for t in consent_required_tools]
-                    )
-
-                    config = self.env["llm.tool.consent.config"].get_active_config()
-                    consent_instruction = config.system_message_template.format(
-                        tool_names=consent_tool_names
-                    )
-
-                    has_system_message = False
-                    for msg in params["messages"]:
-                        if msg.get("role") == "system":
-                            msg["content"] += f"\n\n{consent_instruction}"
-                            has_system_message = True
-                            break
-
-                    if not has_system_message:
-                        params["messages"].insert(
-                            0, {"role": "system", "content": consent_instruction}
-                        )
-
-        return params
 
     def ollama_process_non_streaming_response(self, response):
         """Process a non-streaming response from Ollama"""
