@@ -1,6 +1,7 @@
 import json
 import logging
 import uuid
+import ast
 
 import ollama
 
@@ -126,10 +127,7 @@ class LLMProvider(models.Model):
                 tool_call_data = {
                     "id": tool_id,
                     "type": "function",
-                    "function": {
-                        "name": tool_name,
-                        "arguments": "",
-                    },
+                    "function": {"name": tool_name, "arguments": ""},
                 }
 
                 if "function" in tool_call and "arguments" in tool_call["function"]:
@@ -236,9 +234,21 @@ class LLMProvider(models.Model):
         if "arguments" in func_delta:
             new_args_part = func_delta["arguments"]
             if isinstance(new_args_part, dict):
-                current_call["function"]["arguments"] = json.dumps(new_args_part)
-            elif isinstance(new_args_part, str):
-                current_call["function"]["arguments"] += new_args_part
+                # Pre-process dict values: attempt to parse stringified lists
+                processed_args = {}
+                for key, value in new_args_part.items():
+                    if isinstance(value, str):
+                        try:
+                            parsed_value = ast.literal_eval(value)
+                            if isinstance(parsed_value, list):
+                                processed_args[key] = parsed_value
+                            else:
+                                processed_args[key] = value
+                        except (ValueError, SyntaxError):
+                            processed_args[key] = value
+                    else:
+                        processed_args[key] = value
+                current_call["function"]["arguments"] = json.dumps(processed_args)
             else:
                 _logger.warning(f"Unexpected argument type in Ollama stream chunk: {type(new_args_part)}")
 
