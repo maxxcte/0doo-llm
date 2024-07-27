@@ -8,12 +8,12 @@ class DocumentPage(models.Model):
 
     _inherit = "document.page"
 
-    def rag_parse(self, llm_document):
+    def rag_parse(self, llm_resource):
         """
         Parse document.page content for RAG.
         This method is called by the LLM RAG module during document processing.
 
-        :param llm_document: The llm.document record being processed
+        :param llm_resource: The llm.resource record being processed
         :return: Boolean indicating success
         """
         self.ensure_one()
@@ -27,11 +27,11 @@ class DocumentPage(models.Model):
             for child in self.child_ids:
                 content_parts.append(f"- [{child.name}]({child.backend_url})")
 
-        # Set the content in the llm.document
-        llm_document.content = "\n\n".join(content_parts)
+        # Set the content in the llm.resource
+        llm_resource.content = "\n\n".join(content_parts)
 
         # Post success message
-        llm_document._post_message(
+        llm_resource._post_message(
             f"Successfully parsed document page: {self.name}",
             message_type="success",
         )
