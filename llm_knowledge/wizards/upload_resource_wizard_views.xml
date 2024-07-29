@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Form View for Upload Wizard -->
-    <record id="view_llm_upload_document_wizard_form" model="ir.ui.view">
-        <field name="name">llm.upload.document.wizard.form</field>
+    <record id="view_llm_upload_resource_wizard_form" model="ir.ui.view">
+        <field name="name">llm.upload.resource.wizard.form</field>
         <!-- Model name should match the Python class _name -->
-        <field name="model">llm.upload.document.wizard</field>
+        <field name="model">llm.upload.resource.wizard</field>
         <field name="arch" type="xml">
              <!-- String updated for clarity -->
             <form string="Upload RAG Resources">
@@ -78,7 +78,7 @@ https://example.com/document2.html" nolabel="1"/>
     <!--
     <record id="action_upload_rag_resources_wizard" model="ir.actions.act_window">
         <field name="name">Upload RAG Resources</field>
-        <field name="res_model">llm.upload.document.wizard</field>
+        <field name="res_model">llm.upload.resource.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
         <field name="context">{'default_resource_name_template': '{filename}'}</field>

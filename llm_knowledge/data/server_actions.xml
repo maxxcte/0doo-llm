@@ -12,7 +12,7 @@ if records:
     action = {
         "type": "ir.actions.act_window",
         "name": "Create RAG Resources",
-        "res_model": "llm.create.rag.document.wizard", # Wizard in llm_knowledge
+        "res_model": "llm.create.rag.resource.wizard", # Wizard in llm_knowledge
         "view_mode": "form",
         "target": "new",
         "context": {"active_model": records._name, "active_ids": records.ids},
@@ -44,7 +44,7 @@ action = records.action_mass_reindex()
 action = {
     "type": "ir.actions.act_window",
     "name": "Upload RAG Resources",
-    "res_model": "llm.upload.document.wizard", # Wizard in llm_knowledge
+    "res_model": "llm.upload.resource.wizard", # Wizard in llm_knowledge
     "view_mode": "form",
     "target": "new",
     "context": {}, # No collection pre-selected
@@ -71,7 +71,7 @@ elif env.context.get('active_id') and env.context.get('active_model') == 'llm.kn
 action = {
     "type": "ir.actions.act_window",
     "name": "Upload RAG Resources",
-    "res_model": "llm.upload.document.wizard", # Wizard in llm_knowledge
+    "res_model": "llm.upload.resource.wizard", # Wizard in llm_knowledge
     "view_mode": "form",
     "target": "new",
     "context": context,

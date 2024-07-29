@@ -1,8 +1,8 @@
 from odoo import api, fields, models
 
 
-class CreateRAGDocumentWizard(models.TransientModel):
-    _name = "llm.create.rag.document.wizard" # Keep original name or rename if preferred
+class CreateRAGResourceWizard(models.TransientModel):
+    _name = "llm.create.rag.resource.wizard" # Keep original name or rename if preferred
     _description = "Create RAG Resources Wizard"
 
     record_count = fields.Integer(

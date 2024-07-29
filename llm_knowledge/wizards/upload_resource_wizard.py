@@ -7,8 +7,8 @@ from odoo.exceptions import UserError
 _logger = logging.getLogger(__name__)
 
 
-class UploadDocumentWizard(models.TransientModel):
-    _name = "llm.upload.document.wizard" # Keep original name or rename if preferred
+class UploadResourceWizard(models.TransientModel):
+    _name = "llm.upload.resource.wizard" # Keep original name or rename if preferred
     _description = "Upload RAG Resources Wizard"
 
     collection_id = fields.Many2one(

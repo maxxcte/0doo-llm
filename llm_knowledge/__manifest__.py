@@ -27,8 +27,8 @@
         "views/llm_knowledge_collection_views.xml",
         "views/llm_knowledge_chunk_views.xml",
         # Wizard Views
-        "wizards/create_rag_document_wizard_views.xml",
-        "wizards/upload_document_wizard_views.xml",
+        "wizards/create_rag_resource_wizard_views.xml",
+        "wizards/upload_resource_wizard_views.xml",
         # Data / Actions
         "data/server_actions.xml",
         # Menus must come last

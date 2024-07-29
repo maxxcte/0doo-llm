@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Form View for Wizard -->
-    <record id="view_create_rag_document_wizard_form" model="ir.ui.view">
-        <field name="name">llm.create.rag.document.wizard.form</field>
+    <record id="view_create_rag_resource_wizard_form" model="ir.ui.view">
+        <field name="name">llm.create.rag.resource.wizard.form</field>
         <!-- Model name should match the Python class _name -->
-        <field name="model">llm.create.rag.document.wizard</field>
+        <field name="model">llm.create.rag.resource.wizard</field>
         <field name="arch" type="xml">
             <!-- String updated for clarity -->
             <form string="Create RAG Resources">
