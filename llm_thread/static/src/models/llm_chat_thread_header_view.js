@@ -33,9 +33,11 @@ registerModel({
         if (!this.selectedProviderId) {
           return clear();
         }
-        return this.threadView.thread.llmChat.llmProviders.find(
-          (p) => p.id === this.selectedProviderId
-        );
+        const providers = this.threadView?.thread?.llmChat?.llmProviders;
+        if (!providers || !Array.isArray(providers)) {
+            return clear();
+        }
+        return providers.find((p) => p && p.id === this.selectedProviderId) || clear();
       },
     }),
     selectedModel: one("LLMModel", {
@@ -43,9 +45,11 @@ registerModel({
         if (!this.selectedModelId) {
           return clear();
         }
-        const matchedModel = this.threadView.thread.llmChat.llmModels.find(
-          (m) => m.id === this.selectedModelId
-        );
+        const models = this.threadView?.thread?.llmChat?.llmModels;
+        if (!models || !Array.isArray(models)) {
+            return clear();
+        }
+        const matchedModel = models.find((m) => m && m.id === this.selectedModelId);
         return matchedModel || clear();
       },
     }),
@@ -55,8 +59,8 @@ registerModel({
           return [];
         }
         return (
-          this.threadView.thread.llmChat?.llmModels?.filter(
-            (model) => model.llmProvider?.id === this.selectedProviderId
+          this.threadView?.thread?.llmChat?.llmModels?.filter(
+            (model) => model?.llmProvider?.id === this.selectedProviderId
           ) || []
         );
       },
@@ -68,9 +72,18 @@ registerModel({
      * @private
      */
     _initializeState() {
+      const currentThread = this.threadView?.thread;
+      if (!currentThread) {
+        this.update({
+          selectedProviderId: clear(),
+          selectedModelId: clear(),
+        });
+        return;
+      }
+
       this.update({
-        selectedProviderId: this.threadView.thread.llmModel?.llmProvider?.id,
-        selectedModelId: this.threadView.thread.llmModel?.id,
+        selectedProviderId: currentThread.llmModel?.llmProvider?.id,
+        selectedModelId: currentThread.llmModel?.id,
       });
     },
 
