@@ -1,6 +1,6 @@
 import json
 import functools
-
+import logging
 from odoo import _, api, fields, models
 
 from odoo.exceptions import UserError
@@ -13,6 +13,7 @@ from odoo.addons.llm_mail_message_subtypes.const import (
 
 from .llm_thread_utils import LLMThreadUtils
 
+_logger = logging.getLogger(__name__)
 
 def execute_with_new_cursor(func_to_decorate):
     """Decorator to execute a method within a new, immediately committed cursor context.
@@ -265,3 +266,9 @@ class LLMThread(models.Model):
     def _write_vals_decorated(self, record_in_new_env, vals):
         """Writes values using a new, immediately committed cursor."""
         return record_in_new_env.write(vals)
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_llm_thread(self):
+        self.ensure_one()
+        _logger.info("Deleting LLM Thread: %s", self)
+        self.env['bus.bus']._sendmany([(self.env.user.partner_id, 'llm.thread/delete', {'id': self.id})])
