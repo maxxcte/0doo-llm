@@ -20,7 +20,6 @@ registerPatch({
         },
 
         _handleLLMThreadsDelete(message) {
-            console.log('message', message);
             const ids = message.payload.ids;
             for (const id of ids) {
                 this._handleLLMThreadDelete(id);
