@@ -269,6 +269,5 @@ class LLMThread(models.Model):
 
     @api.ondelete(at_uninstall=False)
     def _unlink_llm_thread(self):
-        self.ensure_one()
-        _logger.info("Deleting LLM Thread: %s", self)
-        self.env['bus.bus']._sendmany([(self.env.user.partner_id, 'llm.thread/delete', {'id': self.id})])
+        unlink_ids = [record.id for record in self]
+        self.env['bus.bus']._sendmany([(self.env.user.partner_id, 'llm.thread/delete', {'ids': unlink_ids})])
