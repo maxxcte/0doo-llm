@@ -1,6 +1,6 @@
 import json
 import functools
-import logging
+
 from odoo import _, api, fields, models
 
 from odoo.exceptions import UserError
@@ -12,8 +12,6 @@ from odoo.addons.llm_mail_message_subtypes.const import (
 )
 
 from .llm_thread_utils import LLMThreadUtils
-
-_logger = logging.getLogger(__name__)
 
 def execute_with_new_cursor(func_to_decorate):
     """Decorator to execute a method within a new, immediately committed cursor context.
