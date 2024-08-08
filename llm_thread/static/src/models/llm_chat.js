@@ -460,27 +460,29 @@ registerModel({
     llmModels: many("LLMModel"),
     llmProviders: many("LLMProvider", {
       compute() {
-        if (!this.llmModels || !Array.isArray(this.llmModels)) {
-          return [];
+        if (!this.llmModels) return clear();
+        const providersMap = new Map();
+        for (const model of this.llmModels) {
+          const providerId = model.llmProvider?.id;
+          const providerName = model.llmProvider?.name;
+          if (providerId && !providersMap.has(providerId)) {
+            providersMap.set(providerId, {
+              id: providerId,
+              name: providerName,
+            });
+          }
         }
-        const providers = this.llmModels
-          .map((m) => m && m.llmProvider ? m.llmProvider : null)
-          .filter((p) => p && p.id);
-        return [...new Map(providers.map((p) => [p.id, p])).values()];
+        return Array.from(providersMap.values());
       },
     }),
     defaultLLMModel: one("LLMModel", {
       compute() {
-        if (!this.llmModels || !Array.isArray(this.llmModels)) {
-          return clear();
-        }
-        const activeModel = this.activeThread?.llmModel;
-        if (!activeModel) {
-          return this.llmModels.length > 0 && this.llmModels[0] ? this.llmModels[0] : clear();
-        }
-
-        const found = this.llmModels.find((m) => m && m.id === activeModel.id);
-        return found ? found : clear();
+        if (!this.llmModels) return clear();
+        return (
+          this.llmModels.find((model) => model.default) ||
+          this.llmModels[0] ||
+          clear()
+        );
       },
     }),
     tools: many("LLMTool"),

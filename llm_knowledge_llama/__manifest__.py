@@ -5,7 +5,7 @@
         Extends the LLM RAG module with LlamaIndex markdown-optimized chunking strategies.
 
         Features:
-        - Integration with LlamaIndex for resource chunking
+        - Integration with LlamaIndex for document chunking
         - Markdown-optimized node parsing
         - Improved semantic chunking for better retrieval
         - Support for LlamaIndex's advanced chunking strategies
