@@ -2,8 +2,6 @@
 <odoo>
     <record id="llm_assistant_knowledge_bot" model="llm.assistant">
         <field name="name">Knowledge Bot</field>
-        <field name="provider_id" ref="llm_openai.llm_provider_openai" />
-        <field name="model_id" ref="llm_openai.llm_model_gpt4o" />
         <field name="prompt_id" ref="llm_assistant.llm_prompt_assistant"/>
         <field name="default_values"><![CDATA[{
             "role": "Knowledge Assistant",

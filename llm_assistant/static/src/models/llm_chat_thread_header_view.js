@@ -22,9 +22,13 @@ registerPatch({
         }
         // This now searches within a collection of LLMAssistant records
         // and returns a record instance, which is correct.
-        return this.threadView.thread.llmChat.llmAssistants.find(
-          (assistantRecord) => assistantRecord.id === this.selectedAssistantId
-        );
+        const assistants = this.threadView?.thread?.llmChat?.llmAssistants;
+        if (!assistants || !Array.isArray(assistants)) {
+            return clear();
+        }
+        return assistants.find(
+          (assistantRecord) => assistantRecord && assistantRecord.id === this.selectedAssistantId
+        ) || clear();
       },
     }),
   },
@@ -36,8 +40,16 @@ registerPatch({
      */
     _initializeState() {
       this._super();
+      const currentThread = this.threadView?.thread;
+      if (!currentThread) {
+          this.update({
+              selectedAssistantId: clear(),
+          });
+          return;
+      }
+
       this.update({
-        selectedAssistantId: this.threadView.thread.llmAssistant?.id || false,
+        selectedAssistantId: currentThread.llmAssistant?.id || clear(),
       });
     },
 
@@ -52,7 +64,7 @@ registerPatch({
 
       // Update the local state immediately for responsive UI
       this.update({
-        selectedAssistantId: assistantId || false,
+        selectedAssistantId: assistantId || clear(),
       });
 
       // Call the dedicated endpoint to set the assistant
@@ -71,7 +83,7 @@ registerPatch({
         );
         if (assistantId === false) {
           this.update({
-            selectedAssistantId: false,
+            selectedAssistantId: clear(),
           });
         } else {
           this.update({
@@ -83,7 +95,7 @@ registerPatch({
       } else {
         // Revert the local state if the server call failed
         this.update({
-          selectedAssistantId: this.threadView.thread.llmAssistant?.id || false,
+          selectedAssistantId: this.threadView.thread.llmAssistant?.id || clear(),
         });
 
         // Show error message

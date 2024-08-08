@@ -16,12 +16,12 @@ class LLMToolKnowledgeRetriever(models.Model):
 
     @api.model
     def _get_available_collections(self):
-        """Retrieve a list of available document collections.
+        """Retrieve a list of available resource collections.
 
         Returns:
             list: List of tuples with collection_id and name
         """
-        Collection = self.env["llm.document.collection"].sudo()
+        Collection = self.env["llm.knowledge.collection"].sudo()
         collections = Collection.search([("active", "=", True)])
         return [(str(collection.id), collection.name) for collection in collections]
 
@@ -34,20 +34,20 @@ class LLMToolKnowledgeRetriever(models.Model):
         similarity_cutoff: float = 0.5,
     ) -> dict[str, Any]:
         """
-        Retrieve relevant knowledge from the document database using semantic search.
+        Retrieve relevant knowledge from the resource database using semantic search.
 
         Use this tool when you need to:
         - Answer questions that require specific information from the knowledge base
-        - Find relevant documents or content based on semantic similarity
+        - Find relevant resources or content based on semantic similarity
         - Access information that may not be in your training data
 
-        The tool returns chunks of text from documents ranked by relevance to your query.
+        The tool returns chunks of text from resources ranked by relevance to your query.
 
         Parameters:
             query: The search query text used to find relevant information. Be specific and focused in your query to get the most relevant results.
-            collection_id: ID of the document collection to search. This determines which set of documents will be searched.
-            top_k: Maximum number of chunks to retrieve per document. Higher values return more context from each document but may include less relevant passages.
-            top_n: Maximum number of distinct documents to retrieve results from. Increase this value to get information from more diverse sources.
+            collection_id: The ID (as a string) of the 'llm.knowledge.collection' record to search within. If you don't know the ID, you can use the 'odoo_record_retriever' tool first to search for available collections by name on the 'llm.knowledge.collection' model and get their IDs.
+            top_k: Maximum number of chunks to retrieve per resource. Higher values return more context from each resource but may include less relevant passages.
+            top_n: Maximum number of distinct resources to retrieve results from. Increase this value to get information from more diverse sources.
             similarity_cutoff: Minimum semantic similarity threshold (0.0-1.0) for including results. Higher values (e.g., 0.7) return only highly relevant results.
         """
         _logger.info(
@@ -58,7 +58,7 @@ class LLMToolKnowledgeRetriever(models.Model):
             # Validate collection exists
             collection = None
             if collection_id:
-                collection = self.env["llm.document.collection"].browse(
+                collection = self.env["llm.knowledge.collection"].browse(
                     int(collection_id)
                 )
                 if not collection.exists():
@@ -70,7 +70,7 @@ class LLMToolKnowledgeRetriever(models.Model):
             # If no valid collection_id was provided or found, get the default collection
             if not collection:
                 # Try to find a default collection (the first active one)
-                collection = self.env["llm.document.collection"].search(
+                collection = self.env["llm.knowledge.collection"].search(
                     [("active", "=", True)], limit=1
                 )
 
@@ -107,7 +107,7 @@ class LLMToolKnowledgeRetriever(models.Model):
             # Generate embedding for the query
             query_embedding = provider.embedding([query], model=embedding_model)[0]
 
-            # Prepare domain for document chunks
+            # Prepare domain for resource chunks
             domain = [
                 ("collection_ids", "=", collection.id),
             ]
@@ -116,7 +116,7 @@ class LLMToolKnowledgeRetriever(models.Model):
             search_limit = top_n * top_k * 2
 
             # Use the direct search method with vector search parameters
-            chunk_model = self.env["llm.document.chunk"]
+            chunk_model = self.env["llm.knowledge.chunk"]
             chunks = chunk_model.search(
                 args=domain,
                 limit=search_limit,
@@ -125,7 +125,7 @@ class LLMToolKnowledgeRetriever(models.Model):
                 query_operator="<=>",  # Cosine similarity
             )
 
-            # Process results to get top chunks per document
+            # Process results to get top chunks per resource
             result_data = self._process_search_results(
                 chunks=chunks,
                 top_k=top_k,
@@ -145,64 +145,64 @@ class LLMToolKnowledgeRetriever(models.Model):
             _logger.exception(f"Error executing Knowledge Retriever: {str(e)}")
             return {"error": str(e)}
 
-    def _group_chunks_by_document(self, chunks):
-        """Group chunks by their parent document."""
+    def _group_chunks_by_resource(self, chunks):
+        """Group chunks by their parent resource."""
         chunks_by_doc = {}
         for chunk in chunks:
-            doc_id = chunk.document_id.id
+            doc_id = chunk.resource_id.id
             if doc_id not in chunks_by_doc:
                 chunks_by_doc[doc_id] = []
             chunks_by_doc[doc_id].append(chunk)
 
         return chunks_by_doc
 
-    def _get_top_documents(self, chunks_by_doc, top_n):
-        """Get the top N documents based on their highest similarity chunk."""
-        # Get max similarity for each document
-        doc_max_similarity = {}
-        for doc_id, doc_chunks in chunks_by_doc.items():
-            max_similarity = max(chunk.similarity for chunk in doc_chunks)
-            doc_max_similarity[doc_id] = max_similarity
+    def _get_top_resources(self, chunks_by_doc, top_n):
+        """Get the top N resources based on their highest similarity chunk."""
+        # Get max similarity for each resource
+        resource_max_similarity = {}
+        for resource_id, resource_chunks in chunks_by_doc.items():
+            max_similarity = max(chunk.similarity for chunk in resource_chunks)
+            resource_max_similarity[resource_id] = max_similarity
 
-        # Sort documents by max similarity
+        # Sort resources by max similarity
         return sorted(
-            doc_max_similarity.keys(),
-            key=lambda doc_id: doc_max_similarity[doc_id],
+            resource_max_similarity.keys(),
+            key=lambda resource_id: resource_max_similarity[resource_id],
             reverse=True,
         )[:top_n]
 
     def _process_search_results(self, chunks, top_k, top_n):
-        """Process search results to get the top chunks per document.
+        """Process search results to get the top chunks per resource.
 
         Args:
-            chunks: Recordset of document chunks with similarity scores in context
-            top_k: Number of chunks to retrieve per document
-            top_n: Total number of documents to retrieve
+            chunks: Recordset of resource chunks with similarity scores in context
+            top_k: Number of chunks to retrieve per resource
+            top_n: Total number of resources to retrieve
 
         Returns:
             List of dictionaries with chunk data
         """
-        # Group chunks by document
-        chunks_by_doc = self._group_chunks_by_document(chunks)
+        # Group chunks by resource
+        chunks_by_doc = self._group_chunks_by_resource(chunks)
 
-        # Sort chunks within each document by similarity
-        for doc_id in chunks_by_doc:
-            chunks_by_doc[doc_id].sort(key=lambda chunk: chunk.similarity, reverse=True)
-            # Limit to top_k chunks per document
-            chunks_by_doc[doc_id] = chunks_by_doc[doc_id][:top_k]
+        # Sort chunks within each resource by similarity
+        for resource_id in chunks_by_doc:
+            chunks_by_doc[resource_id].sort(key=lambda chunk: chunk.similarity, reverse=True)
+            # Limit to top_k chunks per resource
+            chunks_by_doc[resource_id] = chunks_by_doc[resource_id][:top_k]
 
-        # Get top_n documents based on their highest similarity chunk
-        top_docs = self._get_top_documents(chunks_by_doc, top_n)
+        # Get top_n resources based on their highest similarity chunk
+        top_resources = self._get_top_resources(chunks_by_doc, top_n)
 
-        # Collect selected chunks from top documents
+        # Collect selected chunks from top resources
         result_data = []
-        for doc_id in top_docs:
-            for chunk in chunks_by_doc[doc_id]:
+        for resource_id in top_resources:
+            for chunk in chunks_by_doc[resource_id]:
                 result_data.append(
                     {
                         "content": chunk.content,
-                        "document_name": chunk.document_id.name,
-                        "document_id": chunk.document_id.id,
+                        "resource_name": chunk.resource_id.name,
+                        "resource_id": chunk.resource_id.id,
                         "chunk_id": chunk.id,
                         "chunk_name": chunk.name,
                         "similarity": round(chunk.similarity, 4),

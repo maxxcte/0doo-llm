@@ -13,7 +13,6 @@ from odoo.addons.llm_mail_message_subtypes.const import (
 
 from .llm_thread_utils import LLMThreadUtils
 
-
 def execute_with_new_cursor(func_to_decorate):
     """Decorator to execute a method within a new, immediately committed cursor context.
 
@@ -265,3 +264,8 @@ class LLMThread(models.Model):
     def _write_vals_decorated(self, record_in_new_env, vals):
         """Writes values using a new, immediately committed cursor."""
         return record_in_new_env.write(vals)
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_llm_thread(self):
+        unlink_ids = [record.id for record in self]
+        self.env['bus.bus']._sendone(self.env.user.partner_id, 'llm.thread/delete', {'ids': unlink_ids})
