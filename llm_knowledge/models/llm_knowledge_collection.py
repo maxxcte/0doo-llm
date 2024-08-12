@@ -65,10 +65,10 @@ class LLMKnowledgeCollection(models.Model):
     )
 
     store_id = fields.Many2one(
-        "llm.store", 
-        string="Vector Store", 
-        required=False, 
-        ondelete="cascade", 
+        "llm.store",
+        string="Vector Store",
+        required=False,
+        ondelete="cascade",
         tracking=True
     )
 
@@ -340,13 +340,14 @@ class LLMKnowledgeCollection(models.Model):
 
             # Directly search for chunks that belong to chunked resources in this collection
             chunk_domain = [
-                ("resource_id.state", "=", "chunked"),
                 ("collection_ids", "=", collection.id),
             ]
 
             # Add specific resource filter if provided
             if specific_resource_ids:
                 chunk_domain.append(("resource_id", "in", specific_resource_ids))
+            else:
+                chunk_domain.append(("resource_id.state", "=", "chunked"))
 
             # Get all relevant chunks in one query
             chunks = self.env["llm.knowledge.chunk"].search(chunk_domain)
@@ -373,7 +374,7 @@ class LLMKnowledgeCollection(models.Model):
 
             # Process in batches
             for i in range(0, total_chunks, batch_size):
-                batch = chunks[i : i + batch_size]
+                batch = chunks[i: i + batch_size]
                 batch_contents = [chunk.content for chunk in batch]
 
                 # Generate embeddings for all content in the batch at once
