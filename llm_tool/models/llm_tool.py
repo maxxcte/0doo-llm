@@ -116,10 +116,6 @@ class LLMTool(models.Model):
         if not self.implementation:
             return {}
 
-        _get_input_schema = "{self.implementation}_get_input_schema"
-        if hasattr(self, _get_input_schema):
-            return getattr(self, _get_input_schema)
-
         # Construct the full method name for the implementation
         impl_method_name = f"{self.implementation}_{method}"
 

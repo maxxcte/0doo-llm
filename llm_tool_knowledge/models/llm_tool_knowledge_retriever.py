@@ -1,5 +1,6 @@
 import logging
 from typing import Any
+from pydantic import BaseModel, ConfigDict, Field
 
 from odoo import api, models
 
@@ -25,10 +26,23 @@ class LLMToolKnowledgeRetriever(models.Model):
         collections = Collection.search([("active", "=", True)])
         return [(str(collection.id), collection.name) for collection in collections]
 
+    def get_input_schema(self, method="execute"):
+        schema = super().get_input_schema(method=method)
+        if self.implementation == "knowledge_retriever":
+            available_collections = self._get_available_collections()
+            collections_description = ", ".join(
+                [
+                    f"'{name}' (ID: {collection_id})"
+                    for collection_id, name in available_collections
+                ]
+            )
+            schema["properties"]["collection_id"]["description"] += f"Available collections are: {collections_description}"
+        return schema
+
     def knowledge_retriever_execute(
         self,
         query: str,
-        collection_id: str,
+        collection_id: int,
         top_k: int = 5,
         top_n: int = 3,
         similarity_cutoff: float = 0.5,
@@ -44,8 +58,8 @@ class LLMToolKnowledgeRetriever(models.Model):
         The tool returns chunks of text from resources ranked by relevance to your query.
 
         Parameters:
-            query: The search query text used to find relevant information. Be specific and focused in your query to get the most relevant results.
-            collection_id: The ID (as a string) of the 'llm.knowledge.collection' record to search within. If you don't know the ID, you can use the 'odoo_record_retriever' tool first to search for available collections by name on the 'llm.knowledge.collection' model and get their IDs.
+            query: REQUIRED The search query text used to find relevant information. Be specific and focused in your query to get the most relevant results.
+            collection_id: REQUIREDThe ID (as a string) of the 'llm.knowledge.collection' record to search within.
             top_k: Maximum number of chunks to retrieve per resource. Higher values return more context from each resource but may include less relevant passages.
             top_n: Maximum number of distinct resources to retrieve results from. Increase this value to get information from more diverse sources.
             similarity_cutoff: Minimum semantic similarity threshold (0.0-1.0) for including results. Higher values (e.g., 0.7) return only highly relevant results.
@@ -211,3 +225,5 @@ class LLMToolKnowledgeRetriever(models.Model):
                 )
 
         return result_data
+
+
