@@ -38,12 +38,12 @@ class LLMKnowledgeChunk(models.Model):
         default={},
         help="Additional metadata for this chunk",
     )
+    # Simple collection_ids field as shown in the README
     collection_ids = fields.Many2many(
         "llm.knowledge.collection",
         string="Collections",
-        relation="llm_knowledge_chunk_collection_rel",
-        column1="chunk_id", 
-        column2="collection_id",
+        related="resource_id.collection_ids",
+        store=False,
     )
 
     @api.depends("resource_id.name", "sequence")
