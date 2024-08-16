@@ -58,10 +58,10 @@ class LLMKnowledgeCollection(models.Model):
     )
     chunk_ids = fields.Many2many(
         "llm.knowledge.chunk",
-        string="Chunks",
-        relation="llm_knowledge_chunk_collection_rel",
-        column1="collection_id",
-        column2="chunk_id",
+        string="Chunks (from Resources)",
+        compute="_compute_chunk_ids",
+        store=False,
+        help="Chunks belonging to the resources included in this collection."
     )
 
     store_id = fields.Many2one(
@@ -72,17 +72,20 @@ class LLMKnowledgeCollection(models.Model):
         tracking=True
     )
 
+    @api.depends("resource_ids.chunk_ids")
+    def _compute_chunk_ids(self):
+        for collection in self:
+            collection.chunk_ids = collection.resource_ids.mapped('chunk_ids')
+
     @api.depends("resource_ids")
     def _compute_resource_count(self):
         for record in self:
             record.resource_count = len(record.resource_ids)
 
+    @api.depends("chunk_ids")
     def _compute_chunk_count(self):
         for record in self:
-            chunks = self.env["llm.knowledge.chunk"].search(
-                [("collection_ids", "=", record.id)]
-            )
-            record.chunk_count = len(chunks)
+            record.chunk_count = len(record.chunk_ids)
 
     def action_view_resources(self):
         """Open a view with all resources in this collection"""
