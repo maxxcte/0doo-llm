@@ -13,7 +13,7 @@
     """,
     "category": "Technical",
     "version": "16.0.1.0.0",
-    "depends": ["llm", "llm_resource", "llm_store", "llm_pgvector"],
+    "depends": ["llm", "llm_resource", "llm_store"],
     "external_dependencies": {
         "python": ["PyMuPDF", "numpy"],
     },

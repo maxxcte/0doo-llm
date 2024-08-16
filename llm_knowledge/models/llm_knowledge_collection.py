@@ -87,6 +87,103 @@ class LLMKnowledgeCollection(models.Model):
         for record in self:
             record.chunk_count = len(record.chunk_ids)
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Extend create to initialize store collection if needed"""
+        collections = super().create(vals_list)
+        for collection in collections:
+            # Initialize the store if one is assigned
+            if collection.store_id:
+                collection._initialize_store()
+        return collections
+
+    def write(self, vals):
+        """Extend write to handle embedding model or store changes"""
+        # Check for changes to embedding_model_id or store_id
+        embedding_model_changed = 'embedding_model_id' in vals
+        store_changed = 'store_id' in vals
+
+        # Store old values for reference
+        old_embedding_models = {}
+        old_stores = {}
+        if embedding_model_changed or store_changed:
+            for collection in self:
+                old_embedding_models[collection.id] = collection.embedding_model_id.id
+                old_stores[collection.id] = collection.store_id.id if collection.store_id else False
+
+        # Perform the write operation
+        result = super().write(vals)
+
+        # Handle changes to embedding model or store
+        if embedding_model_changed or store_changed:
+            for collection in self:
+                # If store changed, initialize the new store
+                if store_changed:
+                    # First, clean up the old store if it existed
+                    if old_stores.get(collection.id):
+                        old_store = self.env['llm.store'].browse(old_stores[collection.id])
+                        if old_store.exists():
+                            collection._cleanup_old_store(old_store)
+
+                    # Then initialize the new store if it exists
+                    if collection.store_id:
+                        collection._initialize_store()
+
+                # If embedding model changed but store didn't, resources need to be re-embedded
+                # The store doesn't know about embedding models, it just stores vectors
+                if embedding_model_changed:
+                    # Mark resources for re-embedding
+                    ready_resources = collection.resource_ids.filtered(
+                        lambda r: r.state == 'ready'
+                    )
+                    if ready_resources:
+                        ready_resources.write({'state': 'chunked'})
+
+                        collection.message_post(
+                            body=_(f"Embedding model changed. Reset {len(ready_resources)} resources for re-embedding."),
+                            message_type="notification",
+                        )
+
+        return result
+
+    def unlink(self):
+        """Extend unlink to clean up store data"""
+        for collection in self:
+            # Clean up store data if a store is assigned
+            if collection.store_id:
+                try:
+                    collection.store_id.delete_collection(collection.id)
+                except Exception as e:
+                    _logger.warning(f"Error deleting collection from store: {str(e)}")
+        return super().unlink()
+
+    def _initialize_store(self):
+        """Initialize the store for this collection"""
+        if not self.store_id:
+            return False
+
+        try:
+            # Create collection in store if it doesn't exist
+            if not self.store_id.collection_exists(self.id):
+                self.store_id.create_collection(self.id)
+
+            _logger.info(f"Initialized store for collection {self.name}")
+            return True
+        except Exception as e:
+            _logger.error(f"Error initializing store for collection {self.name}: {str(e)}")
+            return False
+
+    def _cleanup_old_store(self, old_store):
+        """Clean up the old store when switching to a new one"""
+        try:
+            # Delete the collection from the old store
+            if old_store.collection_exists(self.id):
+                old_store.delete_collection(self.id)
+            return True
+        except Exception as e:
+            _logger.warning(f"Error cleaning up old store: {str(e)}")
+            return False
+
     def action_view_resources(self):
         """Open a view with all resources in this collection"""
         self.ensure_one()
@@ -250,63 +347,58 @@ class LLMKnowledgeCollection(models.Model):
     def reindex_collection(self):
         """
         Reindex all resources in the collection.
-        This will clear all chunk embeddings (setting them to NULL),
-        reset resource states from 'ready' to 'chunked',
-        and rebuild the index to exclude NULL embeddings.
+        This will reset resource states from 'ready' to 'chunked',
+        and recreate the collection in the store if necessary.
         """
         for collection in self:
-            ready_docs = collection.resource_ids.filtered(lambda d: d.state == "ready")
-            chunks = self.env["llm.knowledge.chunk"].search(
-                [("collection_ids", "=", collection.id)]
-            )
-            if ready_docs:
-                ready_docs.write({"state": "chunked"})
+            # If we have a store, recreate the collection
+            if collection.store_id:
+                try:
+                    # Delete and recreate the collection in the store
+                    if collection.store_id.collection_exists(collection.id):
+                        collection.store_id.delete_collection(collection.id)
 
-            if chunks:
-                # Use embedding_model_id instead of collection_id
-                if collection.embedding_model_id:
-                    embedding_model_id = collection.embedding_model_id.id
+                    # Create the collection again
+                    collection.store_id.create_collection(collection.id)
 
-                    # Get sample embedding to determine dimensions
-                    sample_embedding = collection.embedding_model_id.embedding("")[0]
-                    dimensions = len(sample_embedding) if sample_embedding else None
+                    # Mark resources for re-embedding
+                    ready_docs = collection.resource_ids.filtered(lambda d: d.state == "ready")
+                    if ready_docs:
+                        ready_docs.write({"state": "chunked"})
 
-                    # First clear all embeddings and commit
-                    # This is done in one operation to avoid partial states
-                    chunks.write(
-                        {
-                            "embedding": None,
-                            "embedding_model_id": embedding_model_id,
-                        }
-                    )
-                    self.env.cr.commit()
-
-                    # Now create the index - it will automatically exclude NULL embeddings
-                    # due to the WHERE embedding IS NOT NULL clause in create_embedding_index
-                    if dimensions:
-                        self.env["llm.knowledge.chunk"].create_embedding_index(
-                            embedding_model_id=embedding_model_id,
-                            dimensions=dimensions,
+                        collection.message_post(
+                            body=_(
+                                f"Reset {len(ready_docs)} resources for re-embedding with model {collection.embedding_model_id.name}."
+                            ),
+                            message_type="notification",
                         )
+                    else:
+                        collection.message_post(
+                            body=_("No resources found to reindex."),
+                            message_type="notification",
+                        )
+                except Exception as e:
+                    collection.message_post(
+                        body=_(f"Error reindexing collection: {str(e)}"),
+                        message_type="error",
+                    )
+            else:
+                # For collections without a store, just reset resource states
+                ready_docs = collection.resource_ids.filtered(lambda d: d.state == "ready")
+                if ready_docs:
+                    ready_docs.write({"state": "chunked"})
 
                     collection.message_post(
                         body=_(
-                            f"Reset embeddings for {len(chunks)} chunks and recreated index for model {collection.embedding_model_id.name}."
+                            f"Reset {len(ready_docs)} resources for re-embedding with model {collection.embedding_model_id.name}."
                         ),
                         message_type="notification",
                     )
                 else:
                     collection.message_post(
-                        body=_(
-                            "Cannot reindex: No embedding model configured for this collection."
-                        ),
-                        message_type="warning",
+                        body=_("No resources found to reindex."),
+                        message_type="notification",
                     )
-            else:
-                collection.message_post(
-                    body=_("No chunks found to reindex."),
-                    message_type="notification",
-                )
 
     def action_open_upload_wizard(self):
         """Open the upload resource wizard with this collection pre-selected"""
@@ -325,12 +417,11 @@ class LLMKnowledgeCollection(models.Model):
 
     def embed_resources(self, specific_resource_ids=None, batch_size=20):
         """
-        Embed all chunked resources using the collection's embedding model.
-        Optimized to directly filter chunks instead of searching resources first.
+        Embed all chunked resources using the collection's embedding model and store.
 
         Args:
             specific_resource_ids: Optional list of resource IDs to process.
-                                 If provided, only chunks from these resources will be processed.
+                                If provided, only chunks from these resources will be processed.
             batch_size: Number of chunks to process in each batch
         """
         for collection in self:
@@ -341,7 +432,19 @@ class LLMKnowledgeCollection(models.Model):
                 )
                 continue
 
-            # Directly search for chunks that belong to chunked resources in this collection
+            # Ensure we have a store to use
+            if not collection.store_id:
+                collection.message_post(
+                    body=_("No vector store configured for this collection."),
+                    message_type="warning",
+                )
+                continue
+
+            # Ensure the collection exists in the store
+            if not collection.store_id.collection_exists(collection.id):
+                collection._initialize_store()
+
+            # Search for chunks that belong to chunked resources in this collection
             chunk_domain = [
                 ("collection_ids", "=", collection.id),
             ]
@@ -365,42 +468,56 @@ class LLMKnowledgeCollection(models.Model):
                 )
                 continue
 
-            # Apply the collection's embedding model
-            embedding_model = collection.embedding_model_id
-
             # Process chunks in batches for efficiency
             total_chunks = len(chunks)
             processed_chunks = 0
-            processed_resource_ids = (
-                set()
-            )  # Track which resource IDs had chunks processed
+            processed_resource_ids = set()  # Track which resource IDs had chunks processed
 
             # Process in batches
             for i in range(0, total_chunks, batch_size):
                 batch = chunks[i: i + batch_size]
-                batch_contents = [chunk.content for chunk in batch]
 
-                # Generate embeddings for all content in the batch at once
-                batch_embeddings = embedding_model.embedding(batch_contents)
+                # Prepare chunked data for the store
+                texts = []
+                metadata_list = []
+                chunk_ids = []
 
-                # Apply embeddings to each chunk in the batch and add to collection
-                for j, chunk in enumerate(batch):
-                    # Update with a single write operation per chunk
-                    chunk.write(
-                        {
-                            "embedding": batch_embeddings[j],
-                            "embedding_model_id": embedding_model.id,
-                            "collection_ids": [(4, collection.id)],
-                        }
-                    )
-                    # Track the resource ID for this chunk
+                for chunk in batch:
+                    texts.append(chunk.content)
+                    metadata = {
+                        "resource_id": chunk.resource_id.id,
+                        "resource_name": chunk.resource_id.name,
+                        "chunk_id": chunk.id,
+                        "sequence": chunk.sequence,
+                    }
+                    # Add custom metadata if present
+                    if chunk.metadata:
+                        metadata.update(chunk.metadata)
+
+                    metadata_list.append(metadata)
+                    chunk_ids.append(chunk.id)
                     processed_resource_ids.add(chunk.resource_id.id)
 
-                processed_chunks += len(batch)
-                _logger.info(f"Processed {processed_chunks}/{total_chunks} chunks")
+                try:
+                    # Generate embeddings using the collection's embedding model
+                    embeddings = collection.embedding_model_id.embedding(texts)
 
-                # Commit transaction after each batch to avoid timeout issues
-                self.env.cr.commit()
+                    # Insert vectors into the store
+                    collection.store_id.insert_vectors(
+                        collection_id=collection.id,
+                        vectors=embeddings,
+                        metadatas=metadata_list,
+                        ids=chunk_ids
+                    )
+
+                    processed_chunks += len(batch)
+                    _logger.info(f"Processed {processed_chunks}/{total_chunks} chunks")
+
+                    # Commit transaction after each batch to avoid timeout issues
+                    self.env.cr.commit()
+                except Exception as e:
+                    _logger.error(f"Error processing batch: {str(e)}")
+                    # Continue with next batch
 
             # Update resource states to ready - only update resources that had chunks processed
             if processed_resource_ids:
@@ -412,23 +529,12 @@ class LLMKnowledgeCollection(models.Model):
                 # Prepare message with resource details for clarity
                 doc_count = len(processed_resource_ids)
                 msg = _(
-                    f"Embedded {processed_chunks} chunks from {doc_count} resources using {embedding_model.name}"
+                    f"Embedded {processed_chunks} chunks from {doc_count} resources using {collection.embedding_model_id.name}"
                 )
 
                 collection.message_post(
                     body=msg,
                     message_type="notification",
-                )
-
-                # Create a model-specific index for better performance
-                # Use embedding_model_id instead of collection_id
-                dimensions = (
-                    len(batch_embeddings[0])
-                    if batch_embeddings and batch_embeddings[0]
-                    else None
-                )
-                self.env["llm.knowledge.chunk"].create_embedding_index(
-                    embedding_model_id=embedding_model.id, dimensions=dimensions
                 )
 
                 return {

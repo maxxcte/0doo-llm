@@ -215,7 +215,7 @@ class LLMResourceLlamaChunker(models.Model):
         # Create chunks
         created_chunks = []
         for idx, node in enumerate(nodes, 1):
-            chunk = self.env["llm.knowledge.chunk"].create(
+            chunk = self.env["llm.resource.chunk"].create(
                 {
                     "resource_id": self.id,
                     "sequence": idx,

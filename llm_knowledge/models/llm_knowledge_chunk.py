@@ -8,7 +8,6 @@ _logger = logging.getLogger(__name__)
 class LLMKnowledgeChunk(models.Model):
     _name = "llm.knowledge.chunk"
     _description = "Document Chunk for RAG"
-    _inherit = ["llm.embedding.mixin"]
     _order = "sequence, id"
 
     name = fields.Char(
@@ -38,12 +37,19 @@ class LLMKnowledgeChunk(models.Model):
         default={},
         help="Additional metadata for this chunk",
     )
-    # Simple collection_ids field as shown in the README
+    # Related field to resource collections
     collection_ids = fields.Many2many(
         "llm.knowledge.collection",
         string="Collections",
         related="resource_id.collection_ids",
         store=False,
+    )
+
+    # Virtual field to store similarity score in search results
+    similarity = fields.Float(
+        string="Similarity Score",
+        store=False,
+        compute="_compute_similarity"
     )
 
     @api.depends("resource_id.name", "sequence")
@@ -53,6 +59,14 @@ class LLMKnowledgeChunk(models.Model):
                 chunk.name = f"{chunk.resource_id.name} - Chunk {chunk.sequence}"
             else:
                 chunk.name = f"Chunk {chunk.sequence}"
+
+    def _compute_similarity(self):
+        """Compute method for the similarity field."""
+        for record in self:
+            # Get the similarity score from the context
+            record.similarity = self.env.context.get("similarity_scores", {}).get(
+                record.id, 0.0
+            )
 
     def open_chunk_detail(self):
         """Open a form view of the chunk for detailed viewing."""
@@ -67,58 +81,78 @@ class LLMKnowledgeChunk(models.Model):
 
     @api.model
     def search(self, args, offset=0, limit=None, order=None, count=False, **kwargs):
-        # Check if vector search is implicitly requested via the 'embedding' field
-        vector_search_term = None
+        """
+        Extend search to support semantic search via store implementations
 
+        The semantic search can be triggered in two ways:
+        1. Via the 'embedding' field in args with a string value
+        2. Via a query_vector and collection_id provided directly in kwargs
+        """
+        # Check if semantic search is requested via the embedding field
+        vector_search_term = None
         for arg in args:
             if (
-                isinstance(arg, (list, tuple))
-                and len(arg) == 3
-                and arg[0] == "embedding"
-                # Trigger vector search if any operator is used with a string value
-                and isinstance(arg[2], str)  # Expecting a search term string
+                    isinstance(arg, (list, tuple))
+                    and len(arg) == 3
+                    and arg[0] == "embedding"
+                    and isinstance(arg[2], str)
             ):
                 vector_search_term = arg[2]
-                break  # Found our vector search term, no need to continue
+                args = [a for a in args if a != arg]  # Remove the embedding condition
+                break
 
-        if vector_search_term:
+        # Get query_vector either from kwargs or by converting search term
+        query_vector = kwargs.get("query_vector")
+        collection_id = kwargs.get("collection_id")
+
+        if vector_search_term and not query_vector:
             # Get a default collection to use its embedding model
-            collection = self.env["llm.knowledge.collection"].search([], limit=1)
+            collection = collection_id and self.env["llm.knowledge.collection"].browse(collection_id) or \
+                         self.env["llm.knowledge.collection"].search([], limit=1)
+
             if collection and collection.embedding_model_id:
+                # Generate the vector using the collection's embedding model
                 embedding_model = collection.embedding_model_id
-                vector = embedding_model.embedding(vector_search_term.strip())[0]
+                query_vector = embedding_model.embedding(vector_search_term.strip())[0]
+                collection_id = collection.id
 
-                kwargs["query_vector"] = vector
-                # Get similarity threshold from context or use default
-                similarity_threshold = self.env.context.get(
-                    "search_similarity_threshold", 0.5
-                )
-                kwargs["query_min_similarity"] = similarity_threshold
-                # Get vector operator from context or use default cosine similarity
-                vector_operator = self.env.context.get("search_vector_operator", "<=>")
-                kwargs["query_operator"] = vector_operator
+        # If we have a query vector and collection, use the store for search
+        if query_vector is not None and collection_id:
+            collection = self.env["llm.knowledge.collection"].browse(collection_id)
+            if collection.exists() and collection.store_id:
+                # Get search parameters
+                similarity_threshold = kwargs.get("query_min_similarity",
+                                                  self.env.context.get("search_similarity_threshold", 0.5))
 
-                return super().search(
-                    [],  # Empty domain - rely solely on vector similarity, as other domain conditions are irrelevant
-                    offset=offset,
-                    limit=limit,
-                    order=order,
-                    count=count,
-                    **kwargs,
-                )
-            else:
-                # Fallback or raise error if no embedding model found?
-                # For now, fallback to standard search without vector enhancement
-                _logger.warning(
-                    "Vector search requested on 'embedding' field, but no default embedding model found."
-                )
-                # Call super with the original args (including the embedding condition)
-                # This might fail if the ORM doesn't understand the operator for PgVector.
-                return super().search(
-                    args, offset=offset, limit=limit, order=order, count=count, **kwargs
-                )
+                # Use the store's vector search capability
+                try:
+                    results = collection.store_id.search_vectors(
+                        collection_id=collection_id,
+                        query_vector=query_vector,
+                        filter_string=args if args else None,
+                        limit=limit,
+                        offset=offset,
+                    )
 
-        # If no vector search condition on 'embedding' field, proceed as normal
-        return super().search(
-            args, offset=offset, limit=limit, order=order, count=count, **kwargs
-        )
+                    if count:
+                        return len(results)
+
+                    # Extract chunk IDs and similarity scores
+                    chunk_ids = []
+                    similarities = []
+
+                    for result in results:
+                        chunk_ids.append(result.get('id'))
+                        similarities.append(result.get('score', 0.0))
+
+                    # Store similarity scores in context for the virtual field
+                    similarity_scores = dict(zip(chunk_ids, similarities))
+
+                    # Return the found chunks with similarity scores in context
+                    return self.browse(chunk_ids).with_context(similarity_scores=similarity_scores)
+                except Exception as e:
+                    _logger.error(f"Error in vector search: {str(e)}")
+                    # Fall back to standard search
+
+        # Fallback to standard search if vector search is not possible
+        return super().search(args, offset=offset, limit=limit, order=order, count=count, **kwargs)
