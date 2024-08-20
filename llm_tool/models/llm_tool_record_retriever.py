@@ -34,16 +34,24 @@ class LLMToolRecordRetriever(models.Model):
         _logger.info(
             f"Executing Odoo Record Retriever with: model={model}, domain={domain}, fields={fields}, limit={limit}"
         )
-        model_obj = self.env[model]
 
-        # Using search_read for efficiency
-        if fields:
-            result = model_obj.search_read(
-                domain=domain, fields=fields, limit=limit
-            )
-        else:
-            records = model_obj.search(domain=domain, limit=limit)
-            result = records.read()
+        try:
+            model_obj = self.env[model]
 
-        # Convert to serializable format
-        return json.loads(json.dumps(result, default=str))
+            # Using search_read for efficiency
+            if fields:
+                result = model_obj.search_read(
+                    domain=domain, fields=fields, limit=limit
+                )
+            else:
+                records = model_obj.search(domain=domain, limit=limit)
+                result = records.read()
+
+            # Convert to serializable format
+            return json.loads(json.dumps(result, default=str))
+
+        except KeyError:
+            return {"error": f"Model '{model}' not found"}
+        except Exception as e:
+            _logger.exception(f"Error executing Odoo Record Retriever: {str(e)}")
+            return {"error": str(e)}
