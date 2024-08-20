@@ -61,12 +61,12 @@ class LLMKnowledgeChunker(models.Model):
     def _get_available_chunkers(self):
         """Get all available chunker methods"""
         return [("default", "Default Chunker")]
-
+        
     @api.depends("chunk_ids")
     def _compute_chunk_count(self):
         for record in self:
             record.chunk_count = len(record.chunk_ids)
-
+            
     def action_view_chunks(self):
         """Open a view with all chunks for this resource"""
         self.ensure_one()
@@ -179,7 +179,8 @@ class LLMKnowledgeChunker(models.Model):
                         "resource_id": self.id,
                         "sequence": chunk_seq,
                         "content": chunk_text,
-                        # Note: No need to set collection_ids as it's a related field
+                        # Note: We don't set collection_ids here - this is handled
+                        # later during embedding at the collection level
                     }
                 )
                 chunks.append(chunk)
@@ -216,7 +217,6 @@ class LLMKnowledgeChunker(models.Model):
                     "resource_id": self.id,
                     "sequence": chunk_seq,
                     "content": chunk_text,
-                    # Note: No need to set collection_ids as it's a related field
                 }
             )
             chunks.append(chunk)
@@ -276,21 +276,9 @@ class LLMKnowledgeChunker(models.Model):
         """Reindex a single resource's chunks"""
         self.ensure_one()
 
-        # Get all collections this resource belongs to
-        collections = self.collection_ids
-        if not collections:
-            return {
-                "type": "ir.actions.client",
-                "tag": "display_notification",
-                "params": {
-                    "title": _("Reindexing"),
-                    "message": _("Resource does not belong to any collections."),
-                    "type": "warning",
-                },
-            }
-
         # Get all chunks for this resource
         chunks = self.chunk_ids
+
         if not chunks:
             return {
                 "type": "ir.actions.client",
@@ -302,22 +290,26 @@ class LLMKnowledgeChunker(models.Model):
                 },
             }
 
-        # Set resource back to chunked state to trigger re-embedding
-        self.write({"state": "chunked"})
+        # Get all collections this resource belongs to
+        collections = self.collection_ids
 
-        # Delete chunks from each collection's store
+        # Reindex for each collection
         for collection in collections:
-            if collection.store_id:
-                # Remove chunks from this resource from the store
-                try:
-                    collection.store_id.delete_vectors(
-                        collection_id=collection.id,
-                        ids=chunks.ids
-                    )
-                except Exception as e:
-                    _logger.warning(
-                        f"Error removing vectors for chunks from collection {collection.id}: {str(e)}"
-                    )
+            # Get chunks that belong to this collection
+            collection_chunks = chunks.filtered(
+                lambda c, collection_id=collection.id: collection_id
+                in c.collection_ids.ids
+            )
+            if collection_chunks:
+                # Use embedding_model_id instead of collection_id
+                embedding_model_id = collection.embedding_model_id.id
+                sample_embedding = collection.embedding_model_id.embedding("")[0]
+                dimensions = len(sample_embedding) if sample_embedding else None
+                collection_chunks.create_embedding_index(
+                    embedding_model_id=embedding_model_id,
+                    force=True,
+                    dimensions=dimensions,
+                )
 
         return {
             "type": "ir.actions.client",
@@ -325,7 +317,7 @@ class LLMKnowledgeChunker(models.Model):
             "params": {
                 "title": _("Reindexing"),
                 "message": _(
-                    f"Reset resource for re-embedding in {len(collections)} collections."
+                    f"Reindexing request submitted for {len(collections)} collections."
                 ),
                 "type": "success",
             },
@@ -386,9 +378,9 @@ class LLMKnowledgeChunker(models.Model):
             result = collection.embed_resources(specific_resource_ids=chunked_docs.ids)
             # Check if result is not None before trying to access .get()
             if (
-                    result
-                    and result.get("success")
-                    and result.get("processed_resources", 0) > 0
+                result
+                and result.get("success")
+                and result.get("processed_resources", 0) > 0
             ):
                 any_embedded = True
 

@@ -1,4 +1,5 @@
 import logging
+
 from psycopg2.errors import UndefinedObject
 
 _logger = logging.getLogger(__name__)
@@ -61,11 +62,3 @@ def pre_init_hook(cr):
                 "Vector extension is not available. Please ensure pgvector is installed "
                 "on your PostgreSQL server before installing this module."
             ) from e
-
-
-def post_init_hook(cr, registry):
-    """Create any necessary database objects after module installation"""
-    _logger.info("Setting up pgvector database objects...")
-
-    # Register any operators or additional features if needed
-    # In this version, we don't need any additional setup

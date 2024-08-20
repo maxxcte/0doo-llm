@@ -116,26 +116,16 @@ class LLMTool(models.Model):
         if not self.implementation:
             return {}
 
-        # Construct the full method name for the implementation
         impl_method_name = f"{self.implementation}_{method}"
-
-        # Check if the method exists
         if not hasattr(self, impl_method_name):
             _logger.warning(f"Method {impl_method_name} not found for tool {self.name}")
             return {}
 
-        # Get the method
         method = getattr(self, impl_method_name)
-
-        # Create Pydantic model
         model = self.get_pydantic_model_from_signature(method)
-
-        # Convert to JSON schema
         schema = model.model_json_schema()
 
-        # Extract the docstring for additional descriptions
         if method.__doc__:
-            # Parse the docstring to add parameter descriptions
             doc_lines = method.__doc__.split("\n")
             param_desc = {}
 
@@ -145,7 +135,6 @@ class LLMTool(models.Model):
                     if line.startswith(f"{prop_name}:"):
                         param_desc[prop_name] = line[len(prop_name) + 1 :].strip()
 
-            # Update schema with descriptions
             for prop_name, desc in param_desc.items():
                 if prop_name in schema.get("properties", {}):
                     schema["properties"][prop_name]["description"] = desc
@@ -157,39 +146,19 @@ class LLMTool(models.Model):
         if not self.implementation:
             raise UserError(_("Tool implementation not configured"))
 
-        # Construct the name of the execute method for this implementation
         impl_method_name = f"{self.implementation}_execute"
-
-        # Check if the method exists
         if not hasattr(self, impl_method_name):
             raise NotImplementedError(
                 _("Method execute not implemented for implementation %s")
                 % self.implementation
             )
 
-        # Get the method
         method = getattr(self, impl_method_name)
 
-        # Validate parameters using Pydantic model
-        try:
-            # Create Pydantic model from method signature
-            model = self.get_pydantic_model_from_signature(method)
-
-            # Validate parameters
-            validated = model(**parameters)
-
-            # Convert to dict and pass to implementation
-            validated_dict = validated.model_dump()
-
-            # Pass parameters by name to respect defaults in method signature
-            return method(**validated_dict)
-
-        except ValidationError as e:
-            # Return validation errors in a user-friendly format
-            return {"error": f"Invalid parameters: {str(e)}"}
-        except Exception as e:
-            _logger.exception(f"Error executing tool {self.name}: {str(e)}")
-            return {"error": str(e)}
+        model = self.get_pydantic_model_from_signature(method)
+        validated = model(**parameters)
+        validated_dict = validated.model_dump()
+        return method(**validated_dict)
 
     # API methods for the Tool schema
     def get_tool_definition(self):
