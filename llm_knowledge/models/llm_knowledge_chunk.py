@@ -45,6 +45,13 @@ class LLMKnowledgeChunk(models.Model):
         store=False,
     )
 
+    # Add reference to embeddings
+    # embedding_ids = fields.One2many(
+    #     "llm.knowledge.chunk.embedding",
+    #     "chunk_id",
+    #     string="Embeddings",
+    # )
+
     # Virtual field to store similarity score in search results
     similarity = fields.Float(
         string="Similarity Score",
@@ -78,6 +85,15 @@ class LLMKnowledgeChunk(models.Model):
             "view_mode": "form",
             "target": "new",
         }
+
+    def get_collection_embedding_models(self):
+        """Helper method to get embedding models for this chunk's collections"""
+        self.ensure_one()
+        models = self.env['llm.model']
+        for collection in self.collection_ids:
+            if collection.embedding_model_id:
+                models |= collection.embedding_model_id
+        return models
 
     @api.model
     def search(self, args, offset=0, limit=None, order=None, count=False, **kwargs):

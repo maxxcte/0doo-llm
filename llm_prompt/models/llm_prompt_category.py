@@ -18,6 +18,7 @@ class LLMPromptCategory(models.Model):
         string="Complete Name",
         compute="_compute_complete_name",
         store=True,
+        recursive=True,
     )
     parent_id = fields.Many2one(
         "llm.prompt.category",

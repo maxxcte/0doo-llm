@@ -7,7 +7,7 @@
         <field name="arch" type="xml">
             <tree>
                 <field name="name"/>
-                <field name="resource_id"/> <!-- Updated field name -->
+                <field name="resource_id"/>
                 <field name="sequence" widget="handle"/>
                 <field name="collection_ids" widget="many2many_tags"/>
             </tree>
@@ -22,17 +22,12 @@
             <form string="Knowledge Chunk">
                 <sheet>
                     <group>
-                        <field name="resource_id"/> <!-- Updated field name -->
+                        <field name="resource_id"/>
                         <field name="sequence"/>
                         <field name="content"/>
                         <field name="metadata" widget="json_widget"/>
                         <field name="collection_ids" widget="many2many_tags"/>
-                        <field name="embedding_model_id" readonly="1"/>
                     </group>
-                     <!-- Optional: Add embedding vector display if needed for debug -->
-                     <!-- <group string="Embedding Vector" name="embedding_vector">
-                         <field name="embedding" readonly="1"/>
-                     </group> -->
                 </sheet>
             </form>
         </field>
@@ -44,11 +39,12 @@
         <field name="model">llm.knowledge.chunk</field>
         <field name="arch" type="xml">
             <search>
-                <field name="embedding"/>
                 <field name="name"/>
                 <field name="content"/>
-                <field name="resource_id"/> <!-- Updated field name -->
+                <field name="resource_id"/>
                 <field name="collection_ids"/>
+
+<!--                <filter string="embedding"/>-->
 
                 <!-- Similarity threshold filters -->
                 <separator string="Similarity Threshold"/>
@@ -59,23 +55,59 @@
                 <!-- Vector search operator filters -->
                 <separator string="Search Method"/>
                 <filter
-          string="Cosine Similarity(&lt;=&gt;)"
-          name="operator_cosine"
-          context="{'search_vector_operator': '&lt;=&gt;'}"
-        />
+                        string="Cosine Similarity(&lt;=&gt;)"
+                        name="operator_cosine"
+                        context="{'search_vector_operator': '&lt;=&gt;'}"
+                />
                 <filter
-          string="Euclidean Distance(&lt;-&gt;)"
-          name="operator_euclidean"
-          context="{'search_vector_operator': '&lt;-&gt;'}"
-        />
+                        string="Euclidean Distance(&lt;-&gt;)"
+                        name="operator_euclidean"
+                        context="{'search_vector_operator': '&lt;-&gt;'}"
+                />
                 <filter
-          string="Inner Product(&lt;#&gt;)"
-          name="operator_inner_product"
-          context="{'search_vector_operator': '&lt;#&gt;'}"
-        />
+                        string="Inner Product(&lt;#&gt;)"
+                        name="operator_inner_product"
+                        context="{'search_vector_operator': '&lt;#&gt;'}"
+                />
             </search>
         </field>
     </record>
+
+    <!-- Special Form View for Chunk Detail Popup -->
+    <record id="view_llm_knowledge_chunk_detail_form" model="ir.ui.view">
+        <field name="name">llm.knowledge.chunk.detail.form</field>
+        <field name="model">llm.knowledge.chunk</field>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <form string="Chunk Detail">
+                <sheet>
+                    <group>
+                        <field name="name" readonly="1"/>
+                        <field name="resource_id" readonly="1"/>
+                        <field name="sequence" readonly="1"/>
+                    </group>
+                    <group>
+                        <field name="collection_ids" widget="many2many_tags" readonly="1"/>
+                    </group>
+                    <group string="Content">
+                        <field name="content" readonly="1" nolabel="1"/>
+                    </group>
+                    <group string="Metadata" attrs="{'invisible': [('metadata', '=', False)]}">
+                        <field name="metadata" widget="json_widget" readonly="1" nolabel="1"/>
+                    </group>
+<!--                    &lt;!&ndash; Show embeddings through the one2many relationship &ndash;&gt;-->
+<!--                    <group string="Embeddings" attrs="{'invisible': [('embedding_ids', '=', [])]}">-->
+<!--                        <field name="embedding_ids" readonly="1" nolabel="1">-->
+<!--                            <tree>-->
+<!--                                <field name="embedding_model_id"/>-->
+<!--                            </tree>-->
+<!--                        </field>-->
+<!--                    </group>-->
+                </sheet>
+            </form>
+        </field>
+    </record>
+
 
     <!-- Action -->
     <record id="action_llm_knowledge_chunk" model="ir.actions.act_window">

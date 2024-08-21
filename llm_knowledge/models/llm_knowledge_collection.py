@@ -415,7 +415,7 @@ class LLMKnowledgeCollection(models.Model):
             },
         }
 
-    def embed_resources(self, specific_resource_ids=None, batch_size=20):
+    def embed_resources(self, specific_resource_ids=None, batch_size=50):
         """
         Embed all chunked resources using the collection's embedding model and store.
 
@@ -468,14 +468,34 @@ class LLMKnowledgeCollection(models.Model):
                 )
                 continue
 
+            embedding_model_id = collection.embedding_model_id.id
+
+            # Check for existing embeddings with this model
+            existing_embeddings = self.env["llm.knowledge.chunk.embedding"].search([
+                ("chunk_id", "in", chunks.ids),
+                ("embedding_model_id", "=", embedding_model_id),
+            ])
+
+            # Get chunks that don't have embeddings yet for this model
+            existing_chunk_ids = existing_embeddings.mapped("chunk_id.id")
+            chunks_to_embed = chunks.filtered(lambda c: c.id not in existing_chunk_ids)
+
             # Process chunks in batches for efficiency
-            total_chunks = len(chunks)
+            total_chunks = len(chunks_to_embed)
             processed_chunks = 0
             processed_resource_ids = set()  # Track which resource IDs had chunks processed
 
+            if not total_chunks:
+                message = _("All chunks already have embeddings for the selected model")
+                collection.message_post(
+                    body=message,
+                    message_type="notification",
+                )
+                continue
+
             # Process in batches
             for i in range(0, total_chunks, batch_size):
-                batch = chunks[i: i + batch_size]
+                batch = chunks_to_embed[i: i + batch_size]
 
                 # Prepare chunked data for the store
                 texts = []
@@ -501,6 +521,19 @@ class LLMKnowledgeCollection(models.Model):
                 try:
                     # Generate embeddings using the collection's embedding model
                     embeddings = collection.embedding_model_id.embedding(texts)
+
+                    # Create chunk embedding records
+                    embedding_vals_list = []
+                    for i, (chunk_id, vector) in enumerate(zip(chunk_ids, embeddings)):
+                        embedding_vals_list.append({
+                            'chunk_id': chunk_id,
+                            'embedding_model_id': embedding_model_id,
+                            'embedding': vector,
+                        })
+
+                    # Create all embeddings in a batch
+                    if embedding_vals_list:
+                        self.env['llm.knowledge.chunk.embedding'].create(embedding_vals_list)
 
                     # Insert vectors into the store
                     collection.store_id.insert_vectors(

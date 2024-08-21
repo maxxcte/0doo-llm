@@ -7,6 +7,7 @@ _logger = logging.getLogger(__name__)
 class LLMKnowledgeChunkEmbedding(models.Model):
     _name = "llm.knowledge.chunk.embedding"
     _description = "Vector Embedding for Knowledge Chunks"
+    _rec_name = "chunk_id"  # Use chunk name as display name
 
     chunk_id = fields.Many2one(
         "llm.knowledge.chunk",
@@ -15,12 +16,13 @@ class LLMKnowledgeChunkEmbedding(models.Model):
         ondelete="cascade",
         index=True,
     )
-    collection_id = fields.Many2one(
+    # Related field to get collections from chunk's resource
+    collection_ids = fields.Many2many(
         "llm.knowledge.collection",
-        string="Collection",
-        required=True,
-        ondelete="cascade",
-        index=True,
+        string="Collections",
+        related="chunk_id.collection_ids",
+        store=False,
+        readonly=True,
     )
     embedding_model_id = fields.Many2one(
         "llm.model",
@@ -35,39 +37,38 @@ class LLMKnowledgeChunkEmbedding(models.Model):
         attachment=False,
         help="Vector embedding for similarity search",
     )
-    embedding_date = fields.Datetime(
-        string="Embedding Date",
+
+    resource_id = fields.Many2one(
+        related="chunk_id.resource_id",
+        store=True,
         readonly=True,
-        default=fields.Datetime.now,
+        index=True,
     )
 
     _sql_constraints = [
         (
-            "unique_chunk_collection",
-            "UNIQUE(chunk_id, collection_id)",
-            "A chunk can only have one embedding per collection",
+            "unique_chunk_embedding_model",
+            "UNIQUE(chunk_id, embedding_model_id)",
+            "A chunk can only have one embedding per embedding model",
         ),
     ]
 
-    @api.model
-    def create_or_update(self, chunk_id, collection_id, embedding_model_id, embedding_data):
-        """Create or update embedding for a chunk in a collection"""
-        existing = self.search([
-            ('chunk_id', '=', chunk_id),
-            ('collection_id', '=', collection_id),
-        ], limit=1)
+    def name_get(self):
+        """Override to provide a better display name"""
+        result = []
+        for record in self:
+            name = f"{record.chunk_id.name or 'Chunk'} [{record.embedding_model_id.name or 'Model'}]"
+            result.append((record.id, name))
+        return result
 
-        if existing:
-            existing.write({
-                'embedding_model_id': embedding_model_id,
-                'embedding': embedding_data,
-                'embedding_date': fields.Datetime.now(),
-            })
-            return existing
-        else:
-            return self.create({
-                'chunk_id': chunk_id,
-                'collection_id': collection_id,
-                'embedding_model_id': embedding_model_id,
-                'embedding': embedding_data,
-            })
+    @api.model
+    def create(self, vals):
+        """Override create to handle special cases"""
+        # If embedding_model_id not provided, try to get from collection
+        if not vals.get('embedding_model_id') and vals.get('chunk_id'):
+            chunk = self.env['llm.knowledge.chunk'].browse(vals['chunk_id'])
+            # Get first collection's embedding model
+            if chunk.collection_ids and chunk.collection_ids[0].embedding_model_id:
+                vals['embedding_model_id'] = chunk.collection_ids[0].embedding_model_id.id
+
+        return super().create(vals)

@@ -18,6 +18,9 @@
     "external_dependencies": {
         "python": ["pgvector", "numpy"],
     },
+    "data": {
+        "views/llm_knowledge_chunk_embedding_views.xml"
+    },
     "pre_init_hook": "pre_init_hook",
     "post_init_hook": "post_init_hook",
     "installable": True,
