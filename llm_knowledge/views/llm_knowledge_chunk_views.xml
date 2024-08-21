@@ -39,12 +39,11 @@
         <field name="model">llm.knowledge.chunk</field>
         <field name="arch" type="xml">
             <search>
+                <field name="embedding"/>
                 <field name="name"/>
                 <field name="content"/>
                 <field name="resource_id"/>
                 <field name="collection_ids"/>
-
-<!--                <filter string="embedding"/>-->
 
                 <!-- Similarity threshold filters -->
                 <separator string="Similarity Threshold"/>

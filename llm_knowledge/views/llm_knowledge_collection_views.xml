@@ -28,6 +28,7 @@
                         <group>
                             <field name="active" widget="boolean_toggle"/>
                             <field name="embedding_model_id" options="{'no_create': True}" required="1"/>
+                            <field name="store_id" required="1"/>
                         </group>
                         <group>
                             <!-- Add store fields here if needed -->

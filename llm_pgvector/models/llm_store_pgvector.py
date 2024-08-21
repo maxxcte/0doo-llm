@@ -13,10 +13,10 @@ class LLMStorePgVector(models.Model):
     _inherit = "llm.store"
     _description = "PgVector Store Implementation"
 
-    store_type = fields.Selection(
-        selection_add=[("pgvector", "PgVector")],
-        ondelete={"pgvector": "set default"},
-    )
+    @api.model
+    def _get_available_services(self):
+        services = super()._get_available_services()
+        return services + [("pgvector", "PGVector")]
 
     # PgVector specific configuration options
     pgvector_index_method = fields.Selection(
@@ -36,7 +36,7 @@ class LLMStorePgVector(models.Model):
     def collection_exists(self, collection_id):
         """Check if a collection exists - for pgvector, collections always 'exist'"""
         self.ensure_one()
-        if self.store_type != "pgvector":
+        if self.service != "pgvector":
             return super().collection_exists(collection_id)
 
         # For pgvector, we always return True as we're using the existing Odoo tables
@@ -46,7 +46,7 @@ class LLMStorePgVector(models.Model):
     def create_collection(self, collection_id):
         """Create a collection - for pgvector, this is a no-op"""
         self.ensure_one()
-        if self.store_type != "pgvector":
+        if self.service != "pgvector":
             return super().create_collection(collection_id)
 
         # For pgvector, creating a collection is essentially a no-op
@@ -65,7 +65,7 @@ class LLMStorePgVector(models.Model):
     def delete_collection(self, collection_id):
         """Delete a collection - for pgvector, we just drop indexes"""
         self.ensure_one()
-        if self.store_type != "pgvector":
+        if self.service != "pgvector":
             return super().delete_collection(collection_id)
 
         # For pgvector, deleting a collection just means dropping its indexes
@@ -105,7 +105,7 @@ class LLMStorePgVector(models.Model):
     def insert_vectors(self, collection_id, vectors, metadatas=None, ids=None):
         """Insert vectors into collection using batch operations"""
         self.ensure_one()
-        if self.store_type != "pgvector":
+        if self.service != "pgvector":
             return super().insert_vectors(collection_id, vectors, metadatas, ids)
 
         # Check parameters
@@ -152,7 +152,7 @@ class LLMStorePgVector(models.Model):
     def delete_vectors(self, collection_id, ids):
         """Delete vectors (embeddings) for specified chunk IDs"""
         self.ensure_one()
-        if self.store_type != "pgvector":
+        if self.service != "pgvector":
             return super().delete_vectors(collection_id, ids)
 
         # Get the collection to determine the embedding model
@@ -188,7 +188,7 @@ class LLMStorePgVector(models.Model):
             list of dicts with 'id', 'score', and 'metadata'
         """
         self.ensure_one()
-        if self.store_type != "pgvector":
+        if self.service != "pgvector":
             return super().search_vectors(collection_id, query_vector, limit, offset, filter_string)
 
         collection = self.env['llm.knowledge.collection'].browse(collection_id)
@@ -267,7 +267,7 @@ class LLMStorePgVector(models.Model):
     def create_vector_index(self, embedding_model_id, dimensions=None, force=False):
         """Create a vector index for the specified embedding model"""
         self.ensure_one()
-        if self.store_type != "pgvector":
+        if self.service != "pgvector":
             return False
 
         # Get the embedding model to determine dimensions if not provided
@@ -347,7 +347,7 @@ class LLMStorePgVector(models.Model):
     def drop_vector_index(self, embedding_model_id=None):
         """Drop vector index for the specified embedding model"""
         self.ensure_one()
-        if self.store_type != "pgvector":
+        if self.service != "pgvector":
             return False
 
         table_name = "llm_knowledge_chunk_embedding"

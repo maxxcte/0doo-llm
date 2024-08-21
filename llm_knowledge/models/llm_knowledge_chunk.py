@@ -45,6 +45,17 @@ class LLMKnowledgeChunk(models.Model):
         store=False,
     )
 
+    embedding = fields.Char(
+        string='Vector embedding',
+        compute=None,
+        store=False,
+        search='_search_embedding'
+    )
+
+    def _search_embedding(self, operator, value):
+        # TODO(saifuL)
+        return []
+
     # Add reference to embeddings
     # embedding_ids = fields.One2many(
     #     "llm.knowledge.chunk.embedding",

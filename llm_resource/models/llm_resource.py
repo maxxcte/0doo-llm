@@ -248,3 +248,21 @@ class LLMResource(models.Model):
                 "type": "success",
             },
         }
+
+    def action_mass_unlock(self):
+        """
+        Mass unlock action for the server action.
+        """
+        # Unlock the resources
+        self._unlock()
+
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Resources Unlocked"),
+                "message": _("%s resources have been unlocked") % len(self),
+                "sticky": False,
+                "type": "success",
+            },
+        }

@@ -1,15 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Server Action for Mass Processing -->
-<record id="action_mass_process_rag_resources" model="ir.actions.server">
-    <field name="name">Process Resources</field>
-    <field name="model_id" ref="llm_resource.model_llm_resource"/>
-    <field name="binding_model_id" ref="llm_resource.model_llm_resource"/>
-    <field name="binding_view_types">list</field>
-    <field name="state">code</field>
-    <field name="code">
+    <record id="action_mass_process_rag_resources" model="ir.actions.server">
+        <field name="name">Process Resources</field>
+        <field name="model_id" ref="llm_resource.model_llm_resource"/>
+        <field name="binding_model_id" ref="llm_resource.model_llm_resource"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
 # Calls the overridden process_resource method in llm_knowledge
 action = model.action_mass_process_resources()
-    </field>
-</record>
+        </field>
+    </record>
+    <!-- Server Action for Mass Unlock -->
+    <record id="action_mass_unlock_resources" model="ir.actions.server">
+        <field name="name">Force Unlock</field>
+        <field name="model_id" ref="llm_resource.model_llm_resource"/>
+        <field name="binding_model_id" ref="llm_resource.model_llm_resource"/>
+        <field name="binding_view_types">list,form,kanban</field>
+        <field name="state">code</field>
+        <field name="code">
+action = model.action_mass_unlock()
+        </field>
+    </record>
 </odoo>

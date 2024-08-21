@@ -67,7 +67,7 @@ class LLMKnowledgeCollection(models.Model):
     store_id = fields.Many2one(
         "llm.store",
         string="Vector Store",
-        required=False,
+        required=True,
         ondelete="cascade",
         tracking=True
     )
