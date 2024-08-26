@@ -46,22 +46,15 @@ class LLMKnowledgeChunk(models.Model):
     )
 
     embedding = fields.Char(
-        string='Vector embedding',
+        string='Embedding',
         compute=None,
         store=False,
         search='_search_embedding'
     )
 
     def _search_embedding(self, operator, value):
-        # TODO(saifuL)
-        return []
-
-    # Add reference to embeddings
-    # embedding_ids = fields.One2many(
-    #     "llm.knowledge.chunk.embedding",
-    #     "chunk_id",
-    #     string="Embeddings",
-    # )
+        print("HERE")
+        return [('embedding', operator, value)]
 
     # Virtual field to store similarity score in search results
     similarity = fields.Float(
@@ -116,6 +109,8 @@ class LLMKnowledgeChunk(models.Model):
         2. Via a query_vector and collection_id provided directly in kwargs
         """
         # Check if semantic search is requested via the embedding field
+        print(args)
+        print(kwargs)
         vector_search_term = None
         for arg in args:
             if (
