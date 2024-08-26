@@ -239,21 +239,6 @@ class LLMStorePgVector(models.Model):
                 'metadata': {}  # We don't store additional metadata currently
             })
 
-        # Get metadata for the chunks if needed
-        if chunk_ids:
-            chunks = self.env['llm.knowledge.chunk'].browse(chunk_ids)
-            # Add metadata from chunks if needed
-            for i, chunk in enumerate(chunks):
-                if i < len(formatted_results):
-                    formatted_results[i]['metadata'] = {
-                        'resource_id': chunk.resource_id.id,
-                        'resource_name': chunk.resource_id.name,
-                        'sequence': chunk.sequence,
-                    }
-                    # Add chunk metadata if present
-                    if chunk.metadata:
-                        formatted_results[i]['metadata'].update(chunk.metadata)
-
         return formatted_results
 
     # -------------------------------------------------------------------------
