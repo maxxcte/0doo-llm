@@ -92,7 +92,7 @@ class LLMStore(models.Model):
         """
         return self._dispatch("list_collections", **kwargs)
 
-    def has_collection(self, name, **kwargs):
+    def collection_exists(self, name, **kwargs):
         """Check if a collection exists
         
         Args:
@@ -102,7 +102,7 @@ class LLMStore(models.Model):
         Returns:
             Boolean indicating if collection exists
         """
-        return self._dispatch("has_collection", name, **kwargs)
+        return self._dispatch("collection_exists", name, **kwargs)
 
     # Vector Management
     def insert_vectors(self, collection_name, vectors, metadata=None, ids=None, **kwargs):

@@ -33,21 +33,17 @@ class LLMStorePgVector(models.Model):
     # Store Interface Implementation
     # -------------------------------------------------------------------------
 
-    def collection_exists(self, collection_id):
+    def pgvector_collection_exists(self, collection_id):
         """Check if a collection exists - for pgvector, collections always 'exist'"""
         self.ensure_one()
-        if self.service != "pgvector":
-            return super().collection_exists(collection_id)
 
         # For pgvector, we always return True as we're using the existing Odoo tables
         # and not creating separate collections
         return True
 
-    def create_collection(self, collection_id):
+    def pgvector_create_collection(self, collection_id):
         """Create a collection - for pgvector, this is a no-op"""
         self.ensure_one()
-        if self.service != "pgvector":
-            return super().create_collection(collection_id)
 
         # For pgvector, creating a collection is essentially a no-op
         # since we're using the existing Odoo tables
@@ -62,11 +58,9 @@ class LLMStorePgVector(models.Model):
 
         return True
 
-    def delete_collection(self, collection_id):
+    def pgvector_delete_collection(self, collection_id):
         """Delete a collection - for pgvector, we just drop indexes"""
         self.ensure_one()
-        if self.service != "pgvector":
-            return super().delete_collection(collection_id)
 
         # For pgvector, deleting a collection just means dropping its indexes
         collection = self.env['llm.knowledge.collection'].browse(collection_id)
@@ -102,11 +96,9 @@ class LLMStorePgVector(models.Model):
 
         return True
 
-    def insert_vectors(self, collection_id, vectors, metadatas=None, ids=None):
+    def pgvector_insert_vectors(self, collection_id, vectors, metadatas=None, ids=None):
         """Insert vectors into collection using batch operations"""
         self.ensure_one()
-        if self.service != "pgvector":
-            return super().insert_vectors(collection_id, vectors, metadatas, ids)
 
         # Check parameters
         if not ids or len(ids) != len(vectors):
@@ -149,11 +141,9 @@ class LLMStorePgVector(models.Model):
 
         return True
 
-    def delete_vectors(self, collection_id, ids):
+    def pgvector_delete_vectors(self, collection_id, ids):
         """Delete vectors (embeddings) for specified chunk IDs"""
         self.ensure_one()
-        if self.service != "pgvector":
-            return super().delete_vectors(collection_id, ids)
 
         # Get the collection to determine the embedding model
         collection = self.env['llm.knowledge.collection'].browse(collection_id)
@@ -180,7 +170,7 @@ class LLMStorePgVector(models.Model):
 
         return True
 
-    def search_vectors(self, collection_id, query_vector, limit=10, offset=0, filter_string=None):
+    def pgvector_search_vectors(self, collection_id, query_vector, limit=10, offset=0, filter_string=None):
         """
         Search for similar vectors in the collection
 
@@ -188,8 +178,6 @@ class LLMStorePgVector(models.Model):
             list of dicts with 'id', 'score', and 'metadata'
         """
         self.ensure_one()
-        if self.service != "pgvector":
-            return super().search_vectors(collection_id, query_vector, limit, offset, filter_string)
 
         collection = self.env['llm.knowledge.collection'].browse(collection_id)
         if not collection.exists() or not collection.embedding_model_id:
@@ -249,11 +237,9 @@ class LLMStorePgVector(models.Model):
         """Generate a consistent index name based on table and embedding model"""
         return f"{table_name}_emb_model_{embedding_model_id}_idx"
 
-    def create_vector_index(self, embedding_model_id, dimensions=None, force=False):
+    def pgvector_create_vector_index(self, embedding_model_id, dimensions=None, force=False):
         """Create a vector index for the specified embedding model"""
         self.ensure_one()
-        if self.service != "pgvector":
-            return False
 
         # Get the embedding model to determine dimensions if not provided
         if not dimensions and embedding_model_id:
@@ -329,12 +315,9 @@ class LLMStorePgVector(models.Model):
             _logger.error(f"Error creating vector index: {str(e)}")
             return False
 
-    def drop_vector_index(self, embedding_model_id=None):
+    def pgvector_drop_vector_index(self, embedding_model_id=None):
         """Drop vector index for the specified embedding model"""
         self.ensure_one()
-        if self.service != "pgvector":
-            return False
-
         table_name = "llm_knowledge_chunk_embedding"
 
         if embedding_model_id:
