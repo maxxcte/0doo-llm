@@ -47,9 +47,9 @@
 
                 <!-- Similarity threshold filters -->
                 <separator string="Similarity Threshold"/>
-                <filter string="High Similarity (0.75)" name="similarity_high" context="{'search_similarity_threshold': 0.75}"/>
-                <filter string="Medium Similarity (0.5)" name="similarity_medium" context="{'search_similarity_threshold': 0.5}"/>
-                <filter string="Low Similarity (0.25)" name="similarity_low" context="{'search_similarity_threshold': 0.25}"/>
+                <filter string="High Similarity (0.75)" name="similarity_high" context="{'search_min_similarity': 0.75}"/>
+                <filter string="Medium Similarity (0.5)" name="similarity_medium" context="{'search_min_similarity': 0.5}"/>
+                <filter string="Low Similarity (0.25)" name="similarity_low" context="{'search_min_similarity': 0.25}"/>
 
                 <!-- Vector search operator filters -->
                 <separator string="Search Method"/>
