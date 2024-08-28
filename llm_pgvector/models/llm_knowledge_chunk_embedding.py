@@ -1,5 +1,6 @@
 import logging
 from odoo import api, fields, models
+from ..fields import PgVector
 
 _logger = logging.getLogger(__name__)
 
@@ -32,9 +33,8 @@ class LLMKnowledgeChunkEmbedding(models.Model):
         ondelete="restrict",
         index=True,
     )
-    embedding = fields.Binary(
+    embedding = PgVector(
         string="Vector Embedding",
-        attachment=False,
         help="Vector embedding for similarity search",
     )
 

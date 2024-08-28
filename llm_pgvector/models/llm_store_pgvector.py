@@ -170,7 +170,15 @@ class LLMStorePgVector(models.Model):
 
         return True
 
-    def pgvector_search_vectors(self, collection_id, query_vector, limit=10, offset=0, filter_string=None):
+    def pgvector_search_vectors(self,
+        collection_name,
+        query_vector,
+        limit=10,
+        filter=None,
+        offset=0,
+        collection_id=None,
+        query_operator="<=>",
+        min_similarity=0.5):
         """
         Search for similar vectors in the collection
 
@@ -199,20 +207,21 @@ class LLMStorePgVector(models.Model):
             WITH query_vector AS (
                 SELECT '{vector_str}'::vector AS vec
             )
-            SELECT {index_hint} e.chunk_id, 1 - (e.embedding <=> query_vector.vec) as score
+            SELECT {index_hint} e.chunk_id, 1 - (e.embedding {query_operator} query_vector.vec) as score
             FROM llm_knowledge_chunk_embedding e
             JOIN llm_knowledge_chunk c ON e.chunk_id = c.id
             JOIN llm_knowledge_resource_collection_rel rel ON c.resource_id = rel.resource_id
-            JOIN query_vector
+            CROSS JOIN query_vector
             WHERE rel.collection_id = %s
             AND e.embedding_model_id = %s
             AND e.embedding IS NOT NULL
+            AND (1 - (e.embedding {query_operator} query_vector.vec)) >= %s
             ORDER BY score DESC
             LIMIT %s
             OFFSET %s
         """
 
-        self.env.cr.execute(query, (collection_id, embedding_model_id, limit, offset))
+        self.env.cr.execute(query, (collection_id, embedding_model_id, min_similarity, limit, offset))
         results = self.env.cr.fetchall()
 
         # Format results with chunk IDs as the main identifiers
