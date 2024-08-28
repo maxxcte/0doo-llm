@@ -44,17 +44,12 @@ class LLMKnowledgeChunk(models.Model):
         related="resource_id.collection_ids",
         store=False,
     )
-
+    #TODO: Is this only for searching?
     embedding = fields.Char(
         string='Embedding',
         compute=None,
         store=False,
-        search='_search_embedding'
     )
-
-    def _search_embedding(self, operator, value):
-        print("HERE")
-        return [('embedding', operator, value)]
 
     # Virtual field to store similarity score in search results
     similarity = fields.Float(
@@ -137,22 +132,26 @@ class LLMKnowledgeChunk(models.Model):
                 embedding_model = collection.embedding_model_id
                 query_vector = embedding_model.embedding(vector_search_term.strip())[0]
                 collection_id = collection.id
+                collection_name = collection.name
 
         # If we have a query vector and collection, use the store for search
         if query_vector is not None and collection_id:
             collection = self.env["llm.knowledge.collection"].browse(collection_id)
             if collection.exists() and collection.store_id:
                 # Get search parameters
-                similarity_threshold = kwargs.get("query_min_similarity",
-                                                  self.env.context.get("search_similarity_threshold", 0.5))
-
+                min_similarity = kwargs.get("query_min_similarity",
+                                                  self.env.context.get("search_min_similarity", 0.5))
+                query_operator = kwargs.get("query_operator", self.env.context.get("search_vector_operator", "<=>"))
                 # Use the store's vector search capability
                 try:
                     results = collection.store_id.search_vectors(
-                        collection_id=collection_id,
+                        collection_name=collection_name,
                         query_vector=query_vector,
-                        filter_string=args if args else None,
                         limit=limit,
+                        filter=args if args else None,
+                        collection_id=collection_id,
+                        query_operator=query_operator,
+                        min_similarity=min_similarity,
                         offset=offset,
                     )
 
