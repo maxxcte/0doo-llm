@@ -18,16 +18,14 @@
     "external_dependencies": {
         "python": ["pgvector", "numpy"],
     },
-    "data": {
+    "data": [
+        "security/ir.model.access.csv",
         "views/llm_knowledge_chunk_embedding_views.xml"
-    },
+    ],
     "pre_init_hook": "pre_init_hook",
     "post_init_hook": "post_init_hook",
     "installable": True,
     "application": False,
     "auto_install": False,
     "license": "LGPL-3",
-    "data": [
-        "security/ir.model.access.csv",
-    ],
 }
