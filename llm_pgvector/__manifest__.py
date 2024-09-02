@@ -20,7 +20,8 @@
     },
     "data": [
         "security/ir.model.access.csv",
-        "views/llm_knowledge_chunk_embedding_views.xml"
+        "views/llm_knowledge_chunk_embedding_views.xml",
+        "views/menu_views.xml",
     ],
     "pre_init_hook": "pre_init_hook",
     "post_init_hook": "post_init_hook",

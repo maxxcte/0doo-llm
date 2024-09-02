@@ -63,13 +63,4 @@
             <p>Chunk embeddings store vector representations of knowledge chunks for semantic search.</p>
         </field>
     </record>
-
-    <!-- Menu for Chunk Embeddings -->
-    <menuitem
-            id="menu_llm_knowledge_chunk_embedding"
-            name="Chunk Embeddings"
-            parent="llm_knowledge.menu_llm_knowledge_root"
-            action="action_llm_knowledge_chunk_embedding"
-            sequence="40"
-    />
 </odoo>
