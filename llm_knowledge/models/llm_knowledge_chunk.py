@@ -104,8 +104,6 @@ class LLMKnowledgeChunk(models.Model):
         2. Via a query_vector and collection_id provided directly in kwargs
         """
         # Check if semantic search is requested via the embedding field
-        print(args)
-        print(kwargs)
         vector_search_term = None
         for arg in args:
             if (
