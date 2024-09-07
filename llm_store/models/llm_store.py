@@ -14,6 +14,7 @@ class LLMStore(models.Model):
         tracking=True,
     )
     active = fields.Boolean(default=True, tracking=True)
+    # TODO: Why this is used?
     company_id = fields.Many2one(
         "res.company",
         string="Company",
