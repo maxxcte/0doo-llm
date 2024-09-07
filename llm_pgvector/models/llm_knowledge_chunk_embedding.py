@@ -61,14 +61,15 @@ class LLMKnowledgeChunkEmbedding(models.Model):
             result.append((record.id, name))
         return result
 
-    @api.model
-    def create(self, vals):
+    @api.model_create_multi
+    def create(self, vals_list):
         """Override create to handle special cases"""
-        # If embedding_model_id not provided, try to get from collection
-        if not vals.get('embedding_model_id') and vals.get('chunk_id'):
-            chunk = self.env['llm.knowledge.chunk'].browse(vals['chunk_id'])
-            # Get first collection's embedding model
-            if chunk.collection_ids and chunk.collection_ids[0].embedding_model_id:
-                vals['embedding_model_id'] = chunk.collection_ids[0].embedding_model_id.id
+        for vals in vals_list:
+            # If embedding_model_id not provided, try to get from collection
+            if not vals.get('embedding_model_id') and vals.get('chunk_id'):
+                chunk = self.env['llm.knowledge.chunk'].browse(vals['chunk_id'])
+                # Get first collection's embedding model
+                if chunk.collection_ids and chunk.collection_ids[0].embedding_model_id:
+                    vals['embedding_model_id'] = chunk.collection_ids[0].embedding_model_id.id
 
-        return super().create(vals)
+        return super().create(vals_list)
