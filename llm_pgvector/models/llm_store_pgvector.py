@@ -324,7 +324,7 @@ class LLMStorePgVector(models.Model):
             _logger.error(f"Error creating vector index: {str(e)}")
             return False
 
-    def pgvector_drop_vector_index(self, embedding_model_id=None):
+    def drop_vector_index(self, embedding_model_id=None):
         """Drop vector index for the specified embedding model"""
         self.ensure_one()
         table_name = "llm_knowledge_chunk_embedding"
