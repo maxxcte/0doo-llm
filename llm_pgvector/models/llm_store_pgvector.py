@@ -41,7 +41,7 @@ class LLMStorePgVector(models.Model):
         # and not creating separate collections
         return True
 
-    def pgvector_create_collection(self, collection_id):
+    def pgvector_create_collection(self, collection_id,dimension=None, metadata=None, **kwargs):
         """Create a collection - for pgvector, this is a no-op"""
         self.ensure_one()
 
@@ -54,7 +54,7 @@ class LLMStorePgVector(models.Model):
 
         # But we might want to create the index for the embedding model
         if collection.embedding_model_id:
-            self.create_vector_index(collection.embedding_model_id.id)
+            self._create_vector_index(collection.embedding_model_id.id)
 
         return True
 
@@ -73,7 +73,7 @@ class LLMStorePgVector(models.Model):
             return True  # Nothing to delete if no embedding model
 
         # Drop any vector indexes for this embedding model
-        self.drop_vector_index(embedding_model_id)
+        self._drop_vector_index(embedding_model_id)
 
         # Find chunks that belong to this collection
         chunks = self.env['llm.knowledge.chunk'].search([
@@ -137,7 +137,7 @@ class LLMStorePgVector(models.Model):
             self.env['llm.knowledge.chunk.embedding'].create(vals_list)
 
         # Make sure the index exists
-        self.create_vector_index(embedding_model_id)
+        self._create_vector_index(embedding_model_id)
 
         return True
 
@@ -246,7 +246,7 @@ class LLMStorePgVector(models.Model):
         """Generate a consistent index name based on table and embedding model"""
         return f"{table_name}_emb_model_{embedding_model_id}_idx"
 
-    def pgvector_create_vector_index(self, embedding_model_id, dimensions=None, force=False):
+    def _create_vector_index(self, embedding_model_id, dimensions=None, force=False):
         """Create a vector index for the specified embedding model"""
         self.ensure_one()
 
@@ -324,7 +324,7 @@ class LLMStorePgVector(models.Model):
             _logger.error(f"Error creating vector index: {str(e)}")
             return False
 
-    def drop_vector_index(self, embedding_model_id=None):
+    def _drop_vector_index(self, embedding_model_id=None):
         """Drop vector index for the specified embedding model"""
         self.ensure_one()
         table_name = "llm_knowledge_chunk_embedding"
