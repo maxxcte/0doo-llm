@@ -93,7 +93,7 @@ class LLMKnowledgeChunk(models.Model):
             if collection.embedding_model_id:
                 models |= collection.embedding_model_id
         return models
-
+    
     @api.model
     def search(self, args, offset=0, limit=None, order=None, count=False, **kwargs):
         """
@@ -118,6 +118,7 @@ class LLMKnowledgeChunk(models.Model):
 
         # Get query_vector either from kwargs or by converting search term
         query_vector = kwargs.get("query_vector")
+        # TODO: Make sure to iterate over all collections and combine results if collection_id is not provided
         collection_id = kwargs.get("collection_id")
 
         if vector_search_term and not query_vector:
