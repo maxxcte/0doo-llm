@@ -83,46 +83,40 @@ class LLMStoreChroma(models.Model):
             _logger.error(f"Error checking collection existence: {str(e)}")
             return False
 
-    def chroma_create_collection(self, collection_id):
+    def chroma_create_collection(self, collection_id, dimension=None, metadata=None, **kwargs):
         """Create a collection in Chroma"""
         self.ensure_one()
         
         client = self._get_chroma_client()
         if not client:
-            return False
+            raise UserError(_("Failed to connect to Chroma server"))
             
         # Get collection from Odoo
         collection = self.env['llm.knowledge.collection'].browse(collection_id)
         if not collection.exists():
-            _logger.warning(f"Collection {collection_id} does not exist in Odoo")
-            return False
-            
-        try:
-            # Check if collection already exists
-            if self.chroma_collection_exists(collection_id):
-                _logger.info(f"Collection {collection.name} already exists in Chroma")
-                return True
-                
-            # Create collection in Chroma
-            metadata = {
-                "source": "odoo",
-                "collection_id": str(collection_id),
-                "description": collection.description or ""
-            }
-            
-            # Use the default embedding function
-            client.create_collection(
-                name=collection.name,
-                metadata=metadata
-            )
-            
-            _logger.info(f"Created collection {collection.name} in Chroma")
-            return True
-        except Exception as e:
-            _logger.error(f"Error creating collection: {str(e)}")
-            return False
+            raise UserError(_("Collection not found: %s") % collection_id)
 
-    def chroma_delete_collection(self, collection_id):
+        # Check if collection already exists
+        if self.chroma_collection_exists(collection_id):
+            _logger.info(f"Collection {collection.name} already exists in Chroma")
+            return
+            
+        # Create collection in Chroma
+        metadata = {
+            "source": "odoo",
+            "collection_id": str(collection_id),
+            "description": collection.description or ""
+        }
+        
+        # Use the default embedding function
+        client.create_collection(
+            name=collection.name,
+            metadata=metadata
+        )
+        
+        _logger.info(f"Created collection {collection.name} in Chroma")
+
+    def chroma_delete_collection(self, collection_id, **kwargs):
         """Delete a collection from Chroma"""
         self.ensure_one()
         
