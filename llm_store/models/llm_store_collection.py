@@ -64,4 +64,5 @@ class LLMStoreCollection(models.AbstractModel):
             return self.store_id.insert_vectors(
                 self.name, vectors, metadata=metadata, ids=ids, **kwargs
             )
-        return False
+        else:
+            raise UserError(_("No store configured for this collection."))
