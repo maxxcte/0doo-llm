@@ -534,7 +534,7 @@ class LLMKnowledgeCollection(models.Model):
                         self.env['llm.knowledge.chunk.embedding'].create(embedding_vals_list)
 
                     # Insert vectors into the store
-                    collection.store_id.insert_vectors(
+                    collection.insert_vectors(
                         collection_id=collection.id,
                         vectors=embeddings,
                         metadatas=metadata_list,
