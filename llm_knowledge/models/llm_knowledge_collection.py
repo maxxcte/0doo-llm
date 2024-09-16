@@ -2,7 +2,7 @@ import logging
 
 from odoo import _, api, fields, models
 from odoo.tools.safe_eval import safe_eval
-
+from odoo.exceptions import UserError
 _logger = logging.getLogger(__name__)
 
 
@@ -162,16 +162,15 @@ class LLMKnowledgeCollection(models.Model):
         if not self.store_id:
             return False
 
-        try:
-            # Create collection in store if it doesn't exist
-            if not self.store_id.collection_exists(self.id):
-                self.store_id.create_collection(self.id)
+        # Create collection in store if it doesn't exist
+        collection_exists = self.store_id.collection_exists(self.id)
+        _logger.info(f"collection exists {collection_exists}")
+        if not collection_exists:
+            created = self.store_id.create_collection(self.id)
+            if not created:
+                raise UserError(_("Failed to create collection in store for collection %s") % self.name)
 
-            _logger.info(f"Initialized store for collection {self.name}")
-            return True
-        except Exception as e:
-            _logger.error(f"Error initializing store for collection {self.name}: {str(e)}")
-            return False
+        _logger.info(f"Initialized store for collection {self.name}")
 
     def _cleanup_old_store(self, old_store):
         """Clean up the old store when switching to a new one"""
@@ -441,8 +440,7 @@ class LLMKnowledgeCollection(models.Model):
                 continue
 
             # Ensure the collection exists in the store
-            if not collection.store_id.collection_exists(collection.id):
-                collection._initialize_store()
+            collection._initialize_store()
 
             # Search for chunks that belong to chunked resources in this collection
             chunk_domain = [
