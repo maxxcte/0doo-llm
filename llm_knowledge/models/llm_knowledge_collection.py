@@ -519,7 +519,7 @@ class LLMKnowledgeCollection(models.Model):
                 try:
                     # Generate embeddings using the collection's embedding model
                     embeddings = collection.embedding_model_id.embedding(texts)
-
+                    # TODO: should it belong here?
                     # Create chunk embedding records
                     embedding_vals_list = []
                     for i, (chunk_id, vector) in enumerate(zip(chunk_ids, embeddings)):
