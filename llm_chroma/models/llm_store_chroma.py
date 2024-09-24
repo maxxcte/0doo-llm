@@ -241,18 +241,13 @@ class LLMStoreChroma(models.Model):
                     else:
                         clean_meta[key] = str(value)
                 metadatas.append(clean_meta)
-                
-        try:
-            # Add vectors to collection
-            collection.add(
-                embeddings=vectors,
-                metadatas=metadatas,
-                ids=string_ids
-            )
-            return True
-        except Exception as e:
-            _logger.error(f"Error inserting vectors: {str(e)}")
-            return False
+
+        # Add vectors to collection
+        collection.add(
+            embeddings=vectors,
+            metadatas=metadatas,
+            ids=string_ids
+        )
 
     def chroma_delete_vectors(self, collection_name, ids, **kwargs):
         """Delete vectors from a Chroma collection"""
@@ -302,7 +297,7 @@ class LLMStoreChroma(models.Model):
             # Process results
             for i, id_val in enumerate(results['ids'][0]):
                 formatted_results.append({
-                    'id': id_val,
+                    'id': int(id_val),  # Convert string ID to integer
                     'score': 1.0 - float(results['distances'][0][i]) if 'distances' in results and results['distances'][0] else 0.0,
                     'metadata': results['metadatas'][0][i] if 'metadatas' in results and results['metadatas'][0] else {}
                 })

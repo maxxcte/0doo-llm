@@ -532,17 +532,15 @@ class LLMKnowledgeCollection(models.Model):
                     # Create all embeddings in a batch
                     if embedding_vals_list:
                         self.env['llm.knowledge.chunk.embedding'].create(embedding_vals_list)
-
                     # Insert vectors into the store
                     collection.insert_vectors(
                         collection_id=collection.id,
                         vectors=embeddings,
-                        metadatas=metadata_list,
+                        metadata=metadata_list,
                         ids=chunk_ids
                     )
 
                     processed_chunks += len(batch)
-                    _logger.info(f"Processed {processed_chunks}/{total_chunks} chunks")
 
                     # Commit transaction after each batch to avoid timeout issues
                     self.env.cr.commit()
