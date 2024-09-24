@@ -96,16 +96,13 @@ class LLMStorePgVector(models.Model):
 
         return True
 
-    def pgvector_insert_vectors(self, collection_id, vectors, metadatas=None, ids=None):
+    def pgvector_insert_vectors(self, collection_id, vectors, metadata=None, ids=None):
         """Insert vectors into collection using batch operations"""
         self.ensure_one()
 
         # Check parameters
         if not ids or len(ids) != len(vectors):
             raise UserError(_("Must provide chunk IDs matching the vectors"))
-
-        if metadatas is None:
-            metadatas = [{}] * len(vectors)
 
         # Get the collection
         collection = self.env['llm.knowledge.collection'].browse(collection_id)
@@ -138,8 +135,6 @@ class LLMStorePgVector(models.Model):
 
         # Make sure the index exists
         self._create_vector_index(embedding_model_id)
-
-        return True
 
     def pgvector_delete_vectors(self, collection_id, ids):
         """Delete vectors (embeddings) for specified chunk IDs"""
