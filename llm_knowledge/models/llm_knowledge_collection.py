@@ -468,18 +468,8 @@ class LLMKnowledgeCollection(models.Model):
 
             embedding_model_id = collection.embedding_model_id.id
 
-            # Check for existing embeddings with this model
-            existing_embeddings = self.env["llm.knowledge.chunk.embedding"].search([
-                ("chunk_id", "in", chunks.ids),
-                ("embedding_model_id", "=", embedding_model_id),
-            ])
-
-            # Get chunks that don't have embeddings yet for this model
-            existing_chunk_ids = existing_embeddings.mapped("chunk_id.id")
-            chunks_to_embed = chunks.filtered(lambda c: c.id not in existing_chunk_ids)
-
             # Process chunks in batches for efficiency
-            total_chunks = len(chunks_to_embed)
+            total_chunks = len(chunks)
             processed_chunks = 0
             processed_resource_ids = set()  # Track which resource IDs had chunks processed
 
@@ -493,7 +483,7 @@ class LLMKnowledgeCollection(models.Model):
 
             # Process in batches
             for i in range(0, total_chunks, batch_size):
-                batch = chunks_to_embed[i: i + batch_size]
+                batch = chunks[i: i + batch_size]
 
                 # Prepare chunked data for the store
                 texts = []
@@ -528,10 +518,6 @@ class LLMKnowledgeCollection(models.Model):
                             'embedding_model_id': embedding_model_id,
                             'embedding': vector,
                         })
-
-                    # Create all embeddings in a batch
-                    if embedding_vals_list:
-                        self.env['llm.knowledge.chunk.embedding'].create(embedding_vals_list)
                     # Insert vectors into the store
                     collection.insert_vectors(
                         collection_id=collection.id,
