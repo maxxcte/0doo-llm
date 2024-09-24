@@ -14,13 +14,6 @@ class LLMStore(models.Model):
         tracking=True,
     )
     active = fields.Boolean(default=True, tracking=True)
-    # TODO: Why this is used?
-    company_id = fields.Many2one(
-        "res.company",
-        string="Company",
-        required=True,
-        default=lambda self: self.env.company,
-    )
     
     # Connection parameters
     connection_uri = fields.Char(tracking=True)
