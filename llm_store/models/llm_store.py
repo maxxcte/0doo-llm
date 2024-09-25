@@ -99,11 +99,11 @@ class LLMStore(models.Model):
         return self._dispatch("collection_exists", name, **kwargs)
 
     # Vector Management
-    def insert_vectors(self, collection_name, vectors, metadata=None, ids=None, **kwargs):
+    def _insert_vectors(self, collection_id, vectors, metadata=None, ids=None, **kwargs):
         """Insert vectors into a collection
         
         Args:
-            collection_name: Name of the collection
+            collection_id: Name of the collection
             vectors: List of vectors to insert
             metadata: Optional list of metadata dicts for each vector
             ids: Optional list of IDs for each vector
@@ -112,26 +112,26 @@ class LLMStore(models.Model):
         Returns:
             List of inserted vector IDs
         """
-        return self._dispatch("insert_vectors", collection_name, vectors, metadata, ids, **kwargs)
+        return self._dispatch("insert_vectors", collection_id, vectors, metadata, ids, **kwargs)
 
-    def delete_vectors(self, collection_name, ids, **kwargs):
+    def _delete_vectors(self, collection_id, ids, **kwargs):
         """Delete vectors from a collection
         
         Args:
-            collection_name: Name of the collection
+            collection_id: Name of the collection
             ids: List of vector IDs to delete
             **kwargs: Additional store-specific parameters
             
         Returns:
             Number of vectors deleted
         """
-        return self._dispatch("delete_vectors", collection_name, ids, **kwargs)
+        return self._dispatch("delete_vectors", collection_id, ids, **kwargs)
 
-    def search_vectors(self, collection_name, query_vector, limit=10, filter=None, **kwargs):
+    def _search_vectors(self, collection_id, query_vector, limit=10, filter=None, **kwargs):
         """Search for similar vectors in a collection
         
         Args:
-            collection_name: Name of the collection
+            collection_id: Name of the collection
             query_vector: Query vector to search for
             limit: Maximum number of results to return
             filter: Optional metadata filter expression
@@ -140,18 +140,18 @@ class LLMStore(models.Model):
         Returns:
             List of search results (vector IDs, scores, and metadata)
         """
-        return self._dispatch("search_vectors", collection_name, query_vector, limit, filter, **kwargs)
+        return self._dispatch("search_vectors", collection_id, query_vector, limit, filter, **kwargs)
 
     # Index Management
-    def create_index(self, collection_name, index_type=None, **kwargs):
+    def create_index(self, collection_id, index_type=None, **kwargs):
         """Create an index on a collection
         
         Args:
-            collection_name: Name of the collection
+            collection_id: Name of the collection
             index_type: Type of index to create
             **kwargs: Additional store-specific parameters
             
         Returns:
             Boolean indicating success
         """
-        return self._dispatch("create_index", collection_name, index_type, **kwargs)
+        return self._dispatch("create_index", collection_id, index_type, **kwargs)
