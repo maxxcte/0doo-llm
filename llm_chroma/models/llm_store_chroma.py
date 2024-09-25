@@ -26,6 +26,9 @@ class LLMStoreChroma(models.Model):
     # Chroma Client Management
     # -------------------------------------------------------------------------
 
+    def _get_chroma_collection_name(self, collection_id):
+        return f"odoo_{self.self.env.cr.dbname}_{collection_id}"
+
     def _get_chroma_client(self):
         """Get a Chroma client for the current store configuration"""
         self.ensure_one()
