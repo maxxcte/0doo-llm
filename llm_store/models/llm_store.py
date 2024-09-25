@@ -49,11 +49,11 @@ class LLMStore(models.Model):
         return []
 
     # Collection Management
-    def create_collection(self, name, dimension=None, metadata=None, **kwargs):
+    def create_collection(self, collection_id, dimension=None, metadata=None, **kwargs):
         """Create a new collection with the specified parameters
         
         Args:
-            name: Name of the collection
+            collection_id: ID of the collection
             dimension: Dimension of the vectors (required for some stores)
             metadata: Additional metadata for the collection
             **kwargs: Additional store-specific parameters
@@ -61,19 +61,19 @@ class LLMStore(models.Model):
         Returns:
             Collection info dictionary
         """
-        return self._dispatch("create_collection", name, dimension, metadata, **kwargs)
+        return self._dispatch("create_collection", collection_id, dimension, metadata, **kwargs)
 
-    def delete_collection(self, name, **kwargs):
+    def delete_collection(self, collection_id, **kwargs):
         """Delete a collection by name
         
         Args:
-            name: Name of the collection to delete
+            collection_id: ID of the collection to delete
             **kwargs: Additional store-specific parameters
             
         Returns:
             Boolean indicating success
         """
-        return self._dispatch("delete_collection", name, **kwargs)
+        return self._dispatch("delete_collection", collection_id, **kwargs)
 
     def list_collections(self, **kwargs):
         """List all collections

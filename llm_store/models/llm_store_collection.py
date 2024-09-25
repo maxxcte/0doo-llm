@@ -44,25 +44,26 @@ class LLMStoreCollection(models.AbstractModel):
         # To be implemented by specific provider modules
         return True
     
-    def clear(self):
+    def delete_vectors(self, ids=[]):
         """Remove all vectors from this collection"""
         if self.store_id:
-            return self.store_id.delete_vectors(self.name, ids="all")
+            return self.store_id._delete_vectors(self.id, ids)
         return False
     
     def search_vectors(self, query_vector, limit=10, filter=None, **kwargs):
         """Search for similar vectors in this collection"""
         if self.store_id:
-            return self.store_id.search_vectors(
-                self.name, query_vector, limit=limit, filter=filter, **kwargs
+            return self.store_id._search_vectors(
+                self.id, query_vector, limit=limit, filter=filter, **kwargs
             )
         return []
     
     def insert_vectors(self, vectors, metadata=None, ids=None, **kwargs):
         """Insert vectors into this collection"""
         if self.store_id:
-            return self.store_id.insert_vectors(
-                self.name, vectors, metadata=metadata, ids=ids, **kwargs
+            return self.store_id._insert_vectors(
+                self.id, vectors, metadata=metadata, ids=ids, **kwargs
             )
         else:
             raise UserError(_("No store configured for this collection."))
+

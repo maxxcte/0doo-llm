@@ -310,8 +310,7 @@ class LLMKnowledgeChunker(models.Model):
             if collection.store_id:
                 # Remove chunks from this resource from the store
                 try:
-                    collection.store_id.delete_vectors(
-                        collection_id=collection.id,
+                    collection.delete_vectors(
                         ids=chunks.ids
                     )
                 except Exception as e:

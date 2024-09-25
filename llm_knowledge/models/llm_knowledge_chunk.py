@@ -143,12 +143,10 @@ class LLMKnowledgeChunk(models.Model):
                 query_operator = kwargs.get("query_operator", self.env.context.get("search_vector_operator", "<=>"))
                 # Use the store's vector search capability
                 try:
-                    results = collection.store_id.search_vectors(
-                        collection_name=collection_name,
+                    results = collection.search_vectors(
                         query_vector=query_vector,
                         limit=limit,
                         filter=args if args else None,
-                        collection_id=collection_id,
                         query_operator=query_operator,
                         min_similarity=min_similarity,
                         offset=offset,
