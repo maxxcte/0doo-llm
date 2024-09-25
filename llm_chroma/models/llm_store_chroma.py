@@ -9,8 +9,6 @@ from odoo.exceptions import UserError
 _logger = logging.getLogger(__name__)
 
 import chromadb
-from chromadb.api.types import Documents, Embeddings, Metadatas, IDs
-from chromadb.utils import embedding_functions
 
 
 class LLMStoreChroma(models.Model):
@@ -27,7 +25,7 @@ class LLMStoreChroma(models.Model):
     # -------------------------------------------------------------------------
 
     def _get_chroma_collection_name(self, collection_id):
-        return f"odoo_{self.self.env.cr.dbname}_{collection_id}"
+        return f"odoo_{self.env.cr.dbname}_{collection_id}"
 
     def _get_chroma_client(self):
         """Get a Chroma client for the current store configuration"""
@@ -68,17 +66,16 @@ class LLMStoreChroma(models.Model):
     def chroma_collection_exists(self, collection_id, **kwargs):
         """Check if a collection exists in Chroma"""
         self.ensure_one()
-
-        collection_name = kwargs.get('collection_name')
         
         client = self._get_chroma_client()
 
-        if not collection_name:
-            # Get collection from Odoo to retrieve the name
-            collection = self.env['llm.knowledge.collection'].browse(collection_id)
-            if not collection.exists():
-                return False
-            collection_name = collection.name
+        
+        # Get collection from Odoo to retrieve the name
+        collection = self.env['llm.knowledge.collection'].browse(collection_id)
+        if not collection.exists():
+            return False
+        
+        collection_name = self._get_chroma_collection_name(collection_id)
             
         # Check if collection exists in Chroma
         collections = client.list_collections()
@@ -92,16 +89,10 @@ class LLMStoreChroma(models.Model):
         client = self._get_chroma_client()
         if not client:
             raise UserError(_("Failed to connect to Chroma server"))
-            
-        # Get collection from Odoo
-        collection = self.env['llm.knowledge.collection'].browse(collection_id)
-        if not collection.exists():
-            raise UserError(_("Collection not found: %s") % collection_id)
-        collection_name = collection.name
 
         # Check if collection already exists
-        if self.chroma_collection_exists(collection_id, collection_name=collection_name):
-            _logger.info(f"Collection {collection.name} already exists in Chroma")
+        if self.chroma_collection_exists(collection_id):
+            _logger.info(f"Collection {collection_id} already exists in Chroma")
             return
             
         # Create collection in Chroma
@@ -112,6 +103,7 @@ class LLMStoreChroma(models.Model):
         }
         # Use the default embedding function
         try:
+            collection_name = self._get_chroma_collection_name(collection_id)
             sanitized_collection_name = self._sanitize_collection_name(collection_name)
             _logger.info(f"Creating collection {sanitized_collection_name} in Chroma")
             client.create_collection(
@@ -119,10 +111,10 @@ class LLMStoreChroma(models.Model):
                 metadata=metadata
             )
         except Exception as e:
-            _logger.exception(f"Failed to create collection {collection.name} in Chroma: {str(e)}")
+            _logger.exception(f"Failed to create collection {collection_id} in Chroma: {str(e)}")
             raise UserError(_("Failed to create collection in Chroma: %s") % str(e))
         
-        _logger.info(f"Created collection {collection.name} in Chroma")
+        _logger.info(f"Created collection {collection_id} in Chroma")
 
     def chroma_delete_collection(self, collection_id, **kwargs):
         """Delete a collection from Chroma"""
@@ -132,20 +124,15 @@ class LLMStoreChroma(models.Model):
         if not client:
             return False
             
-        # Get collection from Odoo
-        collection = self.env['llm.knowledge.collection'].browse(collection_id)
-        if not collection.exists():
-            _logger.warning(f"Collection {collection_id} does not exist in Odoo")
-            return True  # Nothing to delete
-            
         try:
             # Check if collection exists in Chroma
             if not self.chroma_collection_exists(collection_id):
-                _logger.info(f"Collection {collection.name} does not exist in Chroma")
+                _logger.info(f"Collection {collection_id} does not exist in Chroma")
                 return True  # Nothing to delete
                 
             # Delete collection in Chroma
-            sanitized_collection_name = self._sanitize_collection_name(collection.name)
+            collection_name = self._get_chroma_collection_name(collection_id)
+            sanitized_collection_name = self._sanitize_collection_name(collection_name)
             client.delete_collection(name=sanitized_collection_name)
             _logger.info(f"Deleted collection {sanitized_collection_name} from Chroma")
             return True
@@ -169,27 +156,11 @@ class LLMStoreChroma(models.Model):
             _logger.error(f"Error listing collections: {str(e)}")
             return []
 
-    def chroma_has_collection(self, name, **kwargs):
-        """Check if a collection exists by name"""
-        self.ensure_one()
-        
-        client = self._get_chroma_client()
-        if not client:
-            return False
-            
-        try:
-            # List collections and check if name exists
-            collections = client.list_collections()
-            return any(c.name == name for c in collections)
-        except Exception as e:
-            _logger.error(f"Error checking collection: {str(e)}")
-            return False
-
     # -------------------------------------------------------------------------
     # Vector Management
     # -------------------------------------------------------------------------
 
-    def _get_chroma_collection(self, collection_id_or_name):
+    def _get_chroma_collection(self, collection_id):
         """Get a Chroma collection by ID or name"""
         self.ensure_one()
         
@@ -197,30 +168,21 @@ class LLMStoreChroma(models.Model):
         if not client:
             return None
             
-        # Determine if input is an ID or a name
-        if isinstance(collection_id_or_name, int):
-            # It's an ID, get the name from Odoo
-            collection = self.env['llm.knowledge.collection'].browse(collection_id_or_name)
-            if not collection.exists():
-                raise UserError(_("Collection not found: %s") % collection_id_or_name)
-            name = collection.name
-        else:
-            # It's already a name
-            name = collection_id_or_name
+        collection_name = self._get_chroma_collection_name(collection_id)
             
         try:
             # Get collection from Chroma
-            sanitized_collection_name = self._sanitize_collection_name(name)
+            sanitized_collection_name = self._sanitize_collection_name(collection_name)
             return client.get_collection(name=sanitized_collection_name)
         except Exception as e:
-            _logger.error(f"Error getting collection {name}: {str(e)}")
+            _logger.error(f"Error getting collection {collection_name}: {str(e)}")
             return None
 
-    def chroma_insert_vectors(self, collection_name, vectors, metadata=None, ids=None, **kwargs):
+    def chroma_insert_vectors(self, collection_id, vectors, metadata=None, ids=None, **kwargs):
         """Insert vectors into a Chroma collection"""
         self.ensure_one()
         
-        collection = self._get_chroma_collection(collection_name)
+        collection = self._get_chroma_collection(collection_id)
         if not collection:
             return False
             
@@ -252,11 +214,11 @@ class LLMStoreChroma(models.Model):
             ids=string_ids
         )
 
-    def chroma_delete_vectors(self, collection_name, ids, **kwargs):
+    def chroma_delete_vectors(self, collection_id, ids, **kwargs):
         """Delete vectors from a Chroma collection"""
         self.ensure_one()
         
-        collection = self._get_chroma_collection(collection_name)
+        collection = self._get_chroma_collection(collection_id)
         if not collection:
             return False
             
@@ -271,11 +233,11 @@ class LLMStoreChroma(models.Model):
             _logger.error(f"Error deleting vectors: {str(e)}")
             return False
 
-    def chroma_search_vectors(self, collection_name, query_vector, limit=10, filter=None, **kwargs):
+    def chroma_search_vectors(self, collection_id, query_vector, limit=10, filter=None, **kwargs):
         """Search for similar vectors in a Chroma collection"""
         self.ensure_one()
         
-        collection = self._get_chroma_collection(collection_name)
+        collection = self._get_chroma_collection(collection_id)
         if not collection:
             return []
             
@@ -339,7 +301,7 @@ class LLMStoreChroma(models.Model):
     # Index Management
     # -------------------------------------------------------------------------
 
-    def chroma_create_index(self, collection_name, index_type=None, **kwargs):
+    def chroma_create_index(self, collection_id, index_type=None, **kwargs):
         """Create an index on a Chroma collection"""
         # Chroma manages its own indices, so this is a no-op
         _logger.info("Chroma manages its own indices, no explicit index creation needed")

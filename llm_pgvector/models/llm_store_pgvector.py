@@ -96,7 +96,7 @@ class LLMStorePgVector(models.Model):
 
         return True
 
-    def pgvector_insert_vectors(self, collection_id, vectors, metadata=None, ids=None):
+    def pgvector_insert_vectors(self, collection_id, vectors, metadata=None, ids=None, **kwargs):
         """Insert vectors into collection using batch operations"""
         self.ensure_one()
 
@@ -136,7 +136,7 @@ class LLMStorePgVector(models.Model):
         # Make sure the index exists
         self._create_vector_index(embedding_model_id)
 
-    def pgvector_delete_vectors(self, collection_id, ids):
+    def pgvector_delete_vectors(self, collection_id, ids, **kwargs):
         """Delete vectors (embeddings) for specified chunk IDs"""
         self.ensure_one()
 
@@ -166,12 +166,11 @@ class LLMStorePgVector(models.Model):
         return True
 
     def pgvector_search_vectors(self,
-        collection_name,
+        collection_id,
         query_vector,
         limit=10,
         filter=None,
         offset=0,
-        collection_id=None,
         query_operator="<=>",
         min_similarity=0.5):
         """
@@ -181,6 +180,7 @@ class LLMStorePgVector(models.Model):
             list of dicts with 'id', 'score', and 'metadata'
         """
         self.ensure_one()
+        _logger.info(f"received params: {locals()}")
 
         collection = self.env['llm.knowledge.collection'].browse(collection_id)
         if not collection.exists() or not collection.embedding_model_id:
