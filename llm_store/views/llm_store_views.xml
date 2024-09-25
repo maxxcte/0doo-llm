@@ -29,7 +29,6 @@
                     <group>
                         <group>
                             <field name="service" />
-                            <field name="company_id" groups="base.group_multi_company" />
                         </group>
                         <group>
                             <field name="connection_uri" placeholder="postgres://username:password@localhost:5432/database" />
