@@ -90,10 +90,14 @@ class LLMStoreChroma(models.Model):
         if not client:
             raise UserError(_("Failed to connect to Chroma server"))
 
-        # Check if collection already exists
+        collection = self.env['llm.knowledge.collection'].browse(collection_id)
+        if not collection.exists():
+            raise UserError(_("Collection %s does not exist in Odoo") % collection_id)
+
+        # Check if collection already exists in Chroma
         if self.chroma_collection_exists(collection_id):
             _logger.info(f"Collection {collection_id} already exists in Chroma")
-            return
+            return True
             
         # Create collection in Chroma
         metadata = {
@@ -110,11 +114,11 @@ class LLMStoreChroma(models.Model):
                 name=sanitized_collection_name,
                 metadata=metadata
             )
+
+            return True
         except Exception as e:
             _logger.exception(f"Failed to create collection {collection_id} in Chroma: {str(e)}")
             raise UserError(_("Failed to create collection in Chroma: %s") % str(e))
-        
-        _logger.info(f"Created collection {collection_id} in Chroma")
 
     def chroma_delete_collection(self, collection_id, **kwargs):
         """Delete a collection from Chroma"""
