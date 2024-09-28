@@ -180,7 +180,6 @@ class LLMStorePgVector(models.Model):
             list of dicts with 'id', 'score', and 'metadata'
         """
         self.ensure_one()
-        _logger.info(f"received params: {locals()}")
 
         collection = self.env['llm.knowledge.collection'].browse(collection_id)
         if not collection.exists() or not collection.embedding_model_id:
