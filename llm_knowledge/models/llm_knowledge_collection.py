@@ -520,7 +520,6 @@ class LLMKnowledgeCollection(models.Model):
                         })
                     # Insert vectors into the store
                     collection.insert_vectors(
-                        collection_id=collection.id,
                         vectors=embeddings,
                         metadata=metadata_list,
                         ids=chunk_ids
