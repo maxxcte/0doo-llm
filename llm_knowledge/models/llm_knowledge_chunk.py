@@ -131,7 +131,6 @@ class LLMKnowledgeChunk(models.Model):
                 embedding_model = collection.embedding_model_id
                 query_vector = embedding_model.embedding(vector_search_term.strip())[0]
                 collection_id = collection.id
-                collection_name = collection.name
 
         # If we have a query vector and collection, use the store for search
         if query_vector is not None and collection_id:
