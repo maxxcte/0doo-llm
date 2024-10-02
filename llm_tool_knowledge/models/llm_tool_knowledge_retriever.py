@@ -67,45 +67,40 @@ class LLMToolKnowledgeRetriever(models.Model):
         _logger.info(
             f"Executing Knowledge Retriever with: query={query}, collection_id={collection_id}, top_k={top_k}, top_n={top_n}, similarity_cutoff={similarity_cutoff}"
         )
-
-        try:
-            collection = None
-            if collection_id:
-                collection = self.env["llm.knowledge.collection"].browse(
-                    collection_id
-                )
-
-            if not collection:
-                raise ValueError("Collection not found")
-
-            search_limit = top_n * top_k * 2
-
-            chunk_model = self.env["llm.knowledge.chunk"]
-            chunks = chunk_model.search(
-                args=[("embedding", "=", query)],
-                limit=search_limit,
-                collection_id=collection.id,
-                query_min_similarity=similarity_cutoff,
+        collection = None
+        if collection_id:
+            collection = self.env["llm.knowledge.collection"].browse(
+                collection_id
             )
 
-            result_data = self._process_search_results(
-                chunks=chunks,
-                top_k=top_k,
-                top_n=top_n,
-            )
+        if not collection:
+            raise ValueError("Collection not found")
 
-            return {
-                "query": query,
-                "collection": collection.name,
-                "collection_id": collection.id,
-                "results": result_data,
-                "total_chunks": len(result_data),
-                "embedding_model": collection.embedding_model_id.name if collection.embedding_model_id else "Unknown",
-            }
+        search_limit = top_n * top_k * 2
 
-        except Exception as e:
-            _logger.exception(f"Error executing Knowledge Retriever: {str(e)}")
-            return {"error": str(e)}
+        chunk_model = self.env["llm.knowledge.chunk"]
+        chunks = chunk_model.search(
+            args=[("embedding", "=", query)],
+            limit=search_limit,
+            collection_id=collection.id,
+            query_min_similarity=similarity_cutoff,
+        )
+
+        result_data = self._process_search_results(
+            chunks=chunks,
+            top_k=top_k,
+            top_n=top_n,
+        )
+
+        return {
+            "query": query,
+            "collection": collection.name,
+            "collection_id": collection.id,
+            "results": result_data,
+            "total_chunks": len(result_data),
+            "embedding_model": collection.embedding_model_id.name if collection.embedding_model_id else "Unknown",
+        }
+
 
     def _group_chunks_by_resource(self, chunks):
         """Group chunks by their parent resource."""
