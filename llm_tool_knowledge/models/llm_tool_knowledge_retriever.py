@@ -59,7 +59,7 @@ class LLMToolKnowledgeRetriever(models.Model):
 
         Parameters:
             query: REQUIRED The search query text used to find relevant information. Be specific and focused in your query to get the most relevant results.
-            collection_id: REQUIREDThe ID (as a string) of the 'llm.knowledge.collection' record to search within.
+            collection_id: REQUIRED The ID (as a string) of the 'llm.knowledge.collection' record to search within.
             top_k: Maximum number of chunks to retrieve per resource. Higher values return more context from each resource but may include less relevant passages.
             top_n: Maximum number of distinct resources to retrieve results from. Increase this value to get information from more diverse sources.
             similarity_cutoff: Minimum semantic similarity threshold (0.0-1.0) for including results. Higher values (e.g., 0.7) return only highly relevant results.
@@ -69,77 +69,25 @@ class LLMToolKnowledgeRetriever(models.Model):
         )
 
         try:
-            # Validate collection exists
             collection = None
             if collection_id:
                 collection = self.env["llm.knowledge.collection"].browse(
-                    int(collection_id)
+                    collection_id
                 )
-                if not collection.exists():
-                    _logger.warning(
-                        f"Collection with ID {collection_id} not found, falling back to default"
-                    )
-                    collection = None
 
-            # If no valid collection_id was provided or found, get the default collection
             if not collection:
-                # Try to find a default collection (the first active one)
-                collection = self.env["llm.knowledge.collection"].search(
-                    [("active", "=", True)], limit=1
-                )
+                raise ValueError("Collection not found")
 
-                if not collection:
-                    return {
-                        "error": "No valid collection found. Please provide a valid collection ID or set up a default collection."
-                    }
-
-                _logger.info(
-                    f"Using default collection: {collection.name} (ID: {collection.id})"
-                )
-
-            # Get the embedding model from the collection
-            embedding_model = collection.embedding_model_id
-            if not embedding_model:
-                # Fallback to default embedding model if collection doesn't have one
-                model_obj = self.env["llm.model"]
-                embedding_model = model_obj.search(
-                    [("model_use", "=", "embedding"), ("default", "=", True)], limit=1
-                )
-                if not embedding_model:
-                    embedding_model = model_obj.search(
-                        [("model_use", "=", "embedding")], limit=1
-                    )
-
-            if not embedding_model:
-                return {"error": "No embedding model found for this collection"}
-
-            # Get the provider for the embedding model
-            provider = embedding_model.provider_id
-            if not provider:
-                return {"error": f"No provider found for model {embedding_model.name}"}
-
-            # Generate embedding for the query
-            query_embedding = provider.embedding([query], model=embedding_model)[0]
-
-            # Prepare domain for resource chunks
-            domain = [
-                ("collection_ids", "=", collection.id),
-            ]
-
-            # Calculate search limit - get more results for better filtering
             search_limit = top_n * top_k * 2
 
-            # Use the direct search method with vector search parameters
             chunk_model = self.env["llm.knowledge.chunk"]
             chunks = chunk_model.search(
-                args=domain,
+                args=[("embedding", "=", query)],
                 limit=search_limit,
-                query_vector=query_embedding,
+                collection_id=collection.id,
                 query_min_similarity=similarity_cutoff,
-                query_operator="<=>",  # Cosine similarity
             )
 
-            # Process results to get top chunks per resource
             result_data = self._process_search_results(
                 chunks=chunks,
                 top_k=top_k,
@@ -152,7 +100,7 @@ class LLMToolKnowledgeRetriever(models.Model):
                 "collection_id": collection.id,
                 "results": result_data,
                 "total_chunks": len(result_data),
-                "embedding_model": embedding_model.name,
+                "embedding_model": collection.embedding_model_id.name if collection.embedding_model_id else "Unknown",
             }
 
         except Exception as e:
@@ -225,5 +173,3 @@ class LLMToolKnowledgeRetriever(models.Model):
                 )
 
         return result_data
-
-
