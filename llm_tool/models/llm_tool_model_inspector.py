@@ -67,61 +67,56 @@ class LLMToolModelInspector(models.Model):
             f"include_fields={include_fields}, include_methods={include_methods}"
         )
 
-        try:
-            # Check if model exists
-            if model not in self.env:
-                return {"error": f"Model '{model}' not found in Odoo environment"}
+        # Check if model exists
+        if model not in self.env:
+            return {"error": f"Model '{model}' not found in Odoo environment"}
 
-            model_obj = self.env[model]
+        model_obj = self.env[model]
 
-            # 1. Get basic model information from ir.model
-            model_info = self._get_model_basic_info(model)
-            result = {
-                "name": model_info.get("name", model),
-                "model": model,
-                "description": model_info.get("description", ""),
-                "module": model_info.get("module", ""),
-                "transient": model_info.get("transient", False),
-            }
+        # 1. Get basic model information from ir.model
+        model_info = self._get_model_basic_info(model)
+        result = {
+            "name": model_info.get("name", model),
+            "model": model,
+            "description": model_info.get("description", ""),
+            "module": model_info.get("module", ""),
+            "transient": model_info.get("transient", False),
+        }
 
-            # 2. Get inheritance information
-            inheritance_info = self._get_inheritance_info(model_obj)
-            result["inheritance"] = inheritance_info
+        # 2. Get inheritance information
+        inheritance_info = self._get_inheritance_info(model_obj)
+        result["inheritance"] = inheritance_info
 
-            # 3. Get field information if requested
-            if include_fields:
-                fields_info = self._get_fields_info(
-                    model_obj,
-                    limit=field_limit,
-                    include_private=include_private,
-                    name_filter=field_name_filter,
-                    type_filter=field_type_filter
-                )
-                result["fields"] = fields_info["fields"]
-                result["field_count"] = fields_info["field_count"]
-                result["total_fields"] = fields_info["total_fields"]
+        # 3. Get field information if requested
+        if include_fields:
+            fields_info = self._get_fields_info(
+                model_obj,
+                limit=field_limit,
+                include_private=include_private,
+                name_filter=field_name_filter,
+                type_filter=field_type_filter
+            )
+            result["fields"] = fields_info["fields"]
+            result["field_count"] = fields_info["field_count"]
+            result["total_fields"] = fields_info["total_fields"]
 
-            # 4. Get method information if requested
-            if include_methods:
-                methods_info = self._get_methods_info(
-                    model_obj,
-                    limit=method_limit,
-                    include_private=include_private,
-                    name_filter=method_name_filter,
-                    type_filter=method_type_filter
-                )
-                result["methods"] = methods_info["methods"]
-                result["method_count"] = methods_info["returned_count"]
-                result["total_methods"] = methods_info["total_found"]
+        # 4. Get method information if requested
+        if include_methods:
+            methods_info = self._get_methods_info(
+                model_obj,
+                limit=method_limit,
+                include_private=include_private,
+                name_filter=method_name_filter,
+                type_filter=method_type_filter
+            )
+            result["methods"] = methods_info["methods"]
+            result["method_count"] = methods_info["returned_count"]
+            result["total_methods"] = methods_info["total_found"]
 
-            # 5. Generate a concise summary of the model
-            result["summary"] = self._generate_model_summary(result)
+        # 5. Generate a concise summary of the model
+        result["summary"] = self._generate_model_summary(result)
 
-            return result
-
-        except Exception as e:
-            _logger.exception(f"Error executing Comprehensive Model Inspector: {str(e)}")
-            return {"error": str(e)}
+        return result
 
     def _get_model_basic_info(self, model_name: str) -> Dict[str, Any]:
         """Get basic information about the model from ir.model."""

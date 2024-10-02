@@ -34,29 +34,22 @@ class LLMToolRecordUpdater(models.Model):
             f"Executing Odoo Record Updater with: model={model}, domain={domain}, values={values}, limit={limit}"
         )
 
-        try:
-            model_obj = self.env[model]
+        model_obj = self.env[model]
 
-            # Find records to update
-            records = model_obj.search(domain, limit=limit)
+        # Find records to update
+        records = model_obj.search(domain, limit=limit)
 
-            if not records:
-                return {"error": "No records found matching the domain"}
+        if not records:
+            return {"error": "No records found matching the domain"}
 
-            # Update the records
-            records.write(values)
+        # Update the records
+        records.write(values)
 
-            # Return information about updated records
-            result = {
-                "count": len(records),
-                "ids": records.ids,
-                "message": f"Successfully updated {len(records)} record(s) in {model}",
-            }
+        # Return information about updated records
+        result = {
+            "count": len(records),
+            "ids": records.ids,
+            "message": f"Successfully updated {len(records)} record(s) in {model}",
+        }
 
-            return result
-
-        except KeyError:
-            return {"error": f"Model '{model}' not found"}
-        except Exception as e:
-            _logger.exception(f"Error executing Odoo Record Updater: {str(e)}")
-            return {"error": str(e)}
+        return result

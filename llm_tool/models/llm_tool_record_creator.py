@@ -28,23 +28,16 @@ class LLMToolRecordCreator(models.Model):
             f"Executing Odoo Record Creator with: model={model}, fields={fields}"
         )
 
-        try:
-            model_obj = self.env[model]
+        model_obj = self.env[model]
 
-            # Create the record
-            new_record = model_obj.create(fields)
+        # Create the record
+        new_record = model_obj.create(fields)
 
-            # Return the ID and display name of the created record
-            result = {
-                "id": new_record.id,
-                "display_name": new_record.display_name,
-                "message": f"Record created successfully in {model}",
-            }
+        # Return the ID and display name of the created record
+        result = {
+            "id": new_record.id,
+            "display_name": new_record.display_name,
+            "message": f"Record created successfully in {model}",
+        }
 
-            return result
-
-        except KeyError:
-            return {"error": f"Model '{model}' not found"}
-        except Exception as e:
-            _logger.exception(f"Error executing Odoo Record Creator: {str(e)}")
-            return {"error": str(e)}
+        return result
