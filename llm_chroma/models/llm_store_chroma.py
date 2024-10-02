@@ -265,9 +265,12 @@ class LLMStoreChroma(models.Model):
                 
             # Process results
             for i, id_val in enumerate(results['ids'][0]):
+                distance = float(results['distances'][0][i]) if 'distances' in results and results['distances'][0] else float('inf')
+                # Convert L2 distance to similarity score [0, 1] (1 = closest)
+                score = 1.0 / (1.0 + distance) if distance != float('inf') else 0.0
                 formatted_results.append({
                     'id': int(id_val),  # Convert string ID to integer
-                    'score': 1.0 - float(results['distances'][0][i]) if 'distances' in results and results['distances'][0] else 0.0,
+                    'score': score,
                     'metadata': results['metadatas'][0][i] if 'metadatas' in results and results['metadatas'][0] else {}
                 })
                 
