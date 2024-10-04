@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_llm_resource_form" model="ir.ui.view">
+        <field name="name">llm.resource.form</field>
+        <field name="model">llm.resource</field>
+        <!-- Inherit the base view from llm_resource -->
+        <field name="inherit_id" ref="llm_resource.view_llm_resource_form"/>
+        <field name="arch" type="xml">
+            <!-- Find the 'parser' field and add the 'provider_id' and 'model_id' after it -->
+            <xpath expr="//field[@name='parser']" position="after">
+                <field name="llm_provider_id"
+                    attrs="{'invisible': [('parser', '!=', 'mistral_ocr')], 'required': [('parser', '=', 'mistral_ocr')]}"
+                    options="{'no_create': True}"/>
+                <field name="llm_model_id"
+                    attrs="{'invisible': [('parser', '!=', 'mistral_ocr')], 'required': [('parser', '=', 'mistral_ocr')]}"
+                    options="{'no_create': True}"
+                    domain="[('provider_id', '=', llm_provider_id), ('model_use', '=', 'ocr')]"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
