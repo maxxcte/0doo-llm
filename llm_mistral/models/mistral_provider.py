@@ -1,6 +1,7 @@
 from odoo import api, models
 from mistralai import Mistral
 import logging
+import base64
 
 _logger = logging.getLogger(__name__)
 
@@ -56,33 +57,48 @@ class LLMProvider(models.Model):
             api_key=self.api_key,
         )
     
-    def process_ocr(self, model_id, file_name, file_path, **kwargs):
+    def process_ocr(self, model_id, file_name, file_path, is_image=False, **kwargs):
         self.ensure_one()
         model_name = self.model_ids.search([("id", "=", model_id)]).name
 
         mistral_client = self._get_mistral_client()
-        uploaded_file = mistral_client.files.upload(
-            file={
-                "file_name": file_name,
-                "content": open(file_path, "rb"),
-            },
-            purpose="ocr"
-        )
-        _logger.info(uploaded_file)
-        result = mistral_client.files.retrieve(file_id=uploaded_file.id)
-
-        _logger.info(result)
-        signed_url = mistral_client.files.get_signed_url(file_id=uploaded_file.id)
-        _logger.info(signed_url)
-        ocr_response = mistral_client.ocr.process(
-            model=model_name,
-            document={
-                "type": "document_url",
-                "document_url": signed_url.url,
-            }
-        )
-        _logger.info(ocr_response)
-
+        if is_image:
+            image_content = self.encode_image(file_path)
+            if not image_content:
+                raise ValueError("Failed to encode image.")
+            return mistral_client.ocr.process(
+                model=model_name,
+                document={
+                    "type": "image_url",
+                    "image_url": f"data:image/jpeg;base64,{image_content}" 
+                }
+            )
+        else:
+            uploaded_file = mistral_client.files.upload(
+                file={
+                    "file_name": file_name,
+                    "content": open(file_path, "rb"),
+                },
+                purpose="ocr"
+            )
+            signed_url = mistral_client.files.get_signed_url(file_id=uploaded_file.id)
+            return mistral_client.ocr.process(
+                model=model_name,
+                document={
+                    "type": "document_url",
+                    "document_url": signed_url.url,
+                }
+            )
         
-        
-        
+    
+    def encode_image(self, image_path):
+        """Encode the image to base64."""
+        try:
+            with open(image_path, "rb") as image_file:
+                return base64.b64encode(image_file.read()).decode('utf-8')
+        except FileNotFoundError:
+            _logger.error(f"The file {image_path} was not found.")
+            return None
+        except Exception as e:  # Added general exception handling
+            _logger.error(f"Error: {e}")
+            return None
