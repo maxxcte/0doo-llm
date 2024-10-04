@@ -34,13 +34,17 @@ class LLMResourceParser(models.Model):
         )
         return parsers
 
-    def _parse_mistral_ocr(self, resource):
+    def _parse_mistral_ocr(self, file_name, file_path):
         """
         Parse the resource content using Mistral OCR.
         """
         try:
-            # TODO: Implement Mistral OCR parsing
+            self.llm_provider_id.process_ocr(
+                self.llm_model_id.id,
+                file_name,
+                file_path,
+            )
             return True
         except Exception as e:
-            _logger.error("Error parsing resource %s: %s", resource.id, str(e))
+            _logger.error("Error parsing resource %s: %s", self.id, str(e))
             return False

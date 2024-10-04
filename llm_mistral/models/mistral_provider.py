@@ -1,5 +1,8 @@
 from odoo import api, models
+from mistralai import Mistral
+import logging
 
+_logger = logging.getLogger(__name__)
 
 class LLMProvider(models.Model):
     _inherit = "llm.provider"
@@ -45,3 +48,41 @@ class LLMProvider(models.Model):
                 }
         else:
             return super().openai_models()
+    
+    def _get_mistral_client(self):
+        self.ensure_one()
+        
+        return Mistral(
+            api_key=self.api_key,
+        )
+    
+    def process_ocr(self, model_id, file_name, file_path, **kwargs):
+        self.ensure_one()
+        model_name = self.model_ids.search([("id", "=", model_id)]).name
+
+        mistral_client = self._get_mistral_client()
+        uploaded_file = mistral_client.files.upload(
+            file={
+                "file_name": file_name,
+                "content": open(file_path, "rb"),
+            },
+            purpose="ocr"
+        )
+        _logger.info(uploaded_file)
+        result = mistral_client.files.retrieve(file_id=uploaded_file.id)
+
+        _logger.info(result)
+        signed_url = mistral_client.files.get_signed_url(file_id=uploaded_file.id)
+        _logger.info(signed_url)
+        ocr_response = mistral_client.ocr.process(
+            model=model_name,
+            document={
+                "type": "document_url",
+                "document_url": signed_url.url,
+            }
+        )
+        _logger.info(ocr_response)
+
+        
+        
+        
