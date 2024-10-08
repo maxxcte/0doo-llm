@@ -57,7 +57,7 @@ class LLMProvider(models.Model):
             api_key=self.api_key,
         )
     
-    def process_ocr(self, model_id, file_name, file_path, is_image=False, **kwargs):
+    def process_ocr(self, model_id, file_name, file_path, is_image=False, mime_type=None, **kwargs):
         self.ensure_one()
         model_name = self.model_ids.search([("id", "=", model_id)]).name
 
@@ -66,12 +66,14 @@ class LLMProvider(models.Model):
             image_content = self.encode_image(file_path)
             if not image_content:
                 raise ValueError("Failed to encode image.")
+            mime_type = mime_type or "image/jpeg"
             return mistral_client.ocr.process(
                 model=model_name,
                 document={
                     "type": "image_url",
-                    "image_url": f"data:image/jpeg;base64,{image_content}" 
-                }
+                    "image_url": f"data:{mime_type};base64,{image_content}" 
+                },
+                include_image_base64=True
             )
         else:
             uploaded_file = mistral_client.files.upload(
@@ -87,9 +89,9 @@ class LLMProvider(models.Model):
                 document={
                     "type": "document_url",
                     "document_url": signed_url.url,
-                }
+                },
+                include_image_base64=True
             )
-        
     
     def encode_image(self, image_path):
         """Encode the image to base64."""

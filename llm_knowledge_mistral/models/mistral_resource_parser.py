@@ -34,7 +34,7 @@ class LLMResourceParser(models.Model):
         )
         return parsers
 
-    def _parse_mistral_ocr(self, file_name, file_path, is_image=False):
+    def _parse_mistral_ocr(self, file_name, file_path, is_image=False, mime_type=None):
         """
         Parse the resource content using Mistral OCR.
         """
@@ -46,7 +46,8 @@ class LLMResourceParser(models.Model):
                 self.llm_model_id.id,
                 file_name,
                 file_path,
-                is_image=is_image
+                is_image=is_image,
+                mime_type=mime_type
             )
             final_content= self._format_mistral_ocr_text(ocr_response)
             self.content = final_content

@@ -36,6 +36,7 @@ class IrAttachment(models.Model):
                 self.name,
                 file_path,
                 is_image=mimetype.startswith("image/"),
+                mime_type=mimetype
             )
         
         return super().rag_parse(llm_resource)
