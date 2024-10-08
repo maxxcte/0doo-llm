@@ -29,14 +29,13 @@ class IrAttachment(models.Model):
         # Determine file type based on mimetype
         mimetype = self.mimetype or "application/octet-stream"
 
-        # If it's a PDF and Mistral OCR is selected, use Mistral OCR parser
+        # If it's a supported mimetype and Mistral OCR is selected, use Mistral OCR parser
         if mimetype in MISTRAL_OCR_SUPPORTED_MIMETYPES and llm_resource.parser == "mistral_ocr":
             file_path = self._full_path(self.store_fname)
             return llm_resource._parse_mistral_ocr(
                 self.name,
                 file_path,
-                is_image=mimetype.startswith("image/"),
-                mime_type=mimetype
+                mimetype,
             )
         
         return super().rag_parse(llm_resource)
