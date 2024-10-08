@@ -15,7 +15,7 @@ class LLMResourceParser(models.Model):
 
     llm_model_id = fields.Many2one(
         "llm.model",
-        string="Model",
+        string="Mistral LLM Model",
         required=False,
         domain="[('model_use', 'in', ['ocr'])]",
         ondelete="restrict",
@@ -23,7 +23,7 @@ class LLMResourceParser(models.Model):
 
     llm_provider_id = fields.Many2one(
         "llm.provider",
-        string="Provider",
+        string="Mistral LLM Provider",
         domain="[('service', '=', 'mistral')]",
         required=False,
         ondelete="restrict",
@@ -48,7 +48,7 @@ class LLMResourceParser(models.Model):
                 raise ValueError("Please select a model and provider.")
 
             ocr_response = self.llm_provider_id.process_ocr(
-                self.llm_model_id.id,
+                self.llm_model_id.name,
                 file_name,
                 file_path,
                 mimetype

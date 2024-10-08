@@ -57,9 +57,8 @@ class LLMProvider(models.Model):
             api_key=self.api_key,
         )
     
-    def process_ocr(self, model_id, file_name, file_path, mimetype, **kwargs):
+    def process_ocr(self, model_name, file_name, file_path, mimetype, **kwargs):
         self.ensure_one()
-        model_name = self.model_ids.search([("id", "=", model_id)]).name
 
         mistral_client = self._get_mistral_client()
         if mimetype.startswith("image/"):
