@@ -8,6 +8,11 @@
         <field name="arch" type="xml">
             <!-- Find the 'parser' field and add the 'provider_id' and 'model_id' after it -->
             <xpath expr="//field[@name='parser']" position="after">
+                <div colspan="2" attrs="{'invisible': [('parser', '!=', 'mistral_ocr')]}">
+                    <p class="text-muted">
+                        <i>Select a Mistral provider and OCR model. This parser currently processes PDF and common image attachments (ir.attachment).</i>
+                    </p>
+                </div>
                 <field name="llm_provider_id"
                     attrs="{'invisible': [('parser', '!=', 'mistral_ocr')], 'required': [('parser', '=', 'mistral_ocr')]}"
                     options="{'no_create': True}"/>

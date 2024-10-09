@@ -15,7 +15,7 @@ class LLMResourceParser(models.Model):
 
     llm_model_id = fields.Many2one(
         "llm.model",
-        string="Mistral LLM Model",
+        string="OCR Model",
         required=False,
         domain="[('model_use', 'in', ['ocr'])]",
         ondelete="restrict",
@@ -23,7 +23,7 @@ class LLMResourceParser(models.Model):
 
     llm_provider_id = fields.Many2one(
         "llm.provider",
-        string="Mistral LLM Provider",
+        string="Provider",
         domain="[('service', '=', 'mistral')]",
         required=False,
         ondelete="restrict",
