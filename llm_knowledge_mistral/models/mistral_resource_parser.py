@@ -1,11 +1,11 @@
-import os
-import logging
-import re
 import base64
+import logging
 import mimetypes
+import os
+import re
 from pathlib import Path
 
-from odoo import _, api, models, fields
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -48,12 +48,9 @@ class LLMResourceParser(models.Model):
                 raise ValueError("Please select a model and provider.")
 
             ocr_response = self.llm_provider_id.process_ocr(
-                self.llm_model_id.name,
-                file_name,
-                file_path,
-                mimetype
+                self.llm_model_id.name, file_name, file_path, mimetype
             )
-            final_content= self._format_mistral_ocr_text(ocr_response, file_name)
+            final_content = self._format_mistral_ocr_text(ocr_response, file_name)
             self.content = final_content
 
             # Post success message - using stored page_count instead of accessing closed doc
@@ -70,10 +67,9 @@ class LLMResourceParser(models.Model):
             )
             return False
 
-    
     def _format_mistral_ocr_text(self, ocr_response, file_name):
         """Flatten a Mistral OCR response into one big text blob, with page headers."""
-        parts     = []
+        parts = []
         base_stem = Path(file_name).stem
 
         for page_idx, page in enumerate(ocr_response.pages, start=1):
@@ -104,18 +100,20 @@ class LLMResourceParser(models.Model):
                 img_bytes = base64.b64decode(b64payload)
 
                 # build a safe filename
-                orig_id    = img.id  # e.g. "img-0.jpeg"
-                stem, _    = os.path.splitext(orig_id)
+                orig_id = img.id  # e.g. "img-0.jpeg"
+                stem, _ = os.path.splitext(orig_id)
                 image_name = f"{base_stem}_p{page_idx}_{stem}{ext}"
 
                 # create the attachment (Odoo wants its `datas` field as a base64‐string)
-                attachment = self.env["ir.attachment"].create({
-                    "name":      image_name,
-                    "datas":     base64.b64encode(img_bytes).decode("ascii"),
-                    "res_model": self._name,
-                    "res_id":    self.id,
-                    "mimetype":  mime,
-                })
+                attachment = self.env["ir.attachment"].create(
+                    {
+                        "name": image_name,
+                        "datas": base64.b64encode(img_bytes).decode("ascii"),
+                        "res_model": self._name,
+                        "res_id": self.id,
+                        "mimetype": mime,
+                    }
+                )
 
                 # inject a Markdown image link
                 url = f"/web/image/{attachment.id}/datas"

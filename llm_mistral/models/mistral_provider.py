@@ -1,9 +1,12 @@
-from odoo import api, models
-from mistralai import Mistral
-import logging
 import base64
+import logging
+
+from mistralai import Mistral
+
+from odoo import api, models
 
 _logger = logging.getLogger(__name__)
+
 
 class LLMProvider(models.Model):
     _inherit = "llm.provider"
@@ -14,11 +17,22 @@ class LLMProvider(models.Model):
         return services + [("mistral", "Mistral AI")]
 
     def _dispatch(self, method, *args, **kwargs):
-        return super()._dispatch(method, *args, service_override=("openai" if self.service == "mistral" else None), **kwargs)
+        return super()._dispatch(
+            method,
+            *args,
+            service_override=("openai" if self.service == "mistral" else None),
+            **kwargs,
+        )
 
     def _dispatch_on_message(self, message_record, method, *args, **kwargs):
-        return super()._dispatch_on_message(message_record, method, *args, service_override=("openai" if self.service == "mistral" else None), **kwargs)
-        
+        return super()._dispatch_on_message(
+            message_record,
+            method,
+            *args,
+            service_override=("openai" if self.service == "mistral" else None),
+            **kwargs,
+        )
+
     def openai_models(self):
         if self.service == "mistral":
             models = self.client.models.list()
@@ -49,14 +63,14 @@ class LLMProvider(models.Model):
                 }
         else:
             return super().openai_models()
-    
+
     def _get_mistral_client(self):
         self.ensure_one()
-        
+
         return Mistral(
             api_key=self.api_key,
         )
-    
+
     def process_ocr(self, model_name, file_name, file_path, mimetype, **kwargs):
         self.ensure_one()
 
@@ -69,8 +83,8 @@ class LLMProvider(models.Model):
                 model_name,
                 {
                     "type": "image_url",
-                    "image_url": f"data:{mimetype};base64,{image_content}"
-                }
+                    "image_url": f"data:{mimetype};base64,{image_content}",
+                },
             )
         else:
             uploaded_file = mistral_client.files.upload(
@@ -78,7 +92,7 @@ class LLMProvider(models.Model):
                     "file_name": file_name,
                     "content": open(file_path, "rb"),
                 },
-                purpose="ocr"
+                purpose="ocr",
             )
             signed_url = mistral_client.files.get_signed_url(file_id=uploaded_file.id)
             return self._process_ocr(
@@ -86,22 +100,20 @@ class LLMProvider(models.Model):
                 {
                     "type": "document_url",
                     "document_url": signed_url.url,
-                }, 
+                },
             )
-    
+
     def _process_ocr(self, model_name, payload):
         mistral_client = self._get_mistral_client()
         return mistral_client.ocr.process(
-            model=model_name,
-            document=payload,
-            include_image_base64=True
+            model=model_name, document=payload, include_image_base64=True
         )
-    
+
     def _encode_image(self, image_path):
         """Encode the image to base64."""
         try:
             with open(image_path, "rb") as image_file:
-                return base64.b64encode(image_file.read()).decode('utf-8')
+                return base64.b64encode(image_file.read()).decode("utf-8")
         except FileNotFoundError:
             _logger.error(f"The file {image_path} was not found.")
             return None
