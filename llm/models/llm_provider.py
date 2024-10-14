@@ -9,6 +9,10 @@ class LLMProvider(models.Model):
     _inherit = ["mail.thread"]
     _description = "LLM Provider"
 
+    _sql_constraints = [
+        ("name_uniq", "unique(name)", "Provider name must be unique!")
+    ]
+
     name = fields.Char(required=True)
     service = fields.Selection(
         selection=lambda self: self._selection_service(),
