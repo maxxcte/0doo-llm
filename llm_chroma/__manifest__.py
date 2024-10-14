@@ -16,7 +16,7 @@
     "website": "https://github.com/apexive/odoo-llm",
     "depends": ["llm", "llm_knowledge", "llm_store"],
     "external_dependencies": {
-        "python": ["chromadb-client", "numpy", "re"],
+        "python": ["chromadb-client", "numpy"],
     },
     "installable": True,
     "application": False,

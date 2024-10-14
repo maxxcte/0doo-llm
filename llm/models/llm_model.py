@@ -5,7 +5,6 @@ MODEL_USE = [
     ("completion", "Completion"),
     ("chat", "Chat"),
     ("multimodal", "Multimodal"),
-    ("ocr", "OCR"),
 ]
 
 

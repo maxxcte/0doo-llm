@@ -1,8 +1,6 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
-import logging
-from ..models.llm_model import MODEL_USE
-_logger = logging.getLogger(__name__)
+
 
 class ModelLine(models.TransientModel):
     _name = "llm.fetch.models.line"
@@ -19,7 +17,12 @@ class ModelLine(models.TransientModel):
         required=True,
     )
     model_use = fields.Selection(
-        MODEL_USE,
+        [
+            ("embedding", "Embedding"),
+            ("completion", "Completion"),
+            ("chat", "Chat"),
+            ("multimodal", "Multimodal"),
+        ],
         required=True,
         default="chat",
     )
@@ -152,8 +155,6 @@ class FetchModelsWizard(models.TransientModel):
             return "embedding"
         elif any(cap in capabilities for cap in ["multimodal", "vision"]):
             return "multimodal"
-        elif any(cap in capabilities for cap in ["ocr"]):
-            return "ocr"
         return "chat"  # default
 
     def action_confirm(self):
