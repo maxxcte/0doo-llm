@@ -73,10 +73,8 @@ class LLMResourceParser(models.Model):
         base_stem = Path(file_name).stem
 
         for page_idx, page in enumerate(ocr_response.pages, start=1):
-            # 1) page header + markdown
-            parts.append(f"## Page {page_idx}\n\n{page.markdown.strip()}")
-
-            # 2) each image on that page
+            page_md = page.markdown.strip()
+            
             for img in page.images:
                 data_uri = img.image_base64 or ""
                 if not data_uri:
@@ -92,19 +90,12 @@ class LLMResourceParser(models.Model):
                 # extract mime type from header: e.g. "data:image/jpeg;base64"
                 m = re.match(r"data:([^;]+);base64", header)
                 mime = m.group(1) if m else "image/png"
-
-                # guess an extension (".jpeg", ".png", etc.)
                 ext = mimetypes.guess_extension(mime) or ".png"
-
-                # decode the payload
                 img_bytes = base64.b64decode(b64payload)
-
-                # build a safe filename
                 orig_id = img.id  # e.g. "img-0.jpeg"
                 stem, _ = os.path.splitext(orig_id)
                 image_name = f"{base_stem}_p{page_idx}_{stem}{ext}"
 
-                # create the attachment (Odoo wants its `datas` field as a base64‐string)
                 attachment = self.env["ir.attachment"].create(
                     {
                         "name": image_name,
@@ -115,8 +106,11 @@ class LLMResourceParser(models.Model):
                     }
                 )
 
-                # inject a Markdown image link
                 url = f"/web/image/{attachment.id}/datas"
-                parts.append(f"![{image_name}]({url})")
+                pattern = rf"\!\[([^\]]*)\]\(\s*{re.escape(orig_id)}\s*\)"
+                replacement = rf"![\1]({url})"
+                page_md = re.sub(pattern, replacement, page_md)
+
+            parts.append(f"## Page {page_idx}\n\n{page_md}")
 
         return "\n\n".join(parts)
