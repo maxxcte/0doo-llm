@@ -142,8 +142,10 @@
         <field name="arch" type="xml">
             <tree string="Knowledge Documents">
                 <field name="name"/>
+                <field name="model_id"/>
                 <field name="collection_ids" widget="many2many_tags" optional="show"/>
                 <field name="state"/>
+                <field name="chunk_count"/>
             </tree>
         </field>
     </record>
