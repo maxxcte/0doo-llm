@@ -1,17 +1,13 @@
 from datetime import datetime
 
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 
 class LLMProvider(models.Model):
     _name = "llm.provider"
     _inherit = ["mail.thread"]
     _description = "LLM Provider"
-
-    _sql_constraints = [
-        ("name_uniq", "unique(name)", "Provider name must be unique!")
-    ]
 
     name = fields.Char(required=True)
     service = fields.Selection(
@@ -28,6 +24,16 @@ class LLMProvider(models.Model):
     api_key = fields.Char()
     api_base = fields.Char()
     model_ids = fields.One2many("llm.model", "provider_id", string="Models")
+
+    @api.constrains("name")
+    def _check_unique_name(self):
+        other_providers = self.search([('id', 'not in', self.ids)])
+        existing_names_lower = [p.name.lower() for p in other_providers if p.name]
+        for record in self:
+            if record.name and record.name.lower() in existing_names_lower:
+                raise ValidationError(_("The provider name must be unique (case-insensitive)."))
+
+        return True
 
     @property
     def client(self):
