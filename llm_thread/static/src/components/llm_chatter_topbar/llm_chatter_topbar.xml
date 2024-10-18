@@ -11,11 +11,9 @@
             <!-- AI Chat Button inserted next to Activities -->
             <div class="o_ChatterTopbar_borderLeft ms-2" />
             <button
-                class="o_ChatterTopbar_button btn btn-light text-nowrap ms-2"
+                t-attf-class="o_ChatterTopbar_button btn text-nowrap ms-2 {{ chatterTopbar.chatter.is_chatting_with_llm ? 'btn-primary o-active' : 'btn-light' }}"
                 type="button"
-                t-att-class="{ 'o-active btn-odoo': chatterTopbar.chatter.is_chatting_with_llm }"
                 t-on-click="chatterTopbar.chatter.toggleLLMChat">
-                <i class="fa fa-robot me-1" />
                 <span>AI</span>
             </button>
         </xpath>
