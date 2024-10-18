@@ -35,20 +35,26 @@
                 <span class="text-muted small">(ID: <t t-esc="messageView.message.toolCallId || 'N/A'"/>)</span>
             </div>
             <!-- Display Arguments (optional, could be default collapsed) -->
-            <details class="o_llm_tool_result_args small mb-1">
-                <summary class="text-muted" style="cursor: pointer;">Arguments</summary>
+            <details class="o_llm_tool_result_args mb-1">
+                <summary class="text-muted" style="cursor: pointer;">
+                    <strong class="small">Arguments</strong>
+                </summary>
                 <pre class="bg-light p-1 rounded small mt-1"><code t-esc="messageView.message.toolCallDefinitionFormatted?.function?.arguments || '{}'"/></pre>
             </details>
             <!-- Display Result/Error Content -->
             <div class="o_llm_tool_result_content mt-1">
-                <strong class="small">Result:</strong>
-                <t t-if="messageView.message.toolCallResultIsError">
-                    <pre class="bg-danger-light border border-danger text-danger p-1 rounded small mt-1"><code t-esc="messageView.message.toolCallResultData?.error || 'Unknown Error'"/></pre>
-                </t>
-                <t t-else="">
-                    <!-- Render result nicely - assumes pretty print JSON -->
-                    <pre class="bg-light border p-1 rounded small mt-1"><code t-esc="messageView.message.toolCallResultFormatted"/></pre>
-                </t>
+                <details>
+                    <summary class="text-muted" style="cursor: pointer;">
+                        <strong class="small">Result</strong>
+                    </summary>
+                    <t t-if="messageView.message.toolCallResultIsError">
+                        <pre class="bg-danger-light border border-danger text-danger p-1 rounded small mt-1"><code t-esc="messageView.message.toolCallResultData?.error || 'Unknown Error'"/></pre>
+                    </t>
+                    <t t-else="">
+                        <!-- Render result nicely - assumes pretty print JSON -->
+                        <pre class="bg-light border p-1 rounded small mt-1"><code t-esc="messageView.message.toolCallResultFormatted"/></pre>
+                    </t>
+                </details>
             </div>
         </div>
     </t>

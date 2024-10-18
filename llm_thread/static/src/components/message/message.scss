@@ -4,9 +4,6 @@
         font-weight: bold;
      }
      .o_llm_tool_result_args {
-         summary { list-style: none; &::-webkit-details-marker { display: none; } } // Cleaner summary look
-         summary:before { content: "+ "; }
-         &[open] summary:before { content: "- "; }
          pre {
              white-space: pre-wrap;
              word-break: break-all;
