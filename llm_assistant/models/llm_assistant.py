@@ -1,7 +1,7 @@
 import json
 import logging
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -78,6 +78,7 @@ class LLMAssistant(models.Model):
         string="System Prompt Preview",
         compute="_compute_system_prompt_preview",
         help="Preview of the formatted system prompt based on the prompt template",
+        tracking=True,
     )
 
     @api.depends('prompt_id', 'default_values')
@@ -165,5 +166,5 @@ class LLMAssistant(models.Model):
 
         except Exception as e:
             _logger.error("Error generating system prompt from template: %s", str(e))
-
-        return ""
+            return _("Error generating system prompt preview: %s") % str(e)
+        
