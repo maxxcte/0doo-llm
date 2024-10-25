@@ -103,15 +103,16 @@ class LLMAssistant(models.Model):
         action["context"] = {"default_assistant_id": self.id}
         return action
 
-    @api.model
-    def create(self, vals):
+    @api.model_create_multi
+    def create(self, vals_list):
         """Override create to ensure default_values is valid JSON"""
-        if 'default_values' in vals and vals['default_values']:
-            try:
-                json.loads(vals['default_values'])
-            except json.JSONDecodeError:
-                vals['default_values'] = "{}"
-        return super(LLMAssistant, self).create(vals)
+        for vals in vals_list:
+            if 'default_values' in vals and vals['default_values']:
+                try:
+                    json.loads(vals['default_values'])
+                except json.JSONDecodeError:
+                    vals['default_values'] = "{}"
+        return super().create(vals_list)
 
     @api.onchange('prompt_id')
     def _onchange_prompt_id(self):
