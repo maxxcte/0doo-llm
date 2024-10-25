@@ -13,16 +13,16 @@
             </xpath>
 
             <!-- Add RAG buttons to dropdown -->
-            <xpath expr="//div[@class='dropdown-menu dropdown-menu-end']//a[@name='parse']" position="after">
+            <xpath expr="//div[hasclass('dropdown-menu', 'dropdown-menu-end')]//a[@name='parse']" position="after">
                 <a name="chunk" type="object" class="dropdown-item" t-if="record.state.raw_value == 'parsed'">Chunk</a>
                 <a name="action_embed" type="object" class="dropdown-item" t-if="record.state.raw_value == 'chunked'">Embed</a>
             </xpath>
-             <xpath expr="//div[@class='dropdown-menu dropdown-menu-end']//a[@name='process_resource']" position="after">
+             <xpath expr="//div[hasclass('dropdown-menu', 'dropdown-menu-end')]//a[@name='process_resource']" position="after">
                  <a name="action_reindex" type="object" class="dropdown-item" t-if="record.state.raw_value == 'ready'">Re-index</a>
              </xpath>
 
             <!-- Modify Process button text -->
-             <xpath expr="//div[@class='dropdown-menu dropdown-menu-end']//a[@name='process_resource']" position="attributes">
+             <xpath expr="//div[hasclass('dropdown-menu', 'dropdown-menu-end')]//a[@name='process_resource']" position="attributes">
                 <attribute name="string">Process All</attribute>
             </xpath>
 
