@@ -42,14 +42,9 @@ class LLMResourceParser(models.Model):
                     raise UserError(_("Referenced record not found"))
 
                 # If the record has a specific rag_parse method, call it
-                if hasattr(record, "llm_parse"):
-                    success = record.llm_parse(resource)
-                else:
-                    if hasattr(record, "llm_get_fields"):
-                        for field in record.llm_get_fields():
-                            success = resource._parse_field(record, field)
-                    else:
-                        success = resource._parse_default(record)
+                fields =  getattr(record, "llm_get_fields", self.get_fields)(record)
+                for field in fields:
+                    success = resource._parse_field(record, field)
 
                 # Only update state if parsing was successful
                 if success:
@@ -116,10 +111,13 @@ class LLMResourceParser(models.Model):
         self.ensure_one()
         return self._get_parser(record, field_name, mimetype)(record, field)
 
-    def parse_default(self, record, field):
+    def get_fields(self, record):
         """
         Default parser implementation - generates a generic markdown representation
         based on commonly available fields
+
+        :returns
+        dict {"field_name": ("mimetype", "rawcontent")}
         """
         self.ensure_one()
 
@@ -146,6 +144,12 @@ class LLMResourceParser(models.Model):
                 content.append(f"\n## {field_name.capitalize()}\n")
                 content.append(record[field_name])
 
+        # TODO:
+
+        INSTEAD OF PARSING RETURN fields
+        [
+            ("note", "text/...", record.note)
+        ]
         # Include a basic info section with simple fields
         info_items = []
         for field_name, field in record._fields.items():
@@ -156,35 +160,37 @@ class LLMResourceParser(models.Model):
             ):
                 continue
 
-            # Skip technical and internal fields
-            if field_name.startswith("_") or field_name in [
-                "id",
-                "display_name",
-                "create_date",
-                "create_uid",
-                "write_date",
-                "write_uid",
-            ]:
-                continue
 
-            # Get value if it exists and is not empty
-            value = record[field_name]
-            if value or value == 0:  # Include 0 but not False or None
-                if field.type == "many2one" and value:
-                    value = value.display_name
-                info_items.append(f"- **{field.string}**: {value}")
-
-        if info_items:
-            content.append("\n## Information\n")
-            content.extend(info_items)
-
-        # Set the content
-        self.content = "\n".join(content)
-
-        # Post success message
-        self._post_message(
-            f"Resource parsed using default parser for {record._name}", "success"
-        )
+        #
+        #     # Skip technical and internal fields
+        #     if field_name.startswith("_") or field_name in [
+        #         "id",
+        #         "display_name",
+        #         "create_date",
+        #         "create_uid",
+        #         "write_date",
+        #         "write_uid",
+        #     ]:
+        #         continue
+        #
+        #     # Get value if it exists and is not empty
+        #     value = record[field_name]
+        #     if value or value == 0:  # Include 0 but not False or None
+        #         if field.type == "many2one" and value:
+        #             value = value.display_name
+        #         info_items.append(f"- **{field.string}**: {value}")
+        #
+        # if info_items:
+        #     content.append("\n## Information\n")
+        #     content.extend(info_items)
+        #
+        # # Set the content
+        # self.content = "\n".join(content)
+        #
+        # # Post success message
+        # self._post_message(
+        #     f"Resource parsed using default parser for {record._name}", "success"
+        # )
 
         return True
 
@@ -309,23 +315,5 @@ class LLMResourceParser(models.Model):
 
         return True
 
-    def _llm_parse_text(self, record, field_name):
-        """Parse plain text file"""
-        text_data = base64.b64decode(record.get(field_name,"").decode("utf-8")
-        # Format as markdown
-        llm_resource.content = text_data
-
-
-    def _parse_markdown(record, record, field_names):
-        """Parse Markdown file"""
-        try:
-            # Decode binary data as UTF-8 text
-            content_bytes = base64.b64decode(record.datas)
-            llm_resource.content = content_bytes.decode("utf-8")
-            llm_resource._post_message(
-                f"Successfully parsed Markdown file: {record.name}",
-                message_type="success",
-            )
-            return True
-        except Exception as e:
-            raise models.UserError(f"Error parsing Markdown file: {str(e)}") from e
+    def _parse_text(self, record, field):
+        return field[2]
