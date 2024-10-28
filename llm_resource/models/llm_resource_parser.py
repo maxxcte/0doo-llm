@@ -1,7 +1,7 @@
 import json
 import logging
 
-from odoo import _, api, models
+from odoo import _, api, models, fields
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -10,85 +10,113 @@ _logger = logging.getLogger(__name__)
 class LLMResourceParser(models.Model):
     _inherit = "llm.resource"
 
+    parser = fields.Selection(
+        selection="_get_available_parsers",
+        string="Parser",
+        default="default",
+        required=True,
+        help="Method used to parse resource content",
+        tracking=True,
+    )
+
+    @api.model
+    def _get_available_parsers(self):
+        """Get all available parser methods"""
+        return [
+            ("default", "Default Parser"),
+            ("json", "JSON Parser"),
+        ]
+
     def parse(self):
         """Parse the retrieved content to markdown"""
-        for resource in self:
-            if resource.state != "retrieved":
-                _logger.warning(
-                    "Resource %s must be in retrieved state to parse content",
-                    resource.id,
-                )
-                continue
-
         # Lock resources and process only the successfully locked ones
-        resources = self._lock()
+        resources = self._lock(state_filter="retrieved")
         if not resources:
             return False
 
-        try:
-            # Process each resource
-            for resource in resources:
-                try:
-                    # Get the related record
-                    record = self.env[resource.res_model].browse(resource.res_id)
-                    if not record.exists():
-                        raise UserError(_("Referenced record not found"))
+        for resource in resources:
+            try:
+                # Get the related record
+                record = self.env[resource.res_model].browse(resource.res_id)
+                if not record.exists():
+                    raise UserError(_("Referenced record not found"))
 
-                    # If the record has a specific rag_parse method, call it
-                    if hasattr(record, "rag_parse"):
-                        success = record.rag_parse(resource)
+                # If the record has a specific rag_parse method, call it
+                if hasattr(record, "llm_parse"):
+                    success = record.llm_parse(resource)
+                else:
+                    if hasattr(record, "llm_get_fields"):
+                        for field in record.llm_get_fields():
+                            success = resource._parse_field(record, field)
                     else:
-                        # Use appropriate parser based on selection
-                        if resource.parser == "default":
-                            success = resource._parse_default(record)
-                        elif resource.parser == "json":
-                            success = resource._parse_json(record)
-                        else:
-                            _logger.warning(
-                                "Unknown parser %s, falling back to default",
-                                resource.parser,
-                            )
-                            success = resource._parse_default(record)
+                        success = resource._parse_default(record)
 
-                    # Only update state if parsing was successful
-                    if success:
-                        # Debug logging
-                        _logger.info(
-                            "Parsing successful for resource %s, updating state to 'parsed'",
-                            resource.id,
-                        )
-
-                        # Explicitly commit the state change to ensure it's saved
-                        resource.write({"state": "parsed"})
-                        self.env.cr.commit()  # Force commit the transaction
-
-                        resource._post_message(
-                            "Resource successfully parsed", "success"
-                        )
-                    else:
-                        resource._post_message(
-                            "Parsing completed but did not return success", "warning"
-                        )
-
-                except Exception as e:
-                    _logger.error(
-                        "Error parsing resource %s: %s",
-                        resource.id,
-                        str(e),
-                        exc_info=True,
+                # Only update state if parsing was successful
+                if success:
+                    resource.write({"state": "parsed"})
+                    self.env.cr.commit()  # Force commit the transaction
+                    resource._post_message(
+                        "Resource successfully parsed", "success"
                     )
-                    resource._post_message(f"Error parsing resource: {str(e)}", "error")
-                    resource._unlock()
+                else:
+                    resource._post_message(
+                        "Parsing completed but did not return success", "warning"
+                    )
 
-            # Unlock all successfully processed resources
-            resources._unlock()
-            return True
+            except Exception as e:
+                _logger.error(
+                    "Error parsing resource %s: %s",
+                    resource.id,
+                    str(e),
+                    exc_info=True,
+                )
+                resource._post_message(f"Error parsing resource: {str(e)}", "error")
+            finally:
+                resource._unlock()
 
-        except Exception as e:
-            resources._unlock()
-            raise UserError(_("Error in batch parsing: %s") % str(e)) from e
+        # Unlock all successfully processed resources
+        resources._unlock()
 
-    def _parse_default(self, record):
+
+    def _get_parser(self, record, field_name, mimetype):
+        if self.parser != "default":
+            return getattr(self, f"parse_{self.parser}")
+        if mimetype == "application/pdf":
+            return self.parse_pdf
+        elif mimetype.startswith("text/"):
+                    return self._parse_text
+        elif mimetype.startswith("image/"):
+                # For images, store a reference in the content
+                image_url = f"/web/image/{self.id}"
+                llm_resource.content = f"![{self.name}]({image_url})"
+                success = True
+        elif filename.lower().endswith(".md") or mimetype == "text/markdown":
+                success = self._parse_markdown(llm_resource)
+                else:
+                # Default to a generic description for unsupported types
+                llm_resource.content = f"""
+                # {self.name}
+                
+                **File Type**: {mimetype}
+                **Description**: This file is of type {mimetype} which cannot be directly parsed into text content.
+                **Access**: [Open file](/web/content/{self.id})
+                                """
+                success = True
+
+                # Post success message if successful
+                if success:
+                    llm_resource._post_message(
+                        f"Successfully parsed attachment: {self.name} ({mimetype})",
+                        message_type="success",
+                    )
+
+                return success
+
+    def _parse_field(self, record, field):
+        self.ensure_one()
+        return self._get_parser(record, field_name, mimetype)(record, field)
+
+    def parse_default(self, record, field):
         """
         Default parser implementation - generates a generic markdown representation
         based on commonly available fields
@@ -211,3 +239,93 @@ class LLMResourceParser(models.Model):
         )
 
         return True
+
+    def _parse_pdf(self, record, field):
+        """Parse PDF file and extract text and images"""
+        # Decode attachment data
+
+        if field[1] != ...... contains "PDF":
+            return False
+
+
+        # Open PDF using PyMuPDF
+        text_content = []
+        image_count = 0
+        page_count = 0
+
+        # Create a BytesIO object from the PDF data
+        with pymupdf.open(stream=field[2], filetype="pdf") as doc:
+            # Store page count before document is closed
+            page_count = doc.page_count
+
+            # Process each page
+            for page_num in range(page_count):
+                page = doc[page_num]
+
+                # Extract text
+                text = page.get_text()
+                text_content.append(f"## Page {page_num + 1}\n\n{text}")
+
+                # Extract images
+                image_list = page.get_images(full=True)
+                for img_index, img in enumerate(image_list):
+                    xref = img[0]
+                    try:
+                        base_image = doc.extract_image(xref)
+                        if base_image:
+                            # Store image as attachment
+                            image_data = base_image["image"]
+                            image_ext = base_image["ext"]
+                            image_name = f"image_{page_num}_{img_index}.{image_ext}"
+
+                            # Create attachment for the image
+                            img_attachment = record.env["ir.attachment"].create(
+                                {
+                                    "name": image_name,
+                                    "datas": base64.b64encode(image_data),
+                                    "res_model": "llm.resource",
+                                    "res_id": self.id,
+                                    "mimetype": f"image/{image_ext}",
+                                }
+                            )
+
+                            # Add image reference to markdown content
+                            if img_attachment:
+                                image_url = f"/web/image/{img_attachment.id}"
+                                text_content.append(
+                                    f"\n![{image_name}]({image_url})\n"
+                                )
+                                image_count += 1
+                    except Exception as e:
+                        self._post_message(
+                            f"Error extracting image: {str(e)}", "warning"
+                        )
+
+        # Join all content
+        final_content = "\n\n".join(text_content)
+
+        # Update resource with extracted content
+        self.content = final_content
+
+        return True
+
+    def _llm_parse_text(self, record, field_name):
+        """Parse plain text file"""
+        text_data = base64.b64decode(record.get(field_name,"").decode("utf-8")
+        # Format as markdown
+        llm_resource.content = text_data
+
+
+    def _parse_markdown(record, record, field_names):
+        """Parse Markdown file"""
+        try:
+            # Decode binary data as UTF-8 text
+            content_bytes = base64.b64decode(record.datas)
+            llm_resource.content = content_bytes.decode("utf-8")
+            llm_resource._post_message(
+                f"Successfully parsed Markdown file: {record.name}",
+                message_type="success",
+            )
+            return True
+        except Exception as e:
+            raise models.UserError(f"Error parsing Markdown file: {str(e)}") from e

@@ -35,56 +35,6 @@ registerPatch({
   },
   recordMethods: {
     /**
-     * @override
-     */
-    onClickSendMessage(ev) {
-      if (this.is_chatting_with_llm) {
-        this.toggleLLMChat();
-      }
-      this._super(ev);
-    },
-
-    /**
-     * @override
-     */
-    onClickLogNote(ev) {
-      if (this.is_chatting_with_llm) {
-        this.toggleLLMChat();
-      }
-      this._super(ev);
-    },
-
-    /**
-     * @override
-     */
-    onClickScheduleActivity(ev) {
-      if (this.is_chatting_with_llm) {
-        this.toggleLLMChat();
-      }
-      this._super(ev);
-    },
-
-    /**
-     * @override
-     */
-    onClickButtonAddAttachments(ev) {
-      if (this.is_chatting_with_llm) {
-        this.toggleLLMChat();
-      }
-      this._super(ev);
-    },
-
-    /**
-     * @override
-     */
-    onClickButtonToggleAttachments(ev) {
-      if (this.is_chatting_with_llm) {
-        this.toggleLLMChat();
-      }
-      this._super(ev);
-    },
-
-    /**
      * Toggles LLM chat mode, initializing LLMChat and selecting/creating a thread.
      */
     async toggleLLMChat() {

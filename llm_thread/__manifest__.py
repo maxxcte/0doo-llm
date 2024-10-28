@@ -38,6 +38,8 @@ Contact: support@apexive.com
     ],
     "assets": {
         "web.assets_backend": [
+            "llm_thread/static/lib/marked/marked.min.js",
+            "llm_thread/static/src/utils/markdown_utils.js",
             # Models
             "llm_thread/static/src/models/main.js",
             "llm_thread/static/src/models/messaging.js",

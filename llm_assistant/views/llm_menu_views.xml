@@ -6,6 +6,6 @@
     name="Assistants"
     parent="llm.menu_llm_config"
     action="action_llm_assistant"
-    sequence="26"
+    sequence="30"
   />
 </odoo>

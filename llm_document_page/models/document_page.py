@@ -8,7 +8,7 @@ class DocumentPage(models.Model):
 
     _inherit = "document.page"
 
-    def rag_parse(self, llm_resource):
+    def llm_parse(self, llm_resource):
         """
         Parse document.page content for RAG.
         This method is called by the LLM RAG module during document processing.
@@ -29,11 +29,5 @@ class DocumentPage(models.Model):
 
         # Set the content in the llm.resource
         llm_resource.content = "\n\n".join(content_parts)
-
-        # Post success message
-        llm_resource._post_message(
-            f"Successfully parsed document page: {self.name}",
-            message_type="success",
-        )
 
         return True

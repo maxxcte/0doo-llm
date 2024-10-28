@@ -1,4 +1,4 @@
-from odoo import _, api, fields, models
+from odoo import api, fields, models, _
 
 
 class LLMPromptCategory(models.Model):
@@ -26,10 +26,8 @@ class LLMPromptCategory(models.Model):
         index=True,
         ondelete="cascade",
     )
-    # Disable unaccent for parent_path as it's not needed for ID-based paths.
     parent_path = fields.Char(
         index=True,
-        unaccent=False,
     )
     child_ids = fields.One2many(
         "llm.prompt.category",

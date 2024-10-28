@@ -1,9 +1,56 @@
+// Optional: Add styles for LLM messages if needed beyond 'is_note' effect
+
+.o_Message_prettyBody {
+    // Styles for streaming text content
+    &.o_llm_streaming_content {
+        // Maybe slightly different color or style while streaming?
+        // color: $text-muted;
+
+        // Blinking cursor animation
+        .o_llm_cursor {
+            font-size: 0.8em; // Adjust size
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+    }
+
+    // Styles for tool execution placeholder
+    &.o_llm_tool_executing {
+        padding: 0.5rem;
+        background-color: $o-view-background-color; // Light background
+        border-radius: $border-radius-sm;
+        border: 1px dashed $border-color;
+
+        .o_llm_tool_executing_id {
+            font-family: $font-family-monospace;
+        }
+
+        details > summary {
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+        pre {
+            white-space: pre-wrap; // Wrap long arguments
+            word-break: break-all;
+            max-height: 100px; // Limit height
+            overflow-y: auto;
+        }
+    }
+}
+
 // Styles specifically for the final tool result display
 .o_llm_tool_result {
      .o_llm_tool_result_header {
         font-weight: bold;
      }
      .o_llm_tool_result_args {
+         summary { list-style: none; &::-webkit-details-marker { display: none; } } // Cleaner summary look
+         summary:before { content: "+ "; }
+         &[open] summary:before { content: "- "; }
          pre {
              white-space: pre-wrap;
              word-break: break-all;

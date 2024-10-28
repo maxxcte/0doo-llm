@@ -6,6 +6,6 @@
         name="Vector Stores"
         action="llm_store_action"
         parent="llm.menu_llm_config"
-        sequence="50"
+        sequence="25"
     />
 </odoo>

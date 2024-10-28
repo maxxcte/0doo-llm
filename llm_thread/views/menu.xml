@@ -13,6 +13,6 @@
     name="Threads"
     action="llm_thread_action"
     parent="llm.menu_llm_config"
-    sequence="27"
+    sequence="40"
   />
 </odoo>
