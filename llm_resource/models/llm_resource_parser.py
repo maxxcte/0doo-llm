@@ -1,7 +1,13 @@
+import base64
 import json
 import logging
 
-from odoo import _, api, models, fields
+try:
+    import pymupdf
+except ImportError:
+    pymupdf = None
+
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -42,8 +48,10 @@ class LLMResourceParser(models.Model):
                     raise UserError(_("Referenced record not found"))
 
                 # If the record has a specific rag_parse method, call it
-                fields =  getattr(record, "llm_get_fields", self.get_fields)(record)
+                fields = getattr(record, "llm_get_fields", self.get_fields)(record)
                 for field in fields:
+                    # TODO: Should it be self._parse_field?
+                    # field contains dict with record_name, mimetype, rawcontent
                     success = resource._parse_field(record, field)
 
                 # Only update state if parsing was successful
@@ -79,37 +87,19 @@ class LLMResourceParser(models.Model):
         if mimetype == "application/pdf":
             return self.parse_pdf
         elif mimetype.startswith("text/"):
-                    return self._parse_text
+            return self._parse_text
         elif mimetype.startswith("image/"):
-                # For images, store a reference in the content
-                image_url = f"/web/image/{self.id}"
-                llm_resource.content = f"![{self.name}]({image_url})"
-                success = True
-        elif filename.lower().endswith(".md") or mimetype == "text/markdown":
-                success = self._parse_markdown(llm_resource)
-                else:
-                # Default to a generic description for unsupported types
-                llm_resource.content = f"""
-                # {self.name}
-                
-                **File Type**: {mimetype}
-                **Description**: This file is of type {mimetype} which cannot be directly parsed into text content.
-                **Access**: [Open file](/web/content/{self.id})
-                                """
-                success = True
-
-                # Post success message if successful
-                if success:
-                    llm_resource._post_message(
-                        f"Successfully parsed attachment: {self.name} ({mimetype})",
-                        message_type="success",
-                    )
-
-                return success
+            # For images, store a reference in the content
+            return self._parse_image
+        elif mimetype == "text/markdown":
+            return self._parse_text
+        else:
+            return self._parse_default
 
     def _parse_field(self, record, field):
         self.ensure_one()
-        return self._get_parser(record, field_name, mimetype)(record, field)
+        parser_method = self._get_parser(record, field["field_name"], field["mimetype"])
+        return parser_method(record, field)
 
     def get_fields(self, record):
         """
@@ -117,17 +107,21 @@ class LLMResourceParser(models.Model):
         based on commonly available fields
 
         :returns
-        dict {"field_name": ("mimetype", "rawcontent")}
+        [{"field_name": field_name, "mimetype": mimetype, "rawcontent": rawcontent}]
         """
         self.ensure_one()
 
+        results = []
+
         # Start with the record name/display_name if available
-        record_name = (
-            record.display_name
-            if hasattr(record, "display_name")
-            else f"{record._name} #{record.id}"
-        )
-        content = [f"# {record_name}"]
+        record_name_field = "display_name" if hasattr(record, "display_name") else "name"
+        record_name = record[record_name_field] if hasattr(record, record_name_field) else f"{record._name} #{record.id}"
+        if record_name:
+            results.append({
+                "field_name": record_name_field,
+                "mimetype": "text/plain",
+                "rawcontent": record_name,
+            })
 
         # Try to include description or common text fields
         common_text_fields = [
@@ -141,60 +135,16 @@ class LLMResourceParser(models.Model):
         ]
         for field_name in common_text_fields:
             if hasattr(record, field_name) and record[field_name]:
-                content.append(f"\n## {field_name.capitalize()}\n")
-                content.append(record[field_name])
+                # Use text/plain for now, could be refined based on field type
+                results.append({
+                    "field_name": field_name,
+                    "mimetype": "text/plain",
+                    "rawcontent": record[field_name],
+                })
 
-        # TODO:
+        return results
 
-        INSTEAD OF PARSING RETURN fields
-        [
-            ("note", "text/...", record.note)
-        ]
-        # Include a basic info section with simple fields
-        info_items = []
-        for field_name, field in record._fields.items():
-            # Skip binary fields, one2many, many2many, and already included text fields
-            if (
-                field.type in ["binary", "one2many", "many2many"]
-                or field_name in common_text_fields
-            ):
-                continue
-
-
-        #
-        #     # Skip technical and internal fields
-        #     if field_name.startswith("_") or field_name in [
-        #         "id",
-        #         "display_name",
-        #         "create_date",
-        #         "create_uid",
-        #         "write_date",
-        #         "write_uid",
-        #     ]:
-        #         continue
-        #
-        #     # Get value if it exists and is not empty
-        #     value = record[field_name]
-        #     if value or value == 0:  # Include 0 but not False or None
-        #         if field.type == "many2one" and value:
-        #             value = value.display_name
-        #         info_items.append(f"- **{field.string}**: {value}")
-        #
-        # if info_items:
-        #     content.append("\n## Information\n")
-        #     content.extend(info_items)
-        #
-        # # Set the content
-        # self.content = "\n".join(content)
-        #
-        # # Post success message
-        # self._post_message(
-        #     f"Resource parsed using default parser for {record._name}", "success"
-        # )
-
-        return True
-
-    def _parse_json(self, record):
+    def _parse_json(self, record, field):
         """
         JSON parser implementation - converts record data to JSON and then to markdown
         """
@@ -250,7 +200,7 @@ class LLMResourceParser(models.Model):
         """Parse PDF file and extract text and images"""
         # Decode attachment data
 
-        if field[1] != ...... contains "PDF":
+        if field["mimetype"] != "application/pdf":
             return False
 
 
@@ -258,9 +208,11 @@ class LLMResourceParser(models.Model):
         text_content = []
         image_count = 0
         page_count = 0
+        # no need to decode as passing raw data should work here
+        pdf_data = field["rawcontent"]
 
         # Create a BytesIO object from the PDF data
-        with pymupdf.open(stream=field[2], filetype="pdf") as doc:
+        with pymupdf.open(stream=pdf_data, filetype="pdf") as doc:
             # Store page count before document is closed
             page_count = doc.page_count
 
@@ -316,4 +268,24 @@ class LLMResourceParser(models.Model):
         return True
 
     def _parse_text(self, record, field):
-        return field[2]
+        self.content = field["rawcontent"]
+        return True
+
+    def _parse_image(self, record, field):
+        image_url = f"/web/image/{record.id}"
+        self.content = f"![{record.name}]({image_url})"
+        return True
+    
+    def _parse_default(self, record, field):
+        # Default to a generic description for unsupported types
+        mimetype = field["mimetype"]
+        self.content = f"""
+            # {record.name}
+            
+            **File Type**: {mimetype}
+            **Description**: This file is of type {mimetype} which cannot be directly parsed into text content.
+            **Access**: [Open file](/web/content/{record.id})
+                            """
+        return True
+
+    
