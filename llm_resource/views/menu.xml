@@ -6,6 +6,6 @@
         name="Resources"
         parent="llm.menu_llm_config"
         action="action_llm_resource"
-        sequence="10"
+        sequence="45"
     />
 </odoo>

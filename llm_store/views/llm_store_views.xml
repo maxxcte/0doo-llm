@@ -16,7 +16,7 @@
                         >
                             <field
                                 name="active"
-                                widget="boolean_button"
+                                widget="boolean_toggle"
                                 options="{'terminology': 'archive'}"
                             />
                         </button>

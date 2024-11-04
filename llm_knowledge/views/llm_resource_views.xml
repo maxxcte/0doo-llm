@@ -13,16 +13,16 @@
             </xpath>
 
             <!-- Add RAG buttons to dropdown -->
-            <xpath expr="//div[@class='dropdown-menu dropdown-menu-end']//a[@name='parse']" position="after">
+            <xpath expr="//div[hasclass('dropdown-menu', 'dropdown-menu-end')]//a[@name='parse']" position="after">
                 <a name="chunk" type="object" class="dropdown-item" t-if="record.state.raw_value == 'parsed'">Chunk</a>
                 <a name="action_embed" type="object" class="dropdown-item" t-if="record.state.raw_value == 'chunked'">Embed</a>
             </xpath>
-             <xpath expr="//div[@class='dropdown-menu dropdown-menu-end']//a[@name='process_resource']" position="after">
+             <xpath expr="//div[hasclass('dropdown-menu', 'dropdown-menu-end')]//a[@name='process_resource']" position="after">
                  <a name="action_reindex" type="object" class="dropdown-item" t-if="record.state.raw_value == 'ready'">Re-index</a>
              </xpath>
 
             <!-- Modify Process button text -->
-             <xpath expr="//div[@class='dropdown-menu dropdown-menu-end']//a[@name='process_resource']" position="attributes">
+             <xpath expr="//div[hasclass('dropdown-menu', 'dropdown-menu-end')]//a[@name='process_resource']" position="attributes">
                 <attribute name="string">Process All</attribute>
             </xpath>
 
@@ -134,4 +134,39 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Specific Tree View for "Documents" Menu -->
+    <record id="view_llm_resource_document_tree" model="ir.ui.view">
+        <field name="name">llm.resource.document.tree</field>
+        <field name="model">llm.resource</field>
+        <field name="arch" type="xml">
+            <tree string="Knowledge Documents">
+                <field name="name"/>
+                <field name="model_id"/>
+                <field name="collection_ids" widget="many2many_tags" optional="show"/>
+                <field name="state"/>
+                <field name="chunk_count"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Action for "Documents" Menu -->
+    <record id="action_llm_knowledge_document" model="ir.actions.act_window">
+        <field name="name">Documents</field>
+        <field name="res_model">llm.resource</field>
+        <field name="view_mode">tree,form</field>
+        <!-- Use the specific tree view and the inherited form view -->
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_llm_resource_document_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_llm_resource_form')})]"/>
+        <field name="domain">[('state', 'in', ['chunked', 'ready']), ('collection_ids', '!=', False)]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Manage knowledge documents.
+            </p><p>
+                These are resources used for Retrieval Augmented Generation (RAG).
+            </p>
+        </field>
+    </record>
+
 </odoo>

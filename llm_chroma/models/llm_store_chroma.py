@@ -1,14 +1,15 @@
 import logging
+import re
 from urllib.parse import urlparse
 
-import re
+import chromadb
 
-from odoo import api, models, _
+from odoo import _, api, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
-import chromadb
+
 
 
 class LLMStoreChroma(models.Model):
@@ -55,9 +56,9 @@ class LLMStoreChroma(models.Model):
             # Test connection
             client.heartbeat()
             return client
-        except Exception as e:
-            _logger.error(f"Failed to connect to Chroma server: {str(e)}")
-            raise UserError(_(f"Failed to connect to Chroma server: {str(e)}"))
+        except Exception as err:
+            _logger.error(f"Failed to connect to Chroma server: {str(err)}")
+            raise UserError(_(f"Failed to connect to Chroma server: {str(err)}")) from err
 
     # -------------------------------------------------------------------------
     # Collection Management
@@ -116,9 +117,14 @@ class LLMStoreChroma(models.Model):
             )
 
             return True
-        except Exception as e:
-            _logger.exception(f"Failed to create collection {collection_id} in Chroma: {str(e)}")
-            raise UserError(_("Failed to create collection in Chroma: %s") % str(e))
+        except Exception as err:
+            _logger.error(
+                "Could not create collection %s: %s", sanitized_collection_name, err
+            )
+            raise UserError(
+                _("Could not create collection %s: %s")
+                % (sanitized_collection_name, err)
+            ) from err
 
     def chroma_delete_collection(self, collection_id, **kwargs):
         """Delete a collection from Chroma"""
@@ -140,8 +146,8 @@ class LLMStoreChroma(models.Model):
             client.delete_collection(name=sanitized_collection_name)
             _logger.info(f"Deleted collection {sanitized_collection_name} from Chroma")
             return True
-        except Exception as e:
-            _logger.error(f"Error deleting collection: {str(e)}")
+        except Exception as err:
+            _logger.error(f"Error deleting collection: {str(err)}")
             return False
 
     def chroma_list_collections(self, **kwargs):
