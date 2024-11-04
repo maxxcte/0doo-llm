@@ -43,7 +43,6 @@ class LLMResourceParser(models.Model):
         Parse the resource content using Mistral OCR.
         """
         mimetype = field["mimetype"]
-        field_name = field["field_name"]
         if not self.llm_model_id or not self.llm_provider_id:
             raise ValueError("Please select a model and provider.")
         value = field["rawcontent"]

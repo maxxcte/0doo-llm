@@ -51,13 +51,11 @@ class LLMResourceParser(models.Model):
                 fields = getattr(record, "llm_get_fields", self.get_fields)(record)
                 for field in fields:
                     # TODO: Should it be self._parse_field?
-                    # field contains dict with record_name, mimetype, rawcontent
                     success = resource._parse_field(record, field)
 
-                # Only update state if parsing was successful
                 if success:
                     resource.write({"state": "parsed"})
-                    self.env.cr.commit()  # Force commit the transaction
+                    self.env.cr.commit()
                     resource._post_message(
                         "Resource successfully parsed", "success"
                     )
@@ -76,8 +74,6 @@ class LLMResourceParser(models.Model):
                 resource._post_message(f"Error parsing resource: {str(e)}", "error")
             finally:
                 resource._unlock()
-
-        # Unlock all successfully processed resources
         resources._unlock()
 
 
@@ -86,13 +82,12 @@ class LLMResourceParser(models.Model):
             return getattr(self, f"parse_{self.parser}")
         if mimetype == "application/pdf":
             return self._parse_pdf
+        # TODO: markdown is not detected by odoo, previouly checking via filename `.md` was working
         elif mimetype.startswith("text/"):
             return self._parse_text
         elif mimetype.startswith("image/"):
             # For images, store a reference in the content
             return self._parse_image
-        elif mimetype == "text/markdown":
-            return self._parse_text
         else:
             return self._parse_default
 
