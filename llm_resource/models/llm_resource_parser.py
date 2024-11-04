@@ -189,11 +189,6 @@ class LLMResourceParser(models.Model):
         # Update resource content
         self.content = "\n".join(content)
 
-        # Post success message
-        self._post_message(
-            f"Resource parsed using JSON parser for {record._name}", "success"
-        )
-
         return True
 
     def _parse_pdf(self, record, field):
