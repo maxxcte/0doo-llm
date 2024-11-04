@@ -6,7 +6,7 @@ class IrAttachment(models.Model):
 
     def llm_get_fields(self, _):
         self.ensure_one()
-        is_markdown = self.file_name.lower().endswith(".md") and self.mimetype == "stream/octet-stream"
+        is_markdown = self.name.lower().endswith(".md") and self.mimetype == "stream/octet-stream"
         return [{
             "field_name": "datas",
             "mimetype": "text/markdown" if is_markdown else self.mimetype,

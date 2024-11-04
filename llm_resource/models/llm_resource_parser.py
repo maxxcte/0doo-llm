@@ -85,7 +85,7 @@ class LLMResourceParser(models.Model):
         if self.parser != "default":
             return getattr(self, f"parse_{self.parser}")
         if mimetype == "application/pdf":
-            return self.parse_pdf
+            return self._parse_pdf
         elif mimetype.startswith("text/"):
             return self._parse_text
         elif mimetype.startswith("image/"):

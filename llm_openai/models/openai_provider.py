@@ -285,6 +285,7 @@ class LLMProvider(models.Model):
 
     def openai_models(self):
         """List available OpenAI models"""
+        _logger.info("Listing available OpenAI models")
         models = self.client.models.list()
 
         for model in models.data:

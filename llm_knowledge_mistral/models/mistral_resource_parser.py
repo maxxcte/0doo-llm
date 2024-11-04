@@ -38,13 +38,15 @@ class LLMResourceParser(models.Model):
         )
         return parsers
 
-    def _parse_mistral_ocr(self, record, field_name, mimetype):
+    def parse_mistral_ocr(self, record, field):
         """
         Parse the resource content using Mistral OCR.
         """
+        mimetype = field["mimetype"]
+        field_name = field["field_name"]
         if not self.llm_model_id or not self.llm_provider_id:
             raise ValueError("Please select a model and provider.")
-        value = record[field_name]
+        value = field["rawcontent"]
         ocr_response = self.llm_provider_id.process_ocr(
             self.llm_model_id.name, value, mimetype
         )
