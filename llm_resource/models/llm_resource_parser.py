@@ -80,14 +80,25 @@ class LLMResourceParser(models.Model):
     def _get_parser(self, record, field_name, mimetype):
         if self.parser != "default":
             return getattr(self, f"parse_{self.parser}")
+        record_name = (
+            record.display_name
+            if hasattr(record, "display_name")
+            else f"{record._name} #{record.id}"
+        )
+        
+        is_markdown = ".md" in record_name.lower()
         if mimetype == "application/pdf":
             return self._parse_pdf
-        # TODO: markdown is not detected by odoo, previouly checking via filename `.md` was working
+        # special case, as odoo detects markdowns as application/octet-stream
+        elif mimetype == "application/octet-stream" and is_markdown:
+            return self._parse_text
         elif mimetype.startswith("text/"):
             return self._parse_text
         elif mimetype.startswith("image/"):
             # For images, store a reference in the content
             return self._parse_image
+        elif mimetype == "application/json":
+            return self.parse_json
         else:
             return self._parse_default
 
@@ -139,7 +150,7 @@ class LLMResourceParser(models.Model):
 
         return results
 
-    def _parse_json(self, record, field):
+    def parse_json(self, record, field):
         """
         JSON parser implementation - converts record data to JSON and then to markdown
         """
