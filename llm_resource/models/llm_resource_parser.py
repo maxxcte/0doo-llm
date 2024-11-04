@@ -257,11 +257,11 @@ class LLMResourceParser(models.Model):
 
         return True
 
-    def _parse_text(self, record, field):
+    def _parse_text(self, _, field):
         self.content = field["rawcontent"]
         return True
 
-    def _parse_image(self, record, field):
+    def _parse_image(self, record, _):
         image_url = f"/web/image/{record.id}"
         self.content = f"![{record.name}]({image_url})"
         return True
