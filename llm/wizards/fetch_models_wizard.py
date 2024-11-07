@@ -1,7 +1,8 @@
+import logging
+
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
-import logging
-from ..models.llm_model import MODEL_USE
+
 _logger = logging.getLogger(__name__)
 
 class ModelLine(models.TransientModel):
@@ -19,7 +20,7 @@ class ModelLine(models.TransientModel):
         required=True,
     )
     model_use = fields.Selection(
-        MODEL_USE,
+        selection="_get_available_model_usages",
         required=True,
         default="chat",
     )
@@ -43,6 +44,10 @@ class ModelLine(models.TransientModel):
             "Each model can only be listed once per import.",
         )
     ]
+
+    @api.model
+    def _get_available_model_usages(self):
+        return self.env["llm.model"]._get_available_model_usages()
 
 
 class FetchModelsWizard(models.TransientModel):
@@ -142,8 +147,8 @@ class FetchModelsWizard(models.TransientModel):
 
         return res
 
-    @staticmethod
-    def _determine_model_use(name, capabilities):
+    @api.model
+    def _determine_model_use(self, name, capabilities):
         """Helper to determine model use based on name and capabilities"""
         if (
             any(cap in capabilities for cap in ["embedding", "text-embedding"])
@@ -152,8 +157,6 @@ class FetchModelsWizard(models.TransientModel):
             return "embedding"
         elif any(cap in capabilities for cap in ["multimodal", "vision"]):
             return "multimodal"
-        elif any(cap in capabilities for cap in ["ocr"]):
-            return "ocr"
         return "chat"  # default
 
     def action_confirm(self):
