@@ -40,12 +40,12 @@ class LLMProvider(models.Model):
         """Get client instance using dispatch pattern"""
         return self._dispatch("get_client")
 
-    def _dispatch(self, method, *args, service_override=None, **kwargs):
+    def _dispatch(self, method, *args, **kwargs):
         """Dispatch method call to appropriate service implementation"""
-        if not self.service and not service_override:
+        if not self.service:
             raise UserError(_("Provider service not configured"))
 
-        service_method = f"{service_override or self.service}_{method}"
+        service_method = f"{self.service}_{method}"
         if not hasattr(self, service_method):
             raise NotImplementedError(
                 _("Method %s not implemented for service %s") % (method, self.service)
@@ -54,12 +54,12 @@ class LLMProvider(models.Model):
         return getattr(self, service_method)(*args, **kwargs)
     
     # TODO: maybe combine with with _dispatch?
-    def _dispatch_on_message(self, message_record, method, *args, service_override=None, **kwargs):
+    def _dispatch_on_message(self, message_record, method, *args, **kwargs):
         """Dispatch method call to appropriate service implementation"""
-        if not self.service and not service_override:
+        if not self.service:
             raise UserError(_("Provider service not configured"))
 
-        service_method = f"{service_override or self.service}_{method}"
+        service_method = f"{self.service}_{method}"
         if not hasattr(message_record, service_method):
             raise NotImplementedError(
                 _("Method %s not implemented for service %s") % (method, self.service)

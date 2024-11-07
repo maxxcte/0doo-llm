@@ -3,7 +3,8 @@ import logging
 
 from mistralai import Mistral
 
-from odoo import api, models
+from odoo import _, api, models
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -17,21 +18,33 @@ class LLMProvider(models.Model):
         return services + [("mistral", "Mistral AI")]
 
     def _dispatch(self, method, *args, **kwargs):
-        return super()._dispatch(
-            method,
-            *args,
-            service_override=("openai" if self.service == "mistral" else None),
-            **kwargs,
-        )
+        if not self.service:
+            raise UserError(_("Provider service not configured"))
+        if self.service == "mistral":
+            service_method = f"openai_{method}"
+            if not hasattr(self, service_method):
+                raise NotImplementedError(
+                    _("Method %s not implemented for service %s") % (method, self.service)
+                )
+
+            return getattr(self, service_method)(*args, **kwargs)
+        else:
+            return super()._dispatch(method, *args, **kwargs)
 
     def _dispatch_on_message(self, message_record, method, *args, **kwargs):
-        return super()._dispatch_on_message(
-            message_record,
-            method,
-            *args,
-            service_override=("openai" if self.service == "mistral" else None),
-            **kwargs,
-        )
+        """Dispatch method call to appropriate service implementation"""
+        if not self.service:
+            raise UserError(_("Provider service not configured"))
+        if self.service == "mistral":
+            service_method = f"openai_{method}"
+            if not hasattr(message_record, service_method):
+                raise NotImplementedError(
+                    _("Method %s not implemented for service %s") % (method, self.service)
+                )
+
+            return getattr(message_record, service_method)(*args, **kwargs)
+        else:
+            return super()._dispatch_on_message(message_record, method, *args, **kwargs)
 
     def openai_models(self):
         if self.service == "mistral":
@@ -62,7 +75,7 @@ class LLMProvider(models.Model):
                     },
                 }
         else:
-            return super().openai_models()
+            yield from super().openai_models()
 
     def _get_mistral_client(self):
         self.ensure_one()
