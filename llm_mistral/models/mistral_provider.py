@@ -1,6 +1,5 @@
 import base64
 import logging
-from urllib.parse import urlparse
 
 from mistralai import Mistral
 
@@ -35,9 +34,9 @@ class LLMProvider(models.Model):
         )
 
     def openai_models(self):
-        
-        models = self.client.models.list()
         if self.service == "mistral":
+            models = self.client.models.list()
+
             for model in models.data:
                 model_json_dump = model.model_dump()
                 capabilities = []
@@ -63,23 +62,7 @@ class LLMProvider(models.Model):
                     },
                 }
         else:
-            # TODO: Check why the super call is not working
-            for model in models.data:
-                # Map model capabilities based on model ID patterns
-                capabilities = ["chat"]  # default
-                if "text-embedding" in model.id:
-                    capabilities = ["embedding"]
-                elif "gpt-4-vision" in model.id:
-                    capabilities = ["chat", "multimodal"]
-
-                yield {
-                    "name": model.id,
-                    "details": {
-                        "id": model.id,
-                        "capabilities": capabilities,
-                        **model.model_dump(),
-                    },
-                }
+            return super().openai_models()
 
     def _get_mistral_client(self):
         self.ensure_one()
@@ -88,63 +71,37 @@ class LLMProvider(models.Model):
             api_key=self.api_key,
         )
 
-    def process_ocr(self, model_name, data, mimetype, **kwargs):
+    def process_ocr(self, model_name, file_name, file_path, mimetype, **kwargs):
         self.ensure_one()
 
-        if isinstance(data, bytes):
-            # Convert bytes to base64 string
-            data = base64.b64encode(data).decode('utf-8')
-        elif not isinstance(data, str):
-            raise TypeError(f"Input 'data' must be a string (URL, bytes or Base64) or bytes. Got: {type(data)}")
-
-        if not mimetype:
-            raise ValueError("Mimetype parameter is required.")
-
-        payload = {}
-        is_image_type = mimetype.startswith("image/")
-        data_is_url = is_url(data)
-        data_is_base64 = False # Check only if not a URL
-
-        if data_is_url:
-            _logger.info(f"Processing data as URL: {data} with mimetype: {mimetype}")
-            if is_image_type:
-                payload = {
+        mistral_client = self._get_mistral_client()
+        if mimetype.startswith("image/"):
+            image_content = self._encode_image(file_path)
+            if not image_content:
+                raise ValueError("Failed to encode image.")
+            return self._process_ocr(
+                model_name,
+                {
                     "type": "image_url",
-                    "image_url": data  # Pass the raw URL
-                }
-            else:
-                payload = {
-                    "type": "document_url",
-                    "document_url": data # Pass the raw URL
-                }
+                    "image_url": f"data:{mimetype};base64,{image_content}",
+                },
+            )
         else:
-            # If not a URL, check if it's a valid Base64 string
-            data_is_base64 = is_base64_string(data)
-            if data_is_base64:
-                _logger.info(f"Processing data as Base64 string (mimetype: {mimetype})")
-                # Construct the data URI
-                data_uri = f"data:{mimetype};base64,{data}"
-
-                if is_image_type:
-                    payload = {
-                        "type": "image_url",
-                        "image_url": data_uri
-                    }
-                else:
-                    payload = {
-                        "type": "document_url",
-                        "document_url": data_uri
-                    }
-            else:
-                # Input string is neither a valid URL nor valid Base64
-                 raise ValueError("Input 'data' string is neither a valid URL nor a valid Base64 string.")
-
-        # Ensure a payload was actually constructed
-        if not payload:
-             # This state should theoretically not be reached if the logic above is sound
-             raise ValueError("Internal Error: Failed to construct payload.")
-        # Call the actual method that interacts with the Mistral API
-        return self._process_ocr(model_name, payload, **kwargs)
+            uploaded_file = mistral_client.files.upload(
+                file={
+                    "file_name": file_name,
+                    "content": open(file_path, "rb"),
+                },
+                purpose="ocr",
+            )
+            signed_url = mistral_client.files.get_signed_url(file_id=uploaded_file.id)
+            return self._process_ocr(
+                model_name,
+                {
+                    "type": "document_url",
+                    "document_url": signed_url.url,
+                },
+            )
 
     def _process_ocr(self, model_name, payload):
         mistral_client = self._get_mistral_client()
@@ -152,45 +109,14 @@ class LLMProvider(models.Model):
             model=model_name, document=payload, include_image_base64=True
         )
 
-
-def is_base64_string(data_string):
-  """
-  Checks if the provided string appears to be a valid Base64 encoded string.
-
-  Note: This checks the format (characters, padding, length), but doesn't
-  guarantee the decoded data is meaningful.
-
-  Args:
-    data_string: The string to check.
-
-  Returns:
-    True if the string could be Base64, False otherwise.
-  """
-  if not isinstance(data_string, str):
-    return False
-  try:
-    string_bytes = data_string.encode('ascii')
-    base64.b64decode(string_bytes, validate=True)
-    return len(string_bytes) % 4 == 0
-  except Exception as e:
-    _logger.exception(f"Base64 check failed, error: {str(e)}")
-    return False
-
-def is_url(data_string):
-  """
-  Checks if the provided string is a valid HTTP or HTTPS URL.
-
-  Args:
-    data_string: The string to check.
-
-  Returns:
-    True if the string is a valid HTTP/HTTPS URL, False otherwise.
-  """
-  if not isinstance(data_string, str):
-      return False
-  try:
-      result = urlparse(data_string)
-      return all([result.scheme in ['http', 'https'], result.netloc])
-  except Exception as e:
-    _logger.exception(f"Url check failed, error: {str(e)}")
-    return False
+    def _encode_image(self, image_path):
+        """Encode the image to base64."""
+        try:
+            with open(image_path, "rb") as image_file:
+                return base64.b64encode(image_file.read()).decode("utf-8")
+        except FileNotFoundError:
+            _logger.error(f"The file {image_path} was not found.")
+            return None
+        except Exception as e:  # Added general exception handling
+            _logger.error(f"Error: {e}")
+            return None
