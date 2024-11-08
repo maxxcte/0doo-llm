@@ -8,7 +8,7 @@ class DocumentPage(models.Model):
 
     _inherit = "document.page"
 
-    def rag_parse(self, llm_resource):
+    def llm_get_fields(self, _):
         """
         Parse document.page content for RAG.
         This method is called by the LLM RAG module during document processing.
@@ -27,13 +27,4 @@ class DocumentPage(models.Model):
             for child in self.child_ids:
                 content_parts.append(f"- [{child.name}]({child.backend_url})")
 
-        # Set the content in the llm.resource
-        llm_resource.content = "\n\n".join(content_parts)
-
-        # Post success message
-        llm_resource._post_message(
-            f"Successfully parsed document page: {self.name}",
-            message_type="success",
-        )
-
-        return True
+        return [{"field_name": "content", "mimetype": "text/markdown", "rawcontent": "\n\n".join(content_parts)}]

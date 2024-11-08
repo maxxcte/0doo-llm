@@ -3,7 +3,6 @@ import logging
 import mimetypes
 import os
 import re
-from pathlib import Path
 
 from odoo import api, fields, models
 
@@ -39,38 +38,26 @@ class LLMResourceParser(models.Model):
         )
         return parsers
 
-    def _parse_mistral_ocr(self, file_name, file_path, mimetype):
+    def parse_mistral_ocr(self, record, field):
         """
         Parse the resource content using Mistral OCR.
         """
-        try:
-            if not self.llm_model_id or not self.llm_provider_id:
-                raise ValueError("Please select a model and provider.")
+        mimetype = field["mimetype"]
+        if not self.llm_model_id or not self.llm_provider_id:
+            raise ValueError("Please select a model and provider.")
+        value = field["rawcontent"]
+        ocr_response = self.llm_provider_id.process_ocr(
+            self.llm_model_id.name, value, mimetype
+        )
+        final_content = self._format_mistral_ocr_text(ocr_response, record.id)
+        self.content = final_content
 
-            ocr_response = self.llm_provider_id.process_ocr(
-                self.llm_model_id.name, file_name, file_path, mimetype
-            )
-            final_content = self._format_mistral_ocr_text(ocr_response, file_name)
-            self.content = final_content
+        return True
 
-            # Post success message - using stored page_count instead of accessing closed doc
-            self._post_message(
-                f"Successfully extracted content from {file_name} via Mistral OCR",
-                "success",
-            )
-
-            return True
-        except Exception as e:
-            self._post_message(
-                f"Error parsing resource: {str(e)}",
-                "error",
-            )
-            return False
-
-    def _format_mistral_ocr_text(self, ocr_response, file_name):
+    def _format_mistral_ocr_text(self, ocr_response, record_id):
         """Flatten a Mistral OCR response into one big text blob, with page headers."""
         parts = []
-        base_stem = Path(file_name).stem
+        base_stem = f"record_{record_id}"
 
         for page_idx, page in enumerate(ocr_response.pages, start=1):
             page_md = page.markdown.strip()
