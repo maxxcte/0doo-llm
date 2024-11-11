@@ -7,6 +7,7 @@ class IrAttachment(models.Model):
     def llm_get_fields(self, _):
         self.ensure_one()
         is_markdown = self.name.lower().endswith(".md") and self.mimetype == "stream/octet-stream"
+        # TODO: optimize this later for not loading raw data in memory
         return [{
             "field_name": "datas",
             "mimetype": "text/markdown" if is_markdown else self.mimetype,
