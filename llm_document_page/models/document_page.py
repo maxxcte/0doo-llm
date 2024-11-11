@@ -18,7 +18,7 @@ class DocumentPage(models.Model):
         """
         self.ensure_one()
 
-        # Start with the page title as heading
+        # Start with the page content
         content_parts = [md(self.content)]
 
         # If there are child pages, include their titles as references
