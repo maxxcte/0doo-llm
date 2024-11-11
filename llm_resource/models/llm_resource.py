@@ -81,6 +81,37 @@ class LLMResource(models.Model):
         store=True,
     )
     
+    # Selection fields for retrievers and parsers
+    retriever = fields.Selection(
+        selection="_get_available_retrievers",
+        string="Retriever",
+        default="default",
+        required=True,
+        help="Method used to retrieve resource content",
+        tracking=True,
+    )
+    parser = fields.Selection(
+        selection="_get_available_parsers",
+        string="Parser",
+        default="default",
+        required=True,
+        help="Method used to parse resource content",
+        tracking=True,
+    )
+
+    @api.model
+    def _get_available_retrievers(self):
+        """Get all available retriever methods"""
+        return [("default", "Default Retriever")]
+        
+    @api.model
+    def _get_available_parsers(self):
+        """Get all available parser methods"""
+        return [
+            ("default", "Default Parser"),
+            ("json", "JSON Parser"),
+        ]
+
     @api.depends("res_model", "res_id")
     def _compute_external_url(self):
         """Compute external URL from related record if available"""
@@ -142,7 +173,7 @@ class LLMResource(models.Model):
             message_type="comment",
         )
 
-    def _lock(self, state_filter=None, stale_lock_minutes=10):
+    def _lock(self, stale_lock_minutes=10):
         """Lock resources for processing and return the ones successfully locked"""
         now = fields.Datetime.now()
         stale_lock_threshold = now - timedelta(minutes=stale_lock_minutes)
@@ -154,8 +185,6 @@ class LLMResource(models.Model):
             ("lock_date", "=", False),
             ("lock_date", "<", stale_lock_threshold),
         ]
-        if state_filter:
-            domain.append(("state", "=", state_filter))
 
         unlocked_docs = self.env["llm.resource"].search(domain)
 
