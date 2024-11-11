@@ -264,7 +264,7 @@ class LLMStoreQdrant(models.Model):
             )
             return 0 # Indicate failure
 
-    def qdrant_search_vectors(self, collection_id, query_vector, limit=10, filter=None, **kwargs):
+    def qdrant_search_vectors(self, collection_id, query_vector, limit=10, filter=None, min_similarity=0.5, **kwargs):
         """Search for similar vectors in a Qdrant collection."""
         self.ensure_one()
         client = self._get_qdrant_client()
@@ -276,11 +276,10 @@ class LLMStoreQdrant(models.Model):
         qdrant_filter = self._convert_odoo_filter_to_qdrant(filter) if filter else None
 
         try:
-            score_threshold = kwargs.get('score_threshold')
-
-            search_result = client.search(
+            score_threshold = min_similarity
+            search_result = client.query_points(
                 collection_name=qdrant_collection_name,
-                query_vector=query_vector,
+                query=query_vector,
                 query_filter=qdrant_filter,
                 limit=limit,
                 score_threshold=score_threshold,
@@ -289,7 +288,7 @@ class LLMStoreQdrant(models.Model):
             )
 
             formatted_results = []
-            for hit in search_result:
+            for hit in search_result.points:
                 formatted_results.append({
                     'id': hit.id,
                     'score': hit.score,
