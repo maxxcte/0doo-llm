@@ -304,7 +304,7 @@ class LLMStoreQdrant(models.Model):
                 f"Error searching vectors in {qdrant_collection_name}: {err.status_code} - {err.content.decode()}"
             )
             return []
-
+    # TODO: not used right now, need testing
     def _convert_odoo_filter_to_qdrant(self, odoo_filter):
         """Convert Odoo-like filter format to Qdrant filter format (basic implementation)."""
         if not odoo_filter or not isinstance(odoo_filter, dict):
