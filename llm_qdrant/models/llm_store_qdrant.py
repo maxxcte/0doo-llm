@@ -1,5 +1,4 @@
 import logging
-import re
 
 from qdrant_client import QdrantClient
 from qdrant_client import models as qdrant_models
@@ -7,6 +6,8 @@ from qdrant_client.http.exceptions import UnexpectedResponse
 
 from odoo import _, api, models
 from odoo.exceptions import UserError
+
+from odoo.addons.llm_store.models.collection_name_utils import CollectionNameUtils
 
 _logger = logging.getLogger(__name__)
 
@@ -26,12 +27,7 @@ class LLMStoreQdrant(models.Model):
     # -------------------------------------------------------------------------
 
     def _get_qdrant_collection_name(self, collection_id):
-        """Generate a Qdrant-compatible collection name from Odoo ID."""
-        db_name = self.env.cr.dbname.lower().replace('_', '-')
-        db_name = re.sub(r'[^a-z0-9-]', '', db_name)
-        if not re.match("^[a-zA-Z0-9]", db_name):
-            db_name = "odoo-" + db_name
-        return f"odoo-{db_name}-coll-{collection_id}"
+        return CollectionNameUtils.get_collection_name(self.env.cr.dbname, collection_id)
 
     def _get_qdrant_client(self):
         """Get a Qdrant client for the current store configuration."""
