@@ -69,13 +69,7 @@ class LLMStoreQdrant(models.Model):
 
         qdrant_collection_name = self._get_qdrant_collection_name(collection_id)
 
-        try:
-            return client.collection_exists(collection_name=qdrant_collection_name)
-        except UnexpectedResponse as err:
-            if err.status_code == 404:
-                return False
-            _logger.error(f"Error checking existence of collection {qdrant_collection_name}: {err.status_code} - {err.content.decode()}")
-            raise UserError(_("Qdrant API Error checking collection existence: %s") % err.content.decode()) from err
+        return client.collection_exists(collection_name=qdrant_collection_name)
 
     
 
@@ -99,12 +93,7 @@ class LLMStoreQdrant(models.Model):
         qdrant_collection_name = self._get_qdrant_collection_name(collection_id)
 
         if self.qdrant_collection_exists(collection_id):
-            try:
-                coll_info = client.get_collection(collection_name=qdrant_collection_name)
-                if coll_info.vectors_config.params.size != dimension:
-                    _logger.warning(f"Existing Qdrant collection {qdrant_collection_name} has dimension {coll_info.vectors_config.params.size}, expected {dimension}. Potential mismatch.")
-            except Exception as e:
-                _logger.warning(f"Could not verify parameters of existing collection {qdrant_collection_name}: {e}")
+            # TODO: could check dimension mismatch here if needed
             return True
 
         try:
@@ -115,36 +104,27 @@ class LLMStoreQdrant(models.Model):
             )
             return True
         except UnexpectedResponse as err:
-            _logger.error(
+            _logger.exception(
                 f"Could not create collection {qdrant_collection_name}: {err.status_code} - {err.content.decode()}"
             )
-            raise UserError(
-                _("Qdrant API Error creating collection %s: %s")
-                % (qdrant_collection_name, err.content.decode())
-            ) from err
+            return False
 
     def qdrant_delete_collection(self, collection_id, **kwargs):
         """Delete a collection from Qdrant."""
         self.ensure_one()
         client = self._get_qdrant_client()
         if not client:
-            return False
+            raise UserError(_("Failed to connect to Qdrant server"))
 
         qdrant_collection_name = self._get_qdrant_collection_name(collection_id)
 
-        try:
-            if not self.qdrant_collection_exists(collection_id):
-                return True
-
-            result = client.delete_collection(collection_name=qdrant_collection_name, timeout=30)
-            if result is not True:
-                 _logger.warning(f"Qdrant delete_collection for {qdrant_collection_name} returned {result}. Assuming success if no exception.")
+        if not self.qdrant_collection_exists(collection_id):
             return True
-        except UnexpectedResponse as err:
-            _logger.error(
-                f"Error deleting collection {qdrant_collection_name}: {err.status_code} - {err.content.decode()}"
-            )
-            return False
+
+        result = client.delete_collection(collection_name=qdrant_collection_name, timeout=30)
+        if result is not True:
+                _logger.warning(f"Qdrant delete_collection for {qdrant_collection_name} returned {result}. Assuming success if no exception.")
+        return True
 
     def qdrant_list_collections(self, **kwargs):
         """List all collections managed by this Qdrant instance."""
@@ -187,25 +167,15 @@ class LLMStoreQdrant(models.Model):
                 payload=clean_payload
             ))
 
-        try:
-            response = client.upsert(
-                collection_name=qdrant_collection_name,
-                points=points,
-                wait=True
-            )
-            if response.status != qdrant_models.UpdateStatus.COMPLETED:
-                 _logger.warning(f"Qdrant upsert status for collection {qdrant_collection_name}: {response.status}")
-            return ids
-        except UnexpectedResponse as err:
-             _logger.error(
-                f"Error upserting vectors in {qdrant_collection_name}: {err.status_code} - {err.content.decode()}"
-            )
-             if err.status_code == 404:
-                 raise UserError(_("Collection %s not found in Qdrant. Cannot insert vectors.") % qdrant_collection_name) from err
-             raise UserError(
-                _("Qdrant API Error upserting vectors in %s: %s")
-                % (qdrant_collection_name, err.content.decode())
-            ) from err
+        response = client.upsert(
+            collection_name=qdrant_collection_name,
+            points=points,
+            wait=True
+        )
+        if response.status != qdrant_models.UpdateStatus.COMPLETED:
+                _logger.warning(f"Qdrant upsert status for collection {qdrant_collection_name}: {response.status}")
+        return ids
+        
 
     def _sanitize_payload(self, payload):
         """Ensure payload dictionary is JSON serializable for Qdrant."""
@@ -231,10 +201,10 @@ class LLMStoreQdrant(models.Model):
         self.ensure_one()
         client = self._get_qdrant_client()
         if not client:
-            return 0
+            return False
 
         if not ids:
-            return 0
+            return False
 
         qdrant_collection_name = self._get_qdrant_collection_name(collection_id)
 
@@ -242,27 +212,18 @@ class LLMStoreQdrant(models.Model):
         if len(point_ids) != len(ids):
              _logger.warning("Some provided IDs for deletion were invalid (non-integer or negative), skipping them.")
         if not point_ids:
-            return 0
+            return False
 
-        try:
-            response = client.delete(
-                collection_name=qdrant_collection_name,
-                points_selector=qdrant_models.PointIdsList(points=point_ids),
-                wait=True
-            )
-            if response.status != qdrant_models.UpdateStatus.COMPLETED:
-                _logger.warning(f"Qdrant delete status for collection {qdrant_collection_name}: {response.status}")
-                return 0
-            else:
-                return len(point_ids)
-        except UnexpectedResponse as err:
-            if err.status_code == 404:
-                 _logger.warning(f"Collection {qdrant_collection_name} not found during vector deletion.")
-                 return 0 # Vectors don't exist if collection doesn't
-            _logger.error(
-                f"Error deleting vectors from {qdrant_collection_name}: {err.status_code} - {err.content.decode()}"
-            )
-            return 0 # Indicate failure
+        response = client.delete(
+            collection_name=qdrant_collection_name,
+            points_selector=qdrant_models.PointIdsList(points=point_ids),
+            wait=True
+        )
+        if response.status != qdrant_models.UpdateStatus.COMPLETED:
+            _logger.warning(f"Qdrant delete status for collection {qdrant_collection_name}: {response.status}")
+            return False
+        else:
+            return True
 
     def qdrant_search_vectors(self, collection_id, query_vector, limit=10, filter=None, min_similarity=0.5, **kwargs):
         """Search for similar vectors in a Qdrant collection."""
@@ -272,38 +233,28 @@ class LLMStoreQdrant(models.Model):
             return []
 
         qdrant_collection_name = self._get_qdrant_collection_name(collection_id)
-
         qdrant_filter = self._convert_odoo_filter_to_qdrant(filter) if filter else None
+        score_threshold = min_similarity
 
-        try:
-            score_threshold = min_similarity
-            search_result = client.query_points(
-                collection_name=qdrant_collection_name,
-                query=query_vector,
-                query_filter=qdrant_filter,
-                limit=limit,
-                score_threshold=score_threshold,
-                with_payload=True,
-                with_vectors=False,
-            )
+        search_result = client.query_points(
+            collection_name=qdrant_collection_name,
+            query=query_vector,
+            query_filter=qdrant_filter,
+            limit=limit,
+            score_threshold=score_threshold,
+            with_payload=True,
+            with_vectors=False,
+        )
 
-            formatted_results = []
-            for hit in search_result.points:
-                formatted_results.append({
-                    'id': hit.id,
-                    'score': hit.score,
-                    'metadata': hit.payload if hit.payload else {}
-                })
-            return formatted_results
+        formatted_results = []
+        for hit in search_result.points:
+            formatted_results.append({
+                'id': hit.id,
+                'score': hit.score,
+                'metadata': hit.payload if hit.payload else {}
+            })
+        return formatted_results
 
-        except UnexpectedResponse as err:
-            if err.status_code == 404:
-                 _logger.warning(f"Collection {qdrant_collection_name} not found during search.")
-                 return []
-            _logger.error(
-                f"Error searching vectors in {qdrant_collection_name}: {err.status_code} - {err.content.decode()}"
-            )
-            return []
     # TODO: not used right now, need testing
     def _convert_odoo_filter_to_qdrant(self, odoo_filter):
         """Convert Odoo-like filter format to Qdrant filter format (basic implementation)."""
@@ -367,7 +318,8 @@ class LLMStoreQdrant(models.Model):
     # -------------------------------------------------------------------------
     # Index Management (Payload Indexing)
     # -------------------------------------------------------------------------
-
+    # TODO: qdrant does not have automatic indexing, if needed in future, we could use this
+    # to apply indexing on specific fields
     def qdrant_create_index(self, collection_id, index_type=None, **kwargs):
         """Create a payload index on a specific field in a Qdrant collection."""
         self.ensure_one()
