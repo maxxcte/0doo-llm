@@ -27,7 +27,9 @@ class LLMStoreQdrant(models.Model):
     # -------------------------------------------------------------------------
 
     def _get_qdrant_collection_name(self, collection_id):
-        return CollectionNameUtils.get_collection_name(self.env.cr.dbname, collection_id)
+        return CollectionNameUtils.get_collection_name(
+            self.env.cr.dbname, collection_id
+        )
 
     def _get_qdrant_client(self):
         """Get a Qdrant client for the current store configuration."""
@@ -37,20 +39,24 @@ class LLMStoreQdrant(models.Model):
 
         kwargs = {}
         if self.connection_uri:
-            kwargs['url'] = self.connection_uri
+            kwargs["url"] = self.connection_uri
         else:
-            kwargs['host'] = 'localhost'
-            kwargs['port'] = 6333
+            kwargs["host"] = "localhost"
+            kwargs["port"] = 6333
 
         if self.api_key:
-            kwargs['api_key'] = self.api_key
+            kwargs["api_key"] = self.api_key
 
         try:
             client = QdrantClient(**kwargs)
             return client
         except Exception as err:
-            _logger.error(f"Failed to connect to Qdrant server at {kwargs.get('url') or kwargs.get('host')}: {str(err)}")
-            raise UserError(_(f"Failed to connect to Qdrant server: {str(err)}")) from err
+            _logger.error(
+                f"Failed to connect to Qdrant server at {kwargs.get('url') or kwargs.get('host')}: {str(err)}"
+            )
+            raise UserError(
+                _(f"Failed to connect to Qdrant server: {str(err)}")
+            ) from err
 
     # -------------------------------------------------------------------------
     # Collection Management
@@ -67,21 +73,23 @@ class LLMStoreQdrant(models.Model):
 
         return client.collection_exists(collection_name=qdrant_collection_name)
 
-    
-
-    def qdrant_create_collection(self, collection_id, dimension=None, metadata=None, **kwargs):
+    def qdrant_create_collection(
+        self, collection_id, dimension=None, metadata=None, **kwargs
+    ):
         """Create a collection in Qdrant."""
         self.ensure_one()
         client = self._get_qdrant_client()
         if not client:
             raise UserError(_("Failed to connect to Qdrant server"))
 
-        collection_record = self.env['llm.knowledge.collection'].browse(collection_id)
+        collection_record = self.env["llm.knowledge.collection"].browse(collection_id)
         if collection_record.exists() and collection_record.dimension:
             dimension = collection_record.dimension
 
         if not dimension and collection_record.embedding_model_id:
-            embedding_model = self.env['llm.model'].browse(collection_record.embedding_model_id.id)
+            embedding_model = self.env["llm.model"].browse(
+                collection_record.embedding_model_id.id
+            )
             if embedding_model.exists():
                 # Generate a sample embedding to determine dimensions
                 sample_embedding = embedding_model.embedding("")[0]
@@ -93,7 +101,9 @@ class LLMStoreQdrant(models.Model):
             return True
 
         try:
-            vector_params = qdrant_models.VectorParams(size=dimension, distance=qdrant_models.Distance.COSINE)
+            vector_params = qdrant_models.VectorParams(
+                size=dimension, distance=qdrant_models.Distance.COSINE
+            )
             client.create_collection(
                 collection_name=qdrant_collection_name,
                 vectors_config=vector_params,
@@ -117,9 +127,13 @@ class LLMStoreQdrant(models.Model):
         if not self.qdrant_collection_exists(collection_id):
             return True
 
-        result = client.delete_collection(collection_name=qdrant_collection_name, timeout=30)
+        result = client.delete_collection(
+            collection_name=qdrant_collection_name, timeout=30
+        )
         if result is not True:
-                _logger.warning(f"Qdrant delete_collection for {qdrant_collection_name} returned {result}. Assuming success if no exception.")
+            _logger.warning(
+                f"Qdrant delete_collection for {qdrant_collection_name} returned {result}. Assuming success if no exception."
+            )
         return True
 
     def qdrant_list_collections(self, **kwargs):
@@ -136,7 +150,9 @@ class LLMStoreQdrant(models.Model):
     # Vector Management
     # -------------------------------------------------------------------------
 
-    def qdrant_insert_vectors(self, collection_id, vectors, metadata=None, ids=None, **kwargs):
+    def qdrant_insert_vectors(
+        self, collection_id, vectors, metadata=None, ids=None, **kwargs
+    ):
         """Insert or update vectors in a Qdrant collection."""
         self.ensure_one()
         client = self._get_qdrant_client()
@@ -146,32 +162,38 @@ class LLMStoreQdrant(models.Model):
         qdrant_collection_name = self._get_qdrant_collection_name(collection_id)
 
         if not ids or len(ids) != len(vectors):
-            raise UserError(_("Must provide unique IDs matching the number of vectors."))
+            raise UserError(
+                _("Must provide unique IDs matching the number of vectors.")
+            )
 
         points = []
         for i, vec_id in enumerate(ids):
             point_id = int(vec_id)
             if point_id < 0:
-                raise UserError(_("Qdrant vector IDs must be non-negative integers or UUIDs. Received: %s") % vec_id)
+                raise UserError(
+                    _(
+                        "Qdrant vector IDs must be non-negative integers or UUIDs. Received: %s"
+                    )
+                    % vec_id
+                )
 
             payload = metadata[i] if metadata and i < len(metadata) else {}
             clean_payload = self._sanitize_payload(payload)
 
-            points.append(qdrant_models.PointStruct(
-                id=point_id,
-                vector=vectors[i],
-                payload=clean_payload
-            ))
+            points.append(
+                qdrant_models.PointStruct(
+                    id=point_id, vector=vectors[i], payload=clean_payload
+                )
+            )
 
         response = client.upsert(
-            collection_name=qdrant_collection_name,
-            points=points,
-            wait=True
+            collection_name=qdrant_collection_name, points=points, wait=True
         )
         if response.status != qdrant_models.UpdateStatus.COMPLETED:
-                _logger.warning(f"Qdrant upsert status for collection {qdrant_collection_name}: {response.status}")
+            _logger.warning(
+                f"Qdrant upsert status for collection {qdrant_collection_name}: {response.status}"
+            )
         return ids
-        
 
     def _sanitize_payload(self, payload):
         """Ensure payload dictionary is JSON serializable for Qdrant."""
@@ -181,16 +203,20 @@ class LLMStoreQdrant(models.Model):
         for k, v in payload.items():
             if isinstance(v, (str, int, float, bool, list)) or v is None:
                 if isinstance(v, list):
-                    if all(isinstance(item, (str, int, float, bool)) or item is None for item in v):
+                    if all(
+                        isinstance(item, (str, int, float, bool)) or item is None
+                        for item in v
+                    ):
                         clean_payload[k] = v
                     else:
-                         clean_payload[k] = str(v) # Convert list with complex items to string
+                        clean_payload[k] = str(
+                            v
+                        )  # Convert list with complex items to string
                 else:
-                     clean_payload[k] = v
+                    clean_payload[k] = v
             else:
-                 clean_payload[k] = str(v)
+                clean_payload[k] = str(v)
         return clean_payload
-
 
     def qdrant_delete_vectors(self, collection_id, ids, **kwargs):
         """Delete vectors from a Qdrant collection."""
@@ -206,22 +232,34 @@ class LLMStoreQdrant(models.Model):
 
         point_ids = [int(vid) for vid in ids if str(vid).isdigit() and int(vid) >= 0]
         if len(point_ids) != len(ids):
-             _logger.warning("Some provided IDs for deletion were invalid (non-integer or negative), skipping them.")
+            _logger.warning(
+                "Some provided IDs for deletion were invalid (non-integer or negative), skipping them."
+            )
         if not point_ids:
             return False
 
         response = client.delete(
             collection_name=qdrant_collection_name,
             points_selector=qdrant_models.PointIdsList(points=point_ids),
-            wait=True
+            wait=True,
         )
         if response.status != qdrant_models.UpdateStatus.COMPLETED:
-            _logger.warning(f"Qdrant delete status for collection {qdrant_collection_name}: {response.status}")
+            _logger.warning(
+                f"Qdrant delete status for collection {qdrant_collection_name}: {response.status}"
+            )
             return False
         else:
             return True
 
-    def qdrant_search_vectors(self, collection_id, query_vector, limit=10, filter=None, min_similarity=0.5, **kwargs):
+    def qdrant_search_vectors(
+        self,
+        collection_id,
+        query_vector,
+        limit=10,
+        filter=None,
+        min_similarity=0.5,
+        **kwargs,
+    ):
         """Search for similar vectors in a Qdrant collection."""
         self.ensure_one()
         client = self._get_qdrant_client()
@@ -244,11 +282,13 @@ class LLMStoreQdrant(models.Model):
 
         formatted_results = []
         for hit in search_result.points:
-            formatted_results.append({
-                'id': hit.id,
-                'score': hit.score,
-                'metadata': hit.payload if hit.payload else {}
-            })
+            formatted_results.append(
+                {
+                    "id": hit.id,
+                    "score": hit.score,
+                    "metadata": hit.payload if hit.payload else {},
+                }
+            )
         return formatted_results
 
     # TODO: not used right now, need testing
@@ -261,47 +301,86 @@ class LLMStoreQdrant(models.Model):
         must_not_conditions = []
 
         for key, value in odoo_filter.items():
-            if key == '$and' and isinstance(value, list):
+            if key == "$and" and isinstance(value, list):
                 for condition in value:
                     sub_filter = self._convert_odoo_filter_to_qdrant(condition)
                     if sub_filter:
-                         if sub_filter.must:
-                             must_conditions.extend(sub_filter.must)
-                         if sub_filter.must_not:
-                             must_not_conditions.extend(sub_filter.must_not)
-            elif key == '$or' and isinstance(value, list):
-                 _logger.warning("'$or' operator in filters is not fully supported yet for Qdrant.")
+                        if sub_filter.must:
+                            must_conditions.extend(sub_filter.must)
+                        if sub_filter.must_not:
+                            must_not_conditions.extend(sub_filter.must_not)
+            elif key == "$or" and isinstance(value, list):
+                _logger.warning(
+                    "'$or' operator in filters is not fully supported yet for Qdrant."
+                )
             elif isinstance(value, dict):
                 field_key = f"payload.{key}"
                 for op, op_val in value.items():
-                    if op == '$eq':
-                         must_conditions.append(qdrant_models.FieldCondition(key=field_key, match=qdrant_models.MatchValue(value=op_val)))
-                    elif op == '$ne':
-                         must_not_conditions.append(qdrant_models.FieldCondition(key=field_key, match=qdrant_models.MatchValue(value=op_val)))
-                    elif op == '$gt':
-                         must_conditions.append(qdrant_models.FieldCondition(key=field_key, range=qdrant_models.Range(gt=op_val)))
-                    elif op == '$gte':
-                         must_conditions.append(qdrant_models.FieldCondition(key=field_key, range=qdrant_models.Range(gte=op_val)))
-                    elif op == '$lt':
-                         must_conditions.append(qdrant_models.FieldCondition(key=field_key, range=qdrant_models.Range(lt=op_val)))
-                    elif op == '$lte':
-                         must_conditions.append(qdrant_models.FieldCondition(key=field_key, range=qdrant_models.Range(lte=op_val)))
-                    elif op == '$in' and isinstance(op_val, list):
-                         must_conditions.append(qdrant_models.FieldCondition(key=field_key, match=qdrant_models.MatchAny(any=op_val)))
-                    elif op == '$nin' and isinstance(op_val, list):
-                         must_not_conditions.append(qdrant_models.FieldCondition(key=field_key, match=qdrant_models.MatchAny(any=op_val)))
+                    if op == "$eq":
+                        must_conditions.append(
+                            qdrant_models.FieldCondition(
+                                key=field_key,
+                                match=qdrant_models.MatchValue(value=op_val),
+                            )
+                        )
+                    elif op == "$ne":
+                        must_not_conditions.append(
+                            qdrant_models.FieldCondition(
+                                key=field_key,
+                                match=qdrant_models.MatchValue(value=op_val),
+                            )
+                        )
+                    elif op == "$gt":
+                        must_conditions.append(
+                            qdrant_models.FieldCondition(
+                                key=field_key, range=qdrant_models.Range(gt=op_val)
+                            )
+                        )
+                    elif op == "$gte":
+                        must_conditions.append(
+                            qdrant_models.FieldCondition(
+                                key=field_key, range=qdrant_models.Range(gte=op_val)
+                            )
+                        )
+                    elif op == "$lt":
+                        must_conditions.append(
+                            qdrant_models.FieldCondition(
+                                key=field_key, range=qdrant_models.Range(lt=op_val)
+                            )
+                        )
+                    elif op == "$lte":
+                        must_conditions.append(
+                            qdrant_models.FieldCondition(
+                                key=field_key, range=qdrant_models.Range(lte=op_val)
+                            )
+                        )
+                    elif op == "$in" and isinstance(op_val, list):
+                        must_conditions.append(
+                            qdrant_models.FieldCondition(
+                                key=field_key, match=qdrant_models.MatchAny(any=op_val)
+                            )
+                        )
+                    elif op == "$nin" and isinstance(op_val, list):
+                        must_not_conditions.append(
+                            qdrant_models.FieldCondition(
+                                key=field_key, match=qdrant_models.MatchAny(any=op_val)
+                            )
+                        )
                     else:
-                         _logger.warning(f"Unsupported filter operator '{op}' for key '{key}'")
+                        _logger.warning(
+                            f"Unsupported filter operator '{op}' for key '{key}'"
+                        )
             elif isinstance(value, (str, int, float, bool)):
                 field_key = f"payload.{key}"
                 must_conditions.append(
                     qdrant_models.FieldCondition(
-                        key=field_key,
-                        match=qdrant_models.MatchValue(value=value)
+                        key=field_key, match=qdrant_models.MatchValue(value=value)
                     )
                 )
             else:
-                 _logger.warning(f"Unsupported filter value type for key '{key}': {type(value)}")
+                _logger.warning(
+                    f"Unsupported filter value type for key '{key}': {type(value)}"
+                )
 
         if not must_conditions and not must_not_conditions:
             return None
@@ -325,40 +404,44 @@ class LLMStoreQdrant(models.Model):
 
         qdrant_collection_name = self._get_qdrant_collection_name(collection_id)
 
-        field_name = kwargs.get('field_name')
-        field_schema = kwargs.get('field_schema')
+        field_name = kwargs.get("field_name")
+        field_schema = kwargs.get("field_schema")
 
         if not field_name or not field_schema:
             return True
 
         schema_map = {
-            'keyword': qdrant_models.PayloadSchemaType.KEYWORD,
-            'integer': qdrant_models.PayloadSchemaType.INTEGER,
-            'float': qdrant_models.PayloadSchemaType.FLOAT,
-            'geo': qdrant_models.PayloadSchemaType.GEO,
-            'text': qdrant_models.PayloadSchemaType.TEXT,
+            "keyword": qdrant_models.PayloadSchemaType.KEYWORD,
+            "integer": qdrant_models.PayloadSchemaType.INTEGER,
+            "float": qdrant_models.PayloadSchemaType.FLOAT,
+            "geo": qdrant_models.PayloadSchemaType.GEO,
+            "text": qdrant_models.PayloadSchemaType.TEXT,
         }
         qdrant_schema_type = schema_map.get(field_schema.lower())
 
         if not qdrant_schema_type:
-            raise UserError(_("Unsupported field_schema '%s'. Must be one of: %s") %
-                            (field_schema, list(schema_map.keys())))
+            raise UserError(
+                _("Unsupported field_schema '%s'. Must be one of: %s")
+                % (field_schema, list(schema_map.keys()))
+            )
 
         try:
             response = client.create_payload_index(
                 collection_name=qdrant_collection_name,
                 field_name=field_name,
                 field_schema=qdrant_schema_type,
-                wait=True
+                wait=True,
             )
             if response.status != qdrant_models.UpdateStatus.COMPLETED:
-                 _logger.warning(f"Qdrant create_payload_index status for {qdrant_collection_name}.{field_name}: {response.status}")
-                 return False
+                _logger.warning(
+                    f"Qdrant create_payload_index status for {qdrant_collection_name}.{field_name}: {response.status}"
+                )
+                return False
             return True
         except UnexpectedResponse as err:
-             _logger.error(
+            _logger.error(
                 f"Error creating payload index on {qdrant_collection_name}.{field_name}: {err.status_code} - {err.content.decode()}"
             )
-             if "already exists" in err.content.decode().lower():
-                 return True # Index already exists is not a failure
-             return False
+            if "already exists" in err.content.decode().lower():
+                return True  # Index already exists is not a failure
+            return False
