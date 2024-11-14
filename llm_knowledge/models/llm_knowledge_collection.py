@@ -528,7 +528,7 @@ class LLMKnowledgeCollection(models.Model):
                     # TODO: should it belong here?
                     # Create chunk embedding records
                     embedding_vals_list = []
-                    for i, (chunk_id, vector) in enumerate(
+                    for _i, (chunk_id, vector) in enumerate(
                         zip(chunk_ids, embeddings)
                     ):
                         embedding_vals_list.append(

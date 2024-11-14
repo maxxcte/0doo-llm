@@ -185,7 +185,7 @@ class MCPBusBridgeThread(threading.Thread):
                 _logger.warning(f"Error terminating process: {e}")
                 try:
                     self.process.kill()
-                except:
+                except Exception as _e:
                     pass
 
     def _should_forward_notification(self, notification):
