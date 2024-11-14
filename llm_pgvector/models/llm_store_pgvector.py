@@ -26,7 +26,7 @@ class LLMStorePgVector(models.Model):
         ],
         string="Index Method",
         default="ivfflat",
-        help="The index method to use for vector search"
+        help="The index method to use for vector search",
     )
 
     # -------------------------------------------------------------------------
@@ -41,13 +41,15 @@ class LLMStorePgVector(models.Model):
         # and not creating separate collections
         return True
 
-    def pgvector_create_collection(self, collection_id,dimension=None, metadata=None, **kwargs):
+    def pgvector_create_collection(
+        self, collection_id, dimension=None, metadata=None, **kwargs
+    ):
         """Create a collection - for pgvector, this is a no-op"""
         self.ensure_one()
 
         # For pgvector, creating a collection is essentially a no-op
         # since we're using the existing Odoo tables
-        collection = self.env['llm.knowledge.collection'].browse(collection_id)
+        collection = self.env["llm.knowledge.collection"].browse(collection_id)
         if not collection.exists():
             _logger.warning(f"Collection {collection_id} does not exist")
             return False
@@ -63,12 +65,14 @@ class LLMStorePgVector(models.Model):
         self.ensure_one()
 
         # For pgvector, deleting a collection just means dropping its indexes
-        collection = self.env['llm.knowledge.collection'].browse(collection_id)
+        collection = self.env["llm.knowledge.collection"].browse(collection_id)
         if not collection.exists():
             return True
 
         # Get embedding model ID
-        embedding_model_id = collection.embedding_model_id.id if collection.embedding_model_id else False
+        embedding_model_id = (
+            collection.embedding_model_id.id if collection.embedding_model_id else False
+        )
         if not embedding_model_id:
             return True  # Nothing to delete if no embedding model
 
@@ -76,27 +80,33 @@ class LLMStorePgVector(models.Model):
         self._drop_vector_index(embedding_model_id)
 
         # Find chunks that belong to this collection
-        chunks = self.env['llm.knowledge.chunk'].search([
-            ('collection_ids', 'in', [collection_id])
-        ])
+        chunks = self.env["llm.knowledge.chunk"].search(
+            [("collection_ids", "in", [collection_id])]
+        )
 
         # Identify chunks that don't belong to other collections with the same embedding model
         chunks_to_delete = []
         for chunk in chunks:
             other_collections = chunk.collection_ids - collection
-            if not any(c.embedding_model_id.id == embedding_model_id for c in other_collections):
+            if not any(
+                c.embedding_model_id.id == embedding_model_id for c in other_collections
+            ):
                 chunks_to_delete.append(chunk.id)
 
         # Delete embeddings in a batch
         if chunks_to_delete:
-            self.env['llm.knowledge.chunk.embedding'].search([
-                ('chunk_id', 'in', chunks_to_delete),
-                ('embedding_model_id', '=', embedding_model_id)
-            ]).unlink()
+            self.env["llm.knowledge.chunk.embedding"].search(
+                [
+                    ("chunk_id", "in", chunks_to_delete),
+                    ("embedding_model_id", "=", embedding_model_id),
+                ]
+            ).unlink()
 
         return True
 
-    def pgvector_insert_vectors(self, collection_id, vectors, metadata=None, ids=None, **kwargs):
+    def pgvector_insert_vectors(
+        self, collection_id, vectors, metadata=None, ids=None, **kwargs
+    ):
         """Insert vectors into collection using batch operations"""
         self.ensure_one()
 
@@ -105,7 +115,7 @@ class LLMStorePgVector(models.Model):
             raise UserError(_("Must provide chunk IDs matching the vectors"))
 
         # Get the collection
-        collection = self.env['llm.knowledge.collection'].browse(collection_id)
+        collection = self.env["llm.knowledge.collection"].browse(collection_id)
         if not collection.exists() or not collection.embedding_model_id:
             return False
 
@@ -115,23 +125,27 @@ class LLMStorePgVector(models.Model):
         # First, delete any existing embeddings for these chunks with this embedding model
         # This handles the update case by replacing existing embeddings
         if ids:
-            self.env['llm.knowledge.chunk.embedding'].search([
-                ('chunk_id', 'in', ids),
-                ('embedding_model_id', '=', embedding_model_id)
-            ]).unlink()
+            self.env["llm.knowledge.chunk.embedding"].search(
+                [
+                    ("chunk_id", "in", ids),
+                    ("embedding_model_id", "=", embedding_model_id),
+                ]
+            ).unlink()
 
         # Prepare values for batch creation
         vals_list = []
         for chunk_id, vector in zip(ids, vectors):
-            vals_list.append({
-                'chunk_id': chunk_id,
-                'embedding_model_id': embedding_model_id,
-                'embedding': vector,
-            })
+            vals_list.append(
+                {
+                    "chunk_id": chunk_id,
+                    "embedding_model_id": embedding_model_id,
+                    "embedding": vector,
+                }
+            )
 
         # Batch create all embeddings in a single operation
         if vals_list:
-            self.env['llm.knowledge.chunk.embedding'].create(vals_list)
+            self.env["llm.knowledge.chunk.embedding"].create(vals_list)
 
         # Make sure the index exists
         self._create_vector_index(embedding_model_id)
@@ -141,38 +155,44 @@ class LLMStorePgVector(models.Model):
         self.ensure_one()
 
         # Get the collection to determine the embedding model
-        collection = self.env['llm.knowledge.collection'].browse(collection_id)
+        collection = self.env["llm.knowledge.collection"].browse(collection_id)
         if not collection.exists() or not collection.embedding_model_id:
             return False
 
         embedding_model_id = collection.embedding_model_id.id
-        chunks = self.env['llm.knowledge.chunk'].browse(ids)
+        chunks = self.env["llm.knowledge.chunk"].browse(ids)
 
         # Get all chunks that don't belong to any other collection with the same embedding model
         chunks_to_delete = []
         for chunk in chunks:
             # Find if this chunk belongs to other collections with the same embedding model
             other_collections = chunk.collection_ids - collection
-            if not any(c.embedding_model_id.id == embedding_model_id for c in other_collections):
+            if not any(
+                c.embedding_model_id.id == embedding_model_id for c in other_collections
+            ):
                 chunks_to_delete.append(chunk.id)
 
         # Delete embeddings in a batch if there are any to delete
         if chunks_to_delete:
-            self.env['llm.knowledge.chunk.embedding'].search([
-                ('chunk_id', 'in', chunks_to_delete),
-                ('embedding_model_id', '=', embedding_model_id)
-            ]).unlink()
+            self.env["llm.knowledge.chunk.embedding"].search(
+                [
+                    ("chunk_id", "in", chunks_to_delete),
+                    ("embedding_model_id", "=", embedding_model_id),
+                ]
+            ).unlink()
 
         return True
 
-    def pgvector_search_vectors(self,
+    def pgvector_search_vectors(
+        self,
         collection_id,
         query_vector,
         limit=10,
         filter=None,
         offset=0,
         query_operator="<=>",
-        min_similarity=0.5):
+        min_similarity=0.5,
+    ):
         """
         Search for similar vectors in the collection
 
@@ -181,7 +201,7 @@ class LLMStorePgVector(models.Model):
         """
         self.ensure_one()
 
-        collection = self.env['llm.knowledge.collection'].browse(collection_id)
+        collection = self.env["llm.knowledge.collection"].browse(collection_id)
         if not collection.exists() or not collection.embedding_model_id:
             return []
 
@@ -192,7 +212,9 @@ class LLMStorePgVector(models.Model):
         vector_str = Vector._to_db(query_vector)
 
         # Build the query with proper index hints
-        index_name = self._get_index_name('llm_knowledge_chunk_embedding', embedding_model_id)
+        index_name = self._get_index_name(
+            "llm_knowledge_chunk_embedding", embedding_model_id
+        )
         index_hint = f"/*+ IndexScan(llm_knowledge_chunk_embedding {index_name}) */"
 
         # Execute the query to find similar vectors
@@ -215,7 +237,9 @@ class LLMStorePgVector(models.Model):
             OFFSET %s
         """
 
-        self.env.cr.execute(query, (collection_id, embedding_model_id, min_similarity, limit, offset))
+        self.env.cr.execute(
+            query, (collection_id, embedding_model_id, min_similarity, limit, offset)
+        )
         results = self.env.cr.fetchall()
 
         # Format results with chunk IDs as the main identifiers
@@ -224,11 +248,13 @@ class LLMStorePgVector(models.Model):
 
         for chunk_id, score in results:
             chunk_ids.append(chunk_id)
-            formatted_results.append({
-                'id': chunk_id,
-                'score': score,
-                'metadata': {}  # We don't store additional metadata currently
-            })
+            formatted_results.append(
+                {
+                    "id": chunk_id,
+                    "score": score,
+                    "metadata": {},  # We don't store additional metadata currently
+                }
+            )
 
         return formatted_results
 
@@ -246,7 +272,7 @@ class LLMStorePgVector(models.Model):
 
         # Get the embedding model to determine dimensions if not provided
         if not dimensions and embedding_model_id:
-            embedding_model = self.env['llm.model'].browse(embedding_model_id)
+            embedding_model = self.env["llm.model"].browse(embedding_model_id)
             if embedding_model.exists():
                 # Generate a sample embedding to determine dimensions
                 sample_embedding = embedding_model.embedding("")[0]
@@ -290,29 +316,42 @@ class LLMStorePgVector(models.Model):
             # Create appropriate index for this embedding model
             if index_method == "ivfflat":
                 # Create IVFFlat index
-                cr.execute(f"""
+                cr.execute(
+                    f"""
                     CREATE INDEX {index_name} ON {table_name}
                     USING ivfflat((embedding::vector{dim_spec}) vector_cosine_ops)
                     WHERE embedding_model_id = %s AND embedding IS NOT NULL
-                """, (embedding_model_id,))
+                """,
+                    (embedding_model_id,),
+                )
             elif index_method == "hnsw":
                 # Try HNSW index if available in pgvector version
                 try:
-                    cr.execute(f"""
+                    cr.execute(
+                        f"""
                         CREATE INDEX {index_name} ON {table_name}
                         USING hnsw((embedding::vector{dim_spec}) vector_cosine_ops)
                         WHERE embedding_model_id = %s AND embedding IS NOT NULL
-                    """, (embedding_model_id,))
+                    """,
+                        (embedding_model_id,),
+                    )
                 except Exception as e:
                     # Fallback to IVFFlat if HNSW is not available
-                    _logger.warning(f"HNSW index not supported, falling back to IVFFlat: {str(e)}")
-                    cr.execute(f"""
+                    _logger.warning(
+                        f"HNSW index not supported, falling back to IVFFlat: {str(e)}"
+                    )
+                    cr.execute(
+                        f"""
                         CREATE INDEX {index_name} ON {table_name}
                         USING ivfflat((embedding::vector{dim_spec}) vector_cosine_ops)
                         WHERE embedding_model_id = %s AND embedding IS NOT NULL
-                    """, (embedding_model_id,))
+                    """,
+                        (embedding_model_id,),
+                    )
 
-            _logger.info(f"Created vector index {index_name} for embedding model {embedding_model_id}")
+            _logger.info(
+                f"Created vector index {index_name} for embedding model {embedding_model_id}"
+            )
             return True
         except Exception as e:
             _logger.error(f"Error creating vector index: {str(e)}")

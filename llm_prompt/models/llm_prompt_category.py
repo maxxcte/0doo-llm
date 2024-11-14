@@ -57,7 +57,9 @@ class LLMPromptCategory(models.Model):
     def _compute_complete_name(self):
         for category in self:
             if category.parent_id:
-                category.complete_name = f"{category.parent_id.complete_name} / {category.name}"
+                category.complete_name = (
+                    f"{category.parent_id.complete_name} / {category.name}"
+                )
             else:
                 category.complete_name = category.name
 
@@ -68,7 +70,9 @@ class LLMPromptCategory(models.Model):
             ["category_id"],
             ["category_id"],
         )
-        prompt_count_dict = {data["category_id"][0]: data["category_id_count"] for data in prompt_data}
+        prompt_count_dict = {
+            data["category_id"][0]: data["category_id_count"] for data in prompt_data
+        }
 
         for category in self:
             category.prompt_count = prompt_count_dict.get(category.id, 0)
@@ -76,4 +80,6 @@ class LLMPromptCategory(models.Model):
     @api.constrains("parent_id")
     def _check_category_recursion(self):
         if not self._check_recursion():
-            raise models.ValidationError(_("Error! You cannot create recursive categories."))
+            raise models.ValidationError(
+                _("Error! You cannot create recursive categories.")
+            )

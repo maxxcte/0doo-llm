@@ -1,4 +1,5 @@
 import logging
+
 from psycopg2.errors import UndefinedObject
 
 _logger = logging.getLogger(__name__)

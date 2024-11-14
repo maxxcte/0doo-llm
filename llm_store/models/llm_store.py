@@ -14,14 +14,14 @@ class LLMStore(models.Model):
         tracking=True,
     )
     active = fields.Boolean(default=True, tracking=True)
-    
+
     # Connection parameters
     connection_uri = fields.Char(tracking=True)
     api_key = fields.Char(tracking=True)
-    
-    # Additional metadata 
+
+    # Additional metadata
     metadata = fields.Json(string="Store Metadata")
-    
+
     def _dispatch(self, method, *args, **kwargs):
         """Dispatch method call to appropriate service implementation"""
         if not self.service:
@@ -51,25 +51,27 @@ class LLMStore(models.Model):
     # Collection Management
     def create_collection(self, collection_id, dimension=None, metadata=None, **kwargs):
         """Create a new collection with the specified parameters
-        
+
         Args:
             collection_id: ID of the collection
             dimension: Dimension of the vectors (required for some stores)
             metadata: Additional metadata for the collection
             **kwargs: Additional store-specific parameters
-            
+
         Returns:
             Collection info dictionary
         """
-        return self._dispatch("create_collection", collection_id, dimension, metadata, **kwargs)
+        return self._dispatch(
+            "create_collection", collection_id, dimension, metadata, **kwargs
+        )
 
     def delete_collection(self, collection_id, **kwargs):
         """Delete a collection by name
-        
+
         Args:
             collection_id: ID of the collection to delete
             **kwargs: Additional store-specific parameters
-            
+
         Returns:
             Boolean indicating success
         """
@@ -77,10 +79,10 @@ class LLMStore(models.Model):
 
     def list_collections(self, **kwargs):
         """List all collections
-        
+
         Args:
             **kwargs: Additional store-specific parameters
-            
+
         Returns:
             List of collection names/info
         """
@@ -88,69 +90,77 @@ class LLMStore(models.Model):
 
     def collection_exists(self, name, **kwargs):
         """Check if a collection exists
-        
+
         Args:
             name: Name of the collection to check
             **kwargs: Additional store-specific parameters
-            
+
         Returns:
             Boolean indicating if collection exists
         """
         return self._dispatch("collection_exists", name, **kwargs)
 
     # Vector Management
-    def _insert_vectors(self, collection_id, vectors, metadata=None, ids=None, **kwargs):
+    def _insert_vectors(
+        self, collection_id, vectors, metadata=None, ids=None, **kwargs
+    ):
         """Insert vectors into a collection
-        
+
         Args:
             collection_id: Name of the collection
             vectors: List of vectors to insert
             metadata: Optional list of metadata dicts for each vector
             ids: Optional list of IDs for each vector
             **kwargs: Additional store-specific parameters
-            
+
         Returns:
             List of inserted vector IDs
         """
-        return self._dispatch("insert_vectors", collection_id, vectors, metadata, ids, **kwargs)
+        return self._dispatch(
+            "insert_vectors", collection_id, vectors, metadata, ids, **kwargs
+        )
 
     def _delete_vectors(self, collection_id, ids, **kwargs):
         """Delete vectors from a collection
-        
+
         Args:
             collection_id: Name of the collection
             ids: List of vector IDs to delete
             **kwargs: Additional store-specific parameters
-            
+
         Returns:
             Number of vectors deleted
         """
         return self._dispatch("delete_vectors", collection_id, ids, **kwargs)
 
-    def _search_vectors(self, collection_id, query_vector, limit=10, filter=None, **kwargs):
+    def _search_vectors(
+        self, collection_id, query_vector, limit=10, filter=None, **kwargs
+    ):
         """Search for similar vectors in a collection
-        
+
         Args:
             collection_id: Name of the collection
             query_vector: Query vector to search for
             limit: Maximum number of results to return
             filter: Optional metadata filter expression
             **kwargs: Additional store-specific parameters
-            
+
         Returns:
             List of search results (vector IDs, scores, and metadata)
         """
-        return self._dispatch("search_vectors", collection_id, query_vector, limit, filter, **kwargs)
+        return self._dispatch(
+            "search_vectors", collection_id, query_vector, limit, filter, **kwargs
+        )
 
     # Index Management
     def create_index(self, collection_id, index_type=None, **kwargs):
         """Create an index on a collection
-        
+
         Args:
             collection_id: Name of the collection
             index_type: Type of index to create
             **kwargs: Additional store-specific parameters
-            
+
         Returns:
             Boolean indicating success
         """

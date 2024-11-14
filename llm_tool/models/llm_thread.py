@@ -1,15 +1,16 @@
 import json
-
-from odoo import models, api
 import logging
 
+from odoo import api, models
+
 _logger = logging.getLogger(__name__)
+
 
 class LLMProvider(models.Model):
     _inherit = "llm.provider"
 
     @api.model
-    def _is_tool_call_complete(self, function_data, expected_endings=(']', '}')):
+    def _is_tool_call_complete(self, function_data, expected_endings=("]", "}")):
         tool_name = function_data.get("name")
         args_str = function_data.get("arguments", "").strip()
 
@@ -25,7 +26,9 @@ class LLMProvider(models.Model):
 
         return False
 
-    def _prepare_chat_params(self, model, messages, stream, tools, system_prompt, **kwargs):
+    def _prepare_chat_params(
+        self, model, messages, stream, tools, system_prompt, **kwargs
+    ):
         """Generic method to prepare chat parameters for API call."""
         params = {
             "model": model.name,
@@ -66,9 +69,11 @@ class LLMProvider(models.Model):
                     has_system_message = False
                     for msg in params["messages"]:
                         if msg.get("role") == "system":
-                            existing_content = msg.get('content', '')
+                            existing_content = msg.get("content", "")
                             separator = "\n\n" if existing_content else ""
-                            msg["content"] = f"{existing_content}{separator}{consent_instruction}"
+                            msg["content"] = (
+                                f"{existing_content}{separator}{consent_instruction}"
+                            )
                             has_system_message = True
                             break
 

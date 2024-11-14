@@ -1,8 +1,10 @@
 # generated from manifests external_dependencies
 PyMuPDF
 anthropic
+chromadb-client
 emoji
 llama_index
+markdown2
 markdownify
 nltk
 numpy

@@ -23,7 +23,7 @@
         # Security must come first
         "security/ir.model.access.csv",
         # Views for models
-        "views/llm_resource_views.xml", # Defines views for llm.resource
+        "views/llm_resource_views.xml",  # Defines views for llm.resource
         "views/llm_knowledge_collection_views.xml",
         "views/llm_knowledge_chunk_views.xml",
         # Wizard Views

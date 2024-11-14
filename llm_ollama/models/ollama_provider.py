@@ -1,7 +1,7 @@
+import ast
 import json
 import logging
 import uuid
-import ast
 
 import ollama
 
@@ -97,11 +97,21 @@ class LLMProvider(models.Model):
 
         return formatted_tool
 
-    def ollama_chat(self, messages, model=None, stream=False, tools=None, system_prompt=None, **kwargs):
+    def ollama_chat(
+        self,
+        messages,
+        model=None,
+        stream=False,
+        tools=None,
+        system_prompt=None,
+        **kwargs,
+    ):
         """Send chat messages using Ollama with tools support"""
         model = self.get_model(model, "chat")
 
-        params = self._prepare_chat_params(model, messages, stream, tools=tools, system_prompt=system_prompt)
+        params = self._prepare_chat_params(
+            model, messages, stream, tools=tools, system_prompt=system_prompt
+        )
 
         response = self.client.chat(**params)
 
@@ -122,7 +132,9 @@ class LLMProvider(models.Model):
 
             for tool_call in response["message"]["tool_calls"]:
                 tool_name = tool_call["function"]["name"]
-                tool_id = OllamaToolCallIdUtils.create_tool_id(tool_name, str(uuid.uuid4()))
+                tool_id = OllamaToolCallIdUtils.create_tool_id(
+                    tool_name, str(uuid.uuid4())
+                )
 
                 tool_call_data = {
                     "id": tool_id,
@@ -174,14 +186,14 @@ class LLMProvider(models.Model):
                 error_msg = chunk.get("error")
 
                 if error_msg:
-                    yield {'error': f"Ollama stream error: {error_msg}"}
+                    yield {"error": f"Ollama stream error: {error_msg}"}
                     return
 
                 if chunk_done:
                     is_done = True
 
                 if content_chunk is not None and content_chunk != last_content:
-                    yield {'content': content_chunk}
+                    yield {"content": content_chunk}
                     last_content = content_chunk
 
                 if tool_calls_chunk:
@@ -194,25 +206,31 @@ class LLMProvider(models.Model):
             if stream_has_tools and is_done:
                 for _, call_data in sorted(assembled_tool_calls.items()):
                     if call_data.get("_complete"):
-                         tool_name = call_data["function"]["name"]
-                         tool_id = OllamaToolCallIdUtils.create_tool_id(tool_name, str(uuid.uuid4()))
-                         final_tool_calls_list.append({
-                            "id": tool_id,
-                            "type": "function",
-                            "function": {
-                                "name": tool_name,
-                                "arguments": call_data["function"]["arguments"],
+                        tool_name = call_data["function"]["name"]
+                        tool_id = OllamaToolCallIdUtils.create_tool_id(
+                            tool_name, str(uuid.uuid4())
+                        )
+                        final_tool_calls_list.append(
+                            {
+                                "id": tool_id,
+                                "type": "function",
+                                "function": {
+                                    "name": tool_name,
+                                    "arguments": call_data["function"]["arguments"],
+                                },
                             }
-                         })
+                        )
 
                 if final_tool_calls_list:
-                    yield {'tool_calls': final_tool_calls_list}
+                    yield {"tool_calls": final_tool_calls_list}
 
         except Exception as e:
             _logger.error(f"Error processing Ollama stream: {e}", exc_info=True)
-            yield {'error': f"Internal error processing Ollama stream: {e}"}
+            yield {"error": f"Internal error processing Ollama stream: {e}"}
 
-    def _ollama_update_tool_call_chunk(self, assembled_tool_calls, tool_call_delta, index):
+    def _ollama_update_tool_call_chunk(
+        self, assembled_tool_calls, tool_call_delta, index
+    ):
         """
         Helper to assemble tool calls from Ollama stream chunks.
         Ensures arguments are stored as a complete JSON string.
@@ -222,7 +240,7 @@ class LLMProvider(models.Model):
                 "id": None,
                 "type": "function",
                 "function": {"name": "", "arguments": ""},
-                "_complete": False
+                "_complete": False,
             }
 
         current_call = assembled_tool_calls[index]
@@ -250,11 +268,13 @@ class LLMProvider(models.Model):
                         processed_args[key] = value
                 current_call["function"]["arguments"] = json.dumps(processed_args)
             else:
-                _logger.warning(f"Unexpected argument type in Ollama stream chunk: {type(new_args_part)}")
+                _logger.warning(
+                    f"Unexpected argument type in Ollama stream chunk: {type(new_args_part)}"
+                )
 
         # Use the common helper to determine completeness for Ollama
         current_call["_complete"] = self._is_tool_call_complete(
-            current_call["function"], expected_endings=(']', '}')
+            current_call["function"], expected_endings=("]", "}")
         )
         return assembled_tool_calls
 

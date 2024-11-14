@@ -1,5 +1,4 @@
-from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
+from odoo import _, api, fields, models
 
 
 class LLMPromptTemplate(models.Model):
@@ -52,7 +51,7 @@ class LLMPromptTemplate(models.Model):
         help="Arguments used in this template",
     )
 
-    @api.depends('content')
+    @api.depends("content")
     def _compute_used_arguments(self):
         """Compute arguments used in this template"""
         for template in self:
@@ -84,7 +83,8 @@ class LLMPromptTemplate(models.Model):
             except Exception as e:
                 # Log but don't fail if condition evaluation fails
                 self.prompt_id.message_post(
-                    body=_("Error evaluating condition for template %s: %s") % (self.id, str(e))
+                    body=_("Error evaluating condition for template %s: %s")
+                    % (self.id, str(e))
                 )
                 return None
 

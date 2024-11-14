@@ -1,8 +1,9 @@
 import logging
 
 from odoo import _, api, fields, models
-from odoo.tools.safe_eval import safe_eval
 from odoo.exceptions import UserError
+from odoo.tools.safe_eval import safe_eval
+
 _logger = logging.getLogger(__name__)
 
 
@@ -34,13 +35,6 @@ class LLMKnowledgeCollection(models.Model):
         tracking=True,
         help="The model used to create embeddings for documents in this collection",
     )
-    dimension = fields.Integer(
-        string="Dimension",
-        compute='_compute_dimension',
-        store=True,
-        readonly=True,
-        help="Dimension of vectors in this collection, derived from the embedding model."
-    )
     resource_ids = fields.Many2many(
         "llm.resource",
         string="Resources",
@@ -68,7 +62,7 @@ class LLMKnowledgeCollection(models.Model):
         string="Chunks (from Resources)",
         compute="_compute_chunk_ids",
         store=False,
-        help="Chunks belonging to the resources included in this collection."
+        help="Chunks belonging to the resources included in this collection.",
     )
 
     store_id = fields.Many2one(
@@ -76,13 +70,13 @@ class LLMKnowledgeCollection(models.Model):
         string="Vector Store",
         required=True,
         ondelete="cascade",
-        tracking=True
+        tracking=True,
     )
 
     @api.depends("resource_ids.chunk_ids")
     def _compute_chunk_ids(self):
         for collection in self:
-            collection.chunk_ids = collection.resource_ids.mapped('chunk_ids')
+            collection.chunk_ids = collection.resource_ids.mapped("chunk_ids")
 
     @api.depends("resource_ids")
     def _compute_resource_count(self):
@@ -107,8 +101,8 @@ class LLMKnowledgeCollection(models.Model):
     def write(self, vals):
         """Extend write to handle embedding model or store changes"""
         # Check for changes to embedding_model_id or store_id
-        embedding_model_changed = 'embedding_model_id' in vals
-        store_changed = 'store_id' in vals
+        embedding_model_changed = "embedding_model_id" in vals
+        store_changed = "store_id" in vals
 
         # Store old values for reference
         old_embedding_models = {}
@@ -116,7 +110,9 @@ class LLMKnowledgeCollection(models.Model):
         if embedding_model_changed or store_changed:
             for collection in self:
                 old_embedding_models[collection.id] = collection.embedding_model_id.id
-                old_stores[collection.id] = collection.store_id.id if collection.store_id else False
+                old_stores[collection.id] = (
+                    collection.store_id.id if collection.store_id else False
+                )
 
         # Perform the write operation
         result = super().write(vals)
@@ -128,7 +124,9 @@ class LLMKnowledgeCollection(models.Model):
                 if store_changed:
                     # First, clean up the old store if it existed
                     if old_stores.get(collection.id):
-                        old_store = self.env['llm.store'].browse(old_stores[collection.id])
+                        old_store = self.env["llm.store"].browse(
+                            old_stores[collection.id]
+                        )
                         if old_store.exists():
                             collection._cleanup_old_store(old_store)
 
@@ -141,13 +139,15 @@ class LLMKnowledgeCollection(models.Model):
                 if embedding_model_changed:
                     # Mark resources for re-embedding
                     ready_resources = collection.resource_ids.filtered(
-                        lambda r: r.state == 'ready'
+                        lambda r: r.state == "ready"
                     )
                     if ready_resources:
-                        ready_resources.write({'state': 'chunked'})
+                        ready_resources.write({"state": "chunked"})
 
                         collection.message_post(
-                            body=_(f"Embedding model changed. Reset {len(ready_resources)} resources for re-embedding."),
+                            body=_(
+                                f"Embedding model changed. Reset {len(ready_resources)} resources for re-embedding."
+                            ),
                             message_type="notification",
                         )
 
@@ -175,7 +175,10 @@ class LLMKnowledgeCollection(models.Model):
         if not collection_exists:
             created = self.store_id.create_collection(self.id)
             if not created:
-                raise UserError(_("Failed to create collection in store for collection %s") % self.name)
+                raise UserError(
+                    _("Failed to create collection in store for collection %s")
+                    % self.name
+                )
 
         _logger.info(f"Initialized store for collection {self.name}")
 
@@ -368,7 +371,9 @@ class LLMKnowledgeCollection(models.Model):
                     collection.store_id.create_collection(collection.id)
 
                     # Mark resources for re-embedding
-                    ready_docs = collection.resource_ids.filtered(lambda d: d.state == "ready")
+                    ready_docs = collection.resource_ids.filtered(
+                        lambda d: d.state == "ready"
+                    )
                     if ready_docs:
                         ready_docs.write({"state": "chunked"})
 
@@ -390,7 +395,9 @@ class LLMKnowledgeCollection(models.Model):
                     )
             else:
                 # For collections without a store, just reset resource states
-                ready_docs = collection.resource_ids.filtered(lambda d: d.state == "ready")
+                ready_docs = collection.resource_ids.filtered(
+                    lambda d: d.state == "ready"
+                )
                 if ready_docs:
                     ready_docs.write({"state": "chunked"})
 
@@ -478,7 +485,9 @@ class LLMKnowledgeCollection(models.Model):
             # Process chunks in batches for efficiency
             total_chunks = len(chunks)
             processed_chunks = 0
-            processed_resource_ids = set()  # Track which resource IDs had chunks processed
+            processed_resource_ids = (
+                set()
+            )  # Track which resource IDs had chunks processed
 
             if not total_chunks:
                 message = _("All chunks already have embeddings for the selected model")
@@ -490,7 +499,7 @@ class LLMKnowledgeCollection(models.Model):
 
             # Process in batches
             for i in range(0, total_chunks, batch_size):
-                batch = chunks[i: i + batch_size]
+                batch = chunks[i : i + batch_size]
 
                 # Prepare chunked data for the store
                 texts = []
@@ -519,17 +528,19 @@ class LLMKnowledgeCollection(models.Model):
                     # TODO: should it belong here?
                     # Create chunk embedding records
                     embedding_vals_list = []
-                    for i, (chunk_id, vector) in enumerate(zip(chunk_ids, embeddings)):
-                        embedding_vals_list.append({
-                            'chunk_id': chunk_id,
-                            'embedding_model_id': embedding_model_id,
-                            'embedding': vector,
-                        })
+                    for i, (chunk_id, vector) in enumerate(
+                        zip(chunk_ids, embeddings)
+                    ):
+                        embedding_vals_list.append(
+                            {
+                                "chunk_id": chunk_id,
+                                "embedding_model_id": embedding_model_id,
+                                "embedding": vector,
+                            }
+                        )
                     # Insert vectors into the store
                     collection.insert_vectors(
-                        vectors=embeddings,
-                        metadata=metadata_list,
-                        ids=chunk_ids
+                        vectors=embeddings, metadata=metadata_list, ids=chunk_ids
                     )
 
                     processed_chunks += len(batch)

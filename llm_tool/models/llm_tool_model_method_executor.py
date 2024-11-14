@@ -1,9 +1,9 @@
 import json
 import logging
-from typing import Any, List, Optional, Dict, Tuple 
+from typing import Any
 
 from odoo import api, models
-from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ class LLMToolModelMethodExecutor(models.Model):
     _inherit = "llm.tool"
 
     @api.model
-    def _get_available_implementations(self) -> List[Tuple[str, str]]:
+    def _get_available_implementations(self) -> list[tuple[str, str]]:
         implementations = super()._get_available_implementations()
         return implementations + [
             ("odoo_model_method_executor", "Odoo Model Method Executor"),
@@ -22,11 +22,11 @@ class LLMToolModelMethodExecutor(models.Model):
         self,
         model: str,
         method: str,
-        record_ids: Optional[List[int]] = None,
-        args: Optional[List[Any]] = None,
-        kwargs: Optional[Dict[str, Any]] = None,
+        record_ids: list[int] | None = None,
+        args: list[Any] | None = None,
+        kwargs: dict[str, Any] | None = None,
         allow_private: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Executes the specified method on the model or records.
 
         Parameters:
@@ -58,13 +58,17 @@ class LLMToolModelMethodExecutor(models.Model):
         if record_ids:
             target = model_obj.browse(record_ids)
             if not target.exists():
-                existing_ids = model_obj.search([('id', 'in', record_ids)]).ids
+                existing_ids = model_obj.search([("id", "in", record_ids)]).ids
                 if not existing_ids:
-                    return {"error": f"None of the provided Record IDs {record_ids} exist for model {model}."}
+                    return {
+                        "error": f"None of the provided Record IDs {record_ids} exist for model {model}."
+                    }
 
         if not hasattr(target, method):
             target_type = "records" if record_ids else "model"
-            raise AttributeError(f"Method '{method}' not found on the target {target_type} ('{target}').")
+            raise AttributeError(
+                f"Method '{method}' not found on the target {target_type} ('{target}')."
+            )
 
         method_func = getattr(target, method)
 

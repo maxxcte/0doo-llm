@@ -1,10 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <odoo>
     <!-- Server Action for Creating RAG Resources (from specific models like attachment) -->
     <record id="action_create_rag_resource_knowledge" model="ir.actions.server">
         <field name="name">Create RAG Resource</field>
-        <field name="model_id" ref="base.model_ir_attachment"/> <!-- Example binding -->
-        <field name="binding_model_id" ref="base.model_ir_attachment"/>
+        <field
+      name="model_id"
+      ref="base.model_ir_attachment"
+    /> <!-- Example binding -->
+        <field name="binding_model_id" ref="base.model_ir_attachment" />
         <field name="binding_view_types">list,form</field>
         <field name="state">code</field>
         <field name="code">
@@ -23,8 +26,8 @@ if records:
     <!-- Server Action for Re-indexing RAG Resources -->
     <record id="action_reindex_rag_resources" model="ir.actions.server">
         <field name="name">Re-index RAG Resources</field>
-        <field name="model_id" ref="llm_resource.model_llm_resource"/>
-        <field name="binding_model_id" ref="llm_resource.model_llm_resource"/>
+        <field name="model_id" ref="llm_resource.model_llm_resource" />
+        <field name="binding_model_id" ref="llm_resource.model_llm_resource" />
         <field name="binding_view_types">list</field>
         <field name="state">code</field>
         <field name="code">
@@ -34,10 +37,13 @@ action = records.action_mass_reindex()
     </record>
 
     <!-- Server Action for Upload Resources button in llm.resource views -->
-    <record id="action_button_upload_resources_knowledge" model="ir.actions.server">
+    <record
+    id="action_button_upload_resources_knowledge"
+    model="ir.actions.server"
+  >
         <field name="name">Upload Resources</field>
-        <field name="model_id" ref="llm_resource.model_llm_resource"/>
-        <field name="binding_model_id" ref="llm_resource.model_llm_resource"/>
+        <field name="model_id" ref="llm_resource.model_llm_resource" />
+        <field name="binding_model_id" ref="llm_resource.model_llm_resource" />
         <field name="binding_view_types">list,kanban</field>
         <field name="state">code</field>
         <field name="code">
@@ -55,9 +61,11 @@ action = {
     <!-- Server Action for Upload Resources button in collection views -->
     <record id="action_collection_upload_resources" model="ir.actions.server">
         <field name="name">Upload Resources</field>
-        <field name="model_id" ref="model_llm_knowledge_collection"/>
-        <field name="binding_model_id" ref="model_llm_knowledge_collection"/>
-        <field name="binding_view_types">list,kanban,form</field> <!-- Added form -->
+        <field name="model_id" ref="model_llm_knowledge_collection" />
+        <field name="binding_model_id" ref="model_llm_knowledge_collection" />
+        <field
+      name="binding_view_types"
+    >list,kanban,form</field> <!-- Added form -->
         <field name="state">code</field>
         <field name="code">
 # Pass current collection ID in context

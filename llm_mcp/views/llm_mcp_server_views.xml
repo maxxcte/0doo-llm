@@ -23,17 +23,34 @@
         <field name="arch" type="xml">
             <form string="MCP Server">
                 <header>
-                    <button name="start_server" string="Start Server" type="object"
-                            class="oe_highlight" attrs="{'invisible': [('is_connected', '=', True)]}" />
-                    <button name="stop_server" string="Stop Server" type="object"
-                            attrs="{'invisible': [('is_connected', '=', False)]}" />
-                    <button name="list_tools" string="Refresh Tools" type="object"
-                            class="oe_highlight" attrs="{'invisible': [('is_connected', '=', False)]}" />
+                    <button
+            name="start_server"
+            string="Start Server"
+            type="object"
+            class="oe_highlight"
+            attrs="{'invisible': [('is_connected', '=', True)]}"
+          />
+                    <button
+            name="stop_server"
+            string="Stop Server"
+            type="object"
+            attrs="{'invisible': [('is_connected', '=', False)]}"
+          />
+                    <button
+            name="list_tools"
+            string="Refresh Tools"
+            type="object"
+            class="oe_highlight"
+            attrs="{'invisible': [('is_connected', '=', False)]}"
+          />
                 </header>
                 <sheet>
                     <div class="oe_title">
                         <label for="name" class="oe_edit_only" />
-                        <h1><field name="name" placeholder="e.g. Python Code Service" /></h1>
+                        <h1><field
+                name="name"
+                placeholder="e.g. Python Code Service"
+              /></h1>
                     </div>
                     <group>
                         <group string="Connection">
@@ -41,12 +58,21 @@
                             <field name="is_connected" readonly="1" />
                             <field name="is_active" />
                         </group>
-                        <group string="Command Configuration" attrs="{'invisible': [('transport', '!=', 'stdio')]}">
-                            <field name="command" attrs="{'required': [('transport', '=', 'stdio')]}" />
+                        <group
+              string="Command Configuration"
+              attrs="{'invisible': [('transport', '!=', 'stdio')]}"
+            >
+                            <field
+                name="command"
+                attrs="{'required': [('transport', '=', 'stdio')]}"
+              />
                             <field name="args" />
                         </group>
                     </group>
-                    <group string="Server Information" attrs="{'invisible': [('is_connected', '=', False)]}">
+                    <group
+            string="Server Information"
+            attrs="{'invisible': [('is_connected', '=', False)]}"
+          >
                         <field name="protocol_version" readonly="1" />
                         <field name="server_info" readonly="1" />
                     </group>
@@ -78,10 +104,22 @@
         <field name="arch" type="xml">
             <search string="Search MCP Servers">
                 <field name="name" />
-                <filter string="Active Servers" name="active" domain="[('is_active', '=', True)]" />
-                <filter string="Connected" name="connected" domain="[('is_connected', '=', True)]" />
+                <filter
+          string="Active Servers"
+          name="active"
+          domain="[('is_active', '=', True)]"
+        />
+                <filter
+          string="Connected"
+          name="connected"
+          domain="[('is_connected', '=', True)]"
+        />
                 <group expand="0" string="Group By">
-                    <filter string="Transport" name="group_by_transport" context="{'group_by': 'transport'}" />
+                    <filter
+            string="Transport"
+            name="group_by_transport"
+            context="{'group_by': 'transport'}"
+          />
                 </group>
             </search>
         </field>

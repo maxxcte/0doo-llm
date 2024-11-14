@@ -65,15 +65,15 @@ Example:
 ```python
 class MyVectorStore(models.Model):
     _inherit = "llm.store"
-    
+
     @api.model
     def _get_available_services(self):
         return super()._get_available_services() + [('my_provider', 'My Vector Store')]
-    
+
     def my_provider_create_collection(self, name, dimension=None, metadata=None, **kwargs):
         # Implementation for creating a collection in your vector store
         pass
-        
+
     # Implement other methods...
 ```
 

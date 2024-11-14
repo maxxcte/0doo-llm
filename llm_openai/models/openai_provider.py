@@ -135,7 +135,12 @@ class LLMProvider(models.Model):
 
         # Prepare request parameters
         params = self._prepare_chat_params(
-            model, messages, stream, tools=tools,system_prompt=system_prompt, tool_choice=tool_choice
+            model,
+            messages,
+            stream,
+            tools=tools,
+            system_prompt=system_prompt,
+            tool_choice=tool_choice,
         )
 
         # Make the API call
@@ -156,29 +161,32 @@ class LLMProvider(models.Model):
             result = {}
 
             if message.content:
-                result['content'] = message.content
+                result["content"] = message.content
 
             if message.tool_calls:
-                result['tool_calls'] = [
+                result["tool_calls"] = [
                     {
                         "id": tc.id,
                         "type": tc.type,
                         "function": {
                             "name": tc.function.name,
                             "arguments": tc.function.arguments,
-                         }
-                    } for tc in message.tool_calls
+                        },
+                    }
+                    for tc in message.tool_calls
                 ]
 
-            if 'content' in result or 'tool_calls' in result:
+            if "content" in result or "tool_calls" in result:
                 return result
             else:
-                _logger.warning("OpenAI non-streaming response had no content or tool calls.")
-                return {} # Return empty dict if nothing to process
+                _logger.warning(
+                    "OpenAI non-streaming response had no content or tool calls."
+                )
+                return {}  # Return empty dict if nothing to process
 
         except (AttributeError, IndexError, Exception) as e:
             _logger.exception("Error processing OpenAI non-streaming response")
-            return {'error': f"Error processing response: {e}"}
+            return {"error": f"Error processing response: {e}"}
 
     def _openai_process_streaming_response(self, response_stream):
         """
@@ -202,7 +210,7 @@ class LLMProvider(models.Model):
                     continue
 
                 if delta.content:
-                    yield {'content': delta.content}
+                    yield {"content": delta.content}
 
                 if delta.tool_calls:
                     stream_has_tools = True
@@ -215,32 +223,46 @@ class LLMProvider(models.Model):
                         )
                         call_counter += 1
             if stream_has_tools:
-                if finish_reason == 'tool_calls' or (finish_reason != 'error' and assembled_tool_calls):
+                if finish_reason == "tool_calls" or (
+                    finish_reason != "error" and assembled_tool_calls
+                ):
                     for index, call_data in sorted(assembled_tool_calls.items()):
                         if call_data.get("_complete"):
-                            tool_call_id = call_data.get("id").strip() or str(uuid.uuid4())
-                            final_tool_calls_list.append({
-                                # Generate a UUID for id if it's empty, google apis don't give tool call id for example
-                                "id": tool_call_id,
-                                "type": call_data.get("type", "function"), # Default type
-                                "function": {
-                                    "name": call_data["function"]["name"],
-                                    "arguments": call_data["function"]["arguments"],
+                            tool_call_id = call_data.get("id").strip() or str(
+                                uuid.uuid4()
+                            )
+                            final_tool_calls_list.append(
+                                {
+                                    # Generate a UUID for id if it's empty, google apis don't give tool call id for example
+                                    "id": tool_call_id,
+                                    "type": call_data.get(
+                                        "type", "function"
+                                    ),  # Default type
+                                    "function": {
+                                        "name": call_data["function"]["name"],
+                                        "arguments": call_data["function"]["arguments"],
+                                    },
                                 }
-                            })
+                            )
                         else:
-                            yield {'error': f"Received incomplete tool call data from provider for tool index {index}."}
+                            yield {
+                                "error": f"Received incomplete tool call data from provider for tool index {index}."
+                            }
 
                     if final_tool_calls_list:
-                        yield {'tool_calls': final_tool_calls_list}
+                        yield {"tool_calls": final_tool_calls_list}
                     elif assembled_tool_calls:
-                         _logger.warning("Stream indicated tool calls, but none were successfully assembled.")
+                        _logger.warning(
+                            "Stream indicated tool calls, but none were successfully assembled."
+                        )
 
-                elif finish_reason != 'error':
-                     _logger.warning(f"OpenAI stream had tool chunks but finished with reason '{finish_reason}'. Not yielding tool calls.")
+                elif finish_reason != "error":
+                    _logger.warning(
+                        f"OpenAI stream had tool chunks but finished with reason '{finish_reason}'. Not yielding tool calls."
+                    )
 
         except Exception as e:
-            yield {'error': f"Internal error processing stream: {e}"}
+            yield {"error": f"Internal error processing stream: {e}"}
 
     def _update_openai_tool_call_chunk(self, tool_call_chunks, tool_call_chunk, index):
         """
@@ -252,7 +274,7 @@ class LLMProvider(models.Model):
                 "id": tool_call_chunk.id,
                 "type": tool_call_chunk.type,
                 "function": {"name": "", "arguments": ""},
-                "_complete": False
+                "_complete": False,
             }
 
         current_call = tool_call_chunks[index]
@@ -271,7 +293,7 @@ class LLMProvider(models.Model):
 
         # Use the common helper to determine completeness for OpenAI
         current_call["_complete"] = self._is_tool_call_complete(
-            current_call["function"], expected_endings=(']', '}')
+            current_call["function"], expected_endings=("]", "}")
         )
 
         return tool_call_chunks
