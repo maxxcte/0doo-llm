@@ -18,7 +18,7 @@ function safeJsonParse(jsonString, defaultValue = undefined) {
     return JSON.parse(jsonString);
   } catch (e) {
     // Console.warn("Failed to parse JSON string:", jsonString, e); // Optional logging
-    return defaultValue; // Return default on error
+    return defaultValue;
   }
 }
 
@@ -84,7 +84,7 @@ registerPatch({
      */
     toolCallResultIsError: attr({
       compute() {
-        const resultData = this.toolCallResultData; // Uses the computed field above
+        const resultData = this.toolCallResultData;
         // Check if it's an object and has an 'error' key
         return (
           typeof resultData === "object" &&
@@ -98,18 +98,18 @@ registerPatch({
      */
     toolCallResultFormatted: attr({
       compute() {
-        const resultData = this.toolCallResultData; // Uses the computed field
+        const resultData = this.toolCallResultData;
         if (resultData === undefined || resultData === null) {
           return "";
         }
         try {
           // Only pretty print if it's likely an object/array
           return typeof resultData === "object"
-            ? JSON.stringify(resultData, null, 2) // Pretty print with 2 spaces
-            : String(resultData); // Otherwise, just convert to string
+            ? JSON.stringify(resultData, null, 2)
+            : String(resultData);
         } catch (e) {
           console.error("Error formatting tool call result:", e);
-          return String(resultData); // Fallback to simple string conversion
+          return String(resultData);
         }
       },
     }),
@@ -123,7 +123,7 @@ registerPatch({
       compute() {
         // Uses the field added by llm_thread's python patch
         // parseJson returns undefined on failure, default to empty array for template
-        return safeJsonParse(this.toolCallCalls, []); // Default to empty array
+        return safeJsonParse(this.toolCallCalls, []);
       },
     }),
     /**

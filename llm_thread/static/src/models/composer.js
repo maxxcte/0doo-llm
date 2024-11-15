@@ -13,7 +13,7 @@ registerPatch({
       compute() {
         return !this.canPostMessage;
       },
-      default: true, // Assume disabled initially
+      default: true,
     }),
     eventSource: attr({
       default: null,
@@ -65,7 +65,7 @@ registerPatch({
               this._closeEventSource();
               this.messaging.notify({ message: data.error, type: "danger" });
               break;
-            case "done":
+            case "done": {
               const sameThread =
                 this.thread.id === this.thread.llmChat.activeThread.id;
               if (!sameThread) {
@@ -78,6 +78,7 @@ registerPatch({
               }
               this._closeEventSource();
               break;
+            }
           }
         };
         eventSource.onerror = (error) => {

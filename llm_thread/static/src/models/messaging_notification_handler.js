@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
-import { registerPatch } from "@mail/model/model_core";
 import { clear } from "@mail/model/model_field_command";
+import { registerPatch } from "@mail/model/model_core";
 
 registerPatch({
   name: "MessagingNotificationHandler",
@@ -27,7 +27,7 @@ registerPatch({
 
     /**
      * @private
-     * @param {Object} message
+     * @param {number} id
      */
     _handleLLMThreadDelete(id) {
       const thread = this.messaging.models.Thread.findFromIdentifyingData({
