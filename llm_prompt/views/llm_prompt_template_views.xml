@@ -49,7 +49,7 @@
         <field name="name">llm.prompt.template.tree</field>
         <field name="model">llm.prompt.template</field>
         <field name="arch" type="xml">
-            <tree string="Prompt Templates" editable="bottom">
+            <tree editable="bottom">
                 <field name="sequence" widget="handle" />
                 <field name="role" />
                 <field name="content" />

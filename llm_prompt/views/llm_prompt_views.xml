@@ -177,7 +177,7 @@
         <field name="name">llm.prompt.tree</field>
         <field name="model">llm.prompt</field>
         <field name="arch" type="xml">
-            <tree string="LLM Prompts">
+            <tree>
                 <field name="name" />
                 <field name="category_id" />
                 <field name="tag_ids" widget="many2many_tags" />

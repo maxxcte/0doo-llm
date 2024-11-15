@@ -17,6 +17,8 @@ Also provides a base override for message_format to identify these subtypes.
     "data": [
         "data/mail_message_subtypes.xml",
     ],
+    "author": "Apexive Solutions LLC",
+    "website": "https://github.com/apexive/odoo-llm",
     "installable": True,
     "auto_install": False,  # Should be installed as a dependency
     "application": False,
