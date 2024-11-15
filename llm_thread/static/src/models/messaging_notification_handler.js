@@ -27,7 +27,7 @@ registerPatch({
 
     /**
      * @private
-     * @param {number} id
+     * @param {Number} id
      */
     _handleLLMThreadDelete(id) {
       const thread = this.messaging.models.Thread.findFromIdentifyingData({
