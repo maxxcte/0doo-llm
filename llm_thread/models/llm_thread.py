@@ -1,17 +1,17 @@
-import functools
 import json
+import functools
 
 from odoo import _, api, fields, models
+
 from odoo.exceptions import UserError
 
 from odoo.addons.llm_mail_message_subtypes.const import (
-    LLM_ASSISTANT_SUBTYPE_XMLID,
     LLM_TOOL_RESULT_SUBTYPE_XMLID,
     LLM_USER_SUBTYPE_XMLID,
+    LLM_ASSISTANT_SUBTYPE_XMLID,
 )
 
 from .llm_thread_utils import LLMThreadUtils
-
 
 def execute_with_new_cursor(func_to_decorate):
     """Decorator to execute a method within a new, immediately committed cursor context.
@@ -19,7 +19,6 @@ def execute_with_new_cursor(func_to_decorate):
     It injects the browsed record from the new environment as the first argument
     after 'self'. Assumes the decorated method is called on a singleton recordset.
     """
-
     @functools.wraps(func_to_decorate)
     def wrapper(self, *args, **kwargs):
         self.ensure_one()
@@ -27,10 +26,7 @@ def execute_with_new_cursor(func_to_decorate):
             env = api.Environment(cr, self.env.uid, self.env.context)
             record_in_new_env = env[self._name].browse(self.ids)
             return func_to_decorate(self, record_in_new_env, *args, **kwargs)
-
     return wrapper
-
-
 class LLMThread(models.Model):
     _name = "llm.thread"
     _description = "LLM Chat Thread"
@@ -77,7 +73,7 @@ class LLMThread(models.Model):
         default=False,
         readonly=True,
         copy=False,
-        help="Indicates if the thread is currently locked to prevent concurrent generation.",
+        help="Indicates if the thread is currently locked to prevent concurrent generation."
     )
 
     tool_ids = fields.Many2many(
@@ -98,32 +94,24 @@ class LLMThread(models.Model):
         self.ensure_one()
         # if subtype_xmlid is not provided or wrong,message_post automatically
         # uses the default subtype
-        subtype_xmlid = kwargs.get("subtype_xmlid")
-        author_id = kwargs.get("author_id")
-        body = kwargs.get("body", "")
-        email_from = LLMThreadUtils.get_email_from(
-            self.provider_id.name,
-            self.model_id.name,
-            subtype_xmlid,
-            author_id,
-            kwargs.get("tool_name"),
-        )
-        post_vals = LLMThreadUtils.build_post_vals(
-            subtype_xmlid, body, author_id, email_from
-        )
+        subtype_xmlid = kwargs.get('subtype_xmlid')
+        author_id = kwargs.get('author_id')
+        body = kwargs.get('body', '')
+        email_from = LLMThreadUtils.get_email_from(self.provider_id.name, self.model_id.name, subtype_xmlid, author_id, kwargs.get('tool_name'))
+        post_vals = LLMThreadUtils.build_post_vals(subtype_xmlid, body, author_id, email_from)
         message = self.message_post(**post_vals)
         extra_vals = LLMThreadUtils.build_update_vals(
             subtype_xmlid,
-            tool_call_id=kwargs.get("tool_call_id"),
-            tool_calls=kwargs.get("tool_calls"),
-            tool_call_definition=kwargs.get("tool_call_definition"),
-            tool_call_result=kwargs.get("tool_call_result"),
+            tool_call_id=kwargs.get('tool_call_id'),
+            tool_calls=kwargs.get('tool_calls'),
+            tool_call_definition=kwargs.get('tool_call_definition'),
+            tool_call_result=kwargs.get('tool_call_result'),
         )
         if extra_vals:
             message.write(extra_vals)
         return message
 
-    def _get_message_history_recordset(self, order="ASC", limit=None):
+    def _get_message_history_recordset(self, order='ASC', limit=None):
         """Get messages from the thread
 
         Args:
@@ -137,8 +125,8 @@ class LLMThread(models.Model):
             self.env.ref(LLM_USER_SUBTYPE_XMLID, raise_if_not_found=False),
             self.env.ref(LLM_ASSISTANT_SUBTYPE_XMLID, raise_if_not_found=False),
             self.env.ref(LLM_TOOL_RESULT_SUBTYPE_XMLID, raise_if_not_found=False),
-        ]
-        subtype_ids = [st.id for st in subtypes_to_fetch if st]
+        ]       
+        subtype_ids = [st.id for st in subtypes_to_fetch if st]    
         order_clause = f"create_date {order}, id {order}"
         domain = [
             ("model", "=", self._name),
@@ -150,12 +138,13 @@ class LLMThread(models.Model):
             domain, order=order_clause, limit=limit
         )
         return messages
+    
 
     def _get_last_message_from_history(self):
         """Get the last message from the message history."""
         self.ensure_one()
         last_message = None
-        result = self._get_message_history_recordset(order="DESC", limit=1)
+        result = self._get_message_history_recordset(order='DESC', limit=1)
         if result:
             last_message = result[0]
         if not last_message:
@@ -176,10 +165,7 @@ class LLMThread(models.Model):
         """Whether to keep looping on the last_message."""
         if not last_message:
             return False
-        if (
-            last_message.is_llm_user_message()
-            or last_message.is_llm_tool_result_message()
-        ):
+        if last_message.is_llm_user_message() or last_message.is_llm_tool_result_message():
             return True
         if last_message.is_llm_assistant_message() and last_message.tool_calls:
             return True
@@ -187,10 +173,7 @@ class LLMThread(models.Model):
 
     def _next_step(self, last_message):
         """Dispatch to the next generator based on message type."""
-        if (
-            last_message.is_llm_user_message()
-            or last_message.is_llm_tool_result_message()
-        ):
+        if last_message.is_llm_user_message() or last_message.is_llm_tool_result_message():
             return self._get_assistant_response()
         if last_message.is_llm_assistant_message() and last_message.tool_calls:
             return self._process_tool_calls(last_message)
@@ -199,16 +182,14 @@ class LLMThread(models.Model):
     def generate(self, user_message_body):
         self.ensure_one()
         if self.is_locked:
-            raise UserError(
-                _("This thread is already generating a response. Please wait.")
-            )
+            raise UserError(_("This thread is already generating a response. Please wait."))
         self._lock()
-
+ 
         try:
             # orchestrate via hooks
             last = self._init_message(user_message_body)
             if user_message_body:
-                yield {"type": "message_create", "message": last.message_format()[0]}
+                yield {'type': 'message_create', 'message': last.message_format()[0]}
             while self._should_continue(last):
                 last = yield from self._next_step(last)
             return last
@@ -224,7 +205,7 @@ class LLMThread(models.Model):
                 thread=self,
                 tool_call_def=tool_def,
             )
-        return last_tool_msg
+        return last_tool_msg       
 
     def _get_system_prompt(self):
         """Hook: return a system prompt for chat. Override in other modules. If needed"""
@@ -239,14 +220,14 @@ class LLMThread(models.Model):
             "messages": message_history_rs,
             "tools": tool_rs,
             "stream": True,
-            "system_prompt": self._get_system_prompt(),
+            "system_prompt": self._get_system_prompt()
         }
         stream_response = self.model_id.chat(**chat_kwargs)
         assistant_msg = yield from self.env["mail.message"].create_message_from_stream(
             self,
             stream_response,
             LLM_ASSISTANT_SUBTYPE_XMLID,
-            placeholder_text="Thinking...",
+            placeholder_text="Thinking..."
         )
         return assistant_msg
 
@@ -264,17 +245,15 @@ class LLMThread(models.Model):
         self.ensure_one()
         if self._read_is_locked_decorated():
             raise UserError(
-                _(
-                    "Lock Error: This thread is already generating a response. Please wait."
-                )
+                _("Lock Error: This thread is already generating a response. Please wait.")
             )
-        self._write_vals_decorated({"is_locked": True})
+        self._write_vals_decorated({'is_locked': True})
 
     def _unlock(self):
         """Releases the lock on the thread, ensuring immediate commit."""
         self.ensure_one()
         if self._read_is_locked_decorated():
-            self._write_vals_decorated({"is_locked": False})
+            self._write_vals_decorated({'is_locked': False})
 
     @execute_with_new_cursor
     def _read_is_locked_decorated(self, record_in_new_env):
@@ -289,6 +268,4 @@ class LLMThread(models.Model):
     @api.ondelete(at_uninstall=False)
     def _unlink_llm_thread(self):
         unlink_ids = [record.id for record in self]
-        self.env["bus.bus"]._sendone(
-            self.env.user.partner_id, "llm.thread/delete", {"ids": unlink_ids}
-        )
+        self.env['bus.bus']._sendone(self.env.user.partner_id, 'llm.thread/delete', {'ids': unlink_ids})

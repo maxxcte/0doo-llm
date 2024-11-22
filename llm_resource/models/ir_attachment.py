@@ -1,5 +1,4 @@
 import base64
-
 from odoo import models
 
 

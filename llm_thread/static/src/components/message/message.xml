@@ -8,25 +8,16 @@
     <t t-name="llm_thread.Message.AssistantContent" owl="1">
         <!-- Render final message body (processed by mail) -->
         <t t-if="!messageView.composerViewInEditing">
-            <div class="o_Message_prettyBody" t-ref="prettyBody" />
+            <div class="o_Message_prettyBody" t-ref="prettyBody"/>
         </t>
         <!-- Display requested tool calls if any -->
-        <t
-      t-if="messageView.message.formattedToolCalls and messageView.message.formattedToolCalls.length > 0"
-    >
+        <t t-if="messageView.message.formattedToolCalls and messageView.message.formattedToolCalls.length > 0">
             <div class="o_llm_tool_calls mt-2 small text-muted border-top pt-1">
                 <strong class="me-1">Tools Requested:</strong>
-                <t
-          t-foreach="messageView.message.formattedToolCalls"
-          t-as="toolCall"
-          t-key="toolCall.id"
-        >
-                    <span
-            class="badge bg-light text-dark border me-1 mb-1"
-            t-att-title="'ID: ' + toolCall.id + '\nArgs: ' + toolCall.function?.arguments"
-          >
-                        <i class="fa fa-cog me-1" aria-hidden="true" />
-                        <t t-esc="toolCall.function?.name" />
+                <t t-foreach="messageView.message.formattedToolCalls" t-as="toolCall" t-key="toolCall.id">
+                    <span class="badge bg-light text-dark border me-1 mb-1" t-att-title="'ID: ' + toolCall.id + '\nArgs: ' + toolCall.function?.arguments">
+                        <i class="fa fa-cog me-1" aria-hidden="true"/>
+                        <t t-esc="toolCall.function?.name"/>
                     </span>
                 </t>
             </div>
@@ -36,27 +27,19 @@
     <t t-name="llm_thread.Message.ToolResultContent" owl="1">
         <div class="o_Message_prettyBody o_llm_tool_result">
             <div class="o_llm_tool_result_header small mb-1">
-                <p class="mb-2" t-ref="prettyBody" />
+                <p class="mb-2" t-ref="prettyBody"/>
                 <strong class="me-2">
-                    <i
-            t-attf-class="fa me-1 {{ messageView.message.toolCallResultIsError ? 'fa-exclamation-circle text-danger' : 'fa-check-circle text-success' }}"
-          />
-                    Tool: <t
-            t-esc="messageView.message.toolCallDefinitionFormatted?.function?.name || 'Unknown Tool'"
-          />
+                    <i t-attf-class="fa me-1 {{ messageView.message.toolCallResultIsError ? 'fa-exclamation-circle text-danger' : 'fa-check-circle text-success' }}"/>
+                    Tool: <t t-esc="messageView.message.toolCallDefinitionFormatted?.function?.name || 'Unknown Tool'"/>
                 </strong>
-                <span class="text-muted small">(ID: <t
-            t-esc="messageView.message.toolCallId || 'N/A'"
-          />)</span>
+                <span class="text-muted small">(ID: <t t-esc="messageView.message.toolCallId || 'N/A'"/>)</span>
             </div>
             <!-- Display Arguments (optional, could be default collapsed) -->
             <details class="o_llm_tool_result_args mb-1">
                 <summary class="text-muted" style="cursor: pointer;">
                     <strong class="small">Arguments</strong>
                 </summary>
-                <pre class="bg-light p-1 rounded small mt-1"><code
-            t-esc="messageView.message.toolCallDefinitionFormatted?.function?.arguments || '{}'"
-          /></pre>
+                <pre class="bg-light p-1 rounded small mt-1"><code t-esc="messageView.message.toolCallDefinitionFormatted?.function?.arguments || '{}'"/></pre>
             </details>
             <!-- Display Result/Error Content -->
             <div class="o_llm_tool_result_content mt-1">
@@ -65,17 +48,11 @@
                         <strong class="small">Result</strong>
                     </summary>
                     <t t-if="messageView.message.toolCallResultIsError">
-                        <pre
-              class="bg-danger-light border border-danger text-danger p-1 rounded small mt-1"
-            ><code
-                t-esc="messageView.message.toolCallResultData?.error || 'Unknown Error'"
-              /></pre>
+                        <pre class="bg-danger-light border border-danger text-danger p-1 rounded small mt-1"><code t-esc="messageView.message.toolCallResultData?.error || 'Unknown Error'"/></pre>
                     </t>
                     <t t-else="">
                         <!-- Render result nicely - assumes pretty print JSON -->
-                        <pre
-              class="bg-light border p-1 rounded small mt-1"
-            ><code t-esc="messageView.message.toolCallResultFormatted" /></pre>
+                        <pre class="bg-light border p-1 rounded small mt-1"><code t-esc="messageView.message.toolCallResultFormatted"/></pre>
                     </t>
                 </details>
             </div>
@@ -84,28 +61,22 @@
 
     <t t-name="llm_thread.Message.DefaultContent" owl="1">
         <t t-if="!messageView.composerViewInEditing">
-            <div class="o_Message_prettyBody" t-ref="prettyBody" />
+            <div class="o_Message_prettyBody" t-ref="prettyBody"/>
         </t>
         <t t-if="messageView.composerViewInEditing">
             <Composer
-        className="'o_Message_composer'"
-        record="messageView.composerViewInEditing"
-      />
+                className="'o_Message_composer'"
+                record="messageView.composerViewInEditing"
+            />
         </t>
-        <t
-      t-if="messageView.message.subtype_description and !messageView.message.isBodyEqualSubtypeDescription"
-    >
-            <p t-esc="messageView.message.subtype_description" class="mb-0" />
+        <t t-if="messageView.message.subtype_description and !messageView.message.isBodyEqualSubtypeDescription">
+            <p t-esc="messageView.message.subtype_description" class="mb-0"/>
         </t>
         <t t-if="messageView.message.trackingValues.length > 0">
             <ul class="o_Message_trackingValues mb-0 ps-4">
-                <t
-          t-foreach="messageView.message.trackingValues"
-          t-as="trackingValue"
-          t-key="trackingValue.id"
-        >
+                <t t-foreach="messageView.message.trackingValues" t-as="trackingValue" t-key="trackingValue.id">
                     <li>
-                        <TrackingValue value="trackingValue" />
+                        <TrackingValue value="trackingValue"/>
                     </li>
                 </t>
             </ul>
@@ -116,42 +87,32 @@
     <!-- Main Message Template Extension                                        -->
     <!-- ====================================================================== -->
 
-    <t
-    t-name="llm_thread.Message"
-    t-inherit="mail.Message"
-    t-inherit-mode="extension"
-    owl="1"
-  >
+    <t t-name="llm_thread.Message" t-inherit="mail.Message" t-inherit-mode="extension" owl="1">
         <!--
         Replace the main content rendering area.
         We rely on is_note=True (set by backend message_format for LLM subtypes)
         to get the desired overall bubble style from the base mail.Message template.
         -->
         <xpath expr="//div[hasclass('o_Message_content')]" position="replace">
-            <div
-        class="o_Message_content position-relative text-break"
-        t-att-class="{
+            <div class="o_Message_content position-relative text-break"
+                 t-att-class="{
                     'opacity-75': messageView.message.isSquashed,
                     'o_Message_content--failed': messageView.message.isFailed,
                  }"
-        t-ref="content"
-      >
+                 t-ref="content"
+                 >
 
-                <t
-          t-if="messageView.message.messageSubtypeXmlid === 'llm_mail_message_subtypes.mt_llm_assistant'"
-        >
-                    <t t-call="llm_thread.Message.AssistantContent" />
+                <t t-if="messageView.message.messageSubtypeXmlid === 'llm_mail_message_subtypes.mt_llm_assistant'">
+                    <t t-call="llm_thread.Message.AssistantContent"/>
                 </t>
-                <t
-          t-elif="messageView.message.messageSubtypeXmlid === 'llm_mail_message_subtypes.mt_llm_tool_result'"
-        >
-                    <t t-call="llm_thread.Message.ToolResultContent" />
+                <t t-elif="messageView.message.messageSubtypeXmlid === 'llm_mail_message_subtypes.mt_llm_tool_result'">
+                    <t t-call="llm_thread.Message.ToolResultContent"/>
                 </t>
                 <t t-else="">
-                    <t t-call="llm_thread.Message.DefaultContent" />
+                    <t t-call="llm_thread.Message.DefaultContent"/>
                 </t>
 
-                <div class="o_Message_linkPreviews" />
+                <div class="o_Message_linkPreviews"/>
             </div>
         </xpath>
     </t>

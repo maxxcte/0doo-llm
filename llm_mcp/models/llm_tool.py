@@ -1,12 +1,13 @@
-from odoo import api, fields, models
+from odoo import api, models, fields
 from odoo.exceptions import UserError
-
 
 class LLMTool(models.Model):
     _inherit = "llm.tool"
 
     mcp_server_id = fields.Many2one(
-        "llm.mcp.server", string="MCP Server", ondelete="cascade"
+        'llm.mcp.server',
+        string="MCP Server",
+        ondelete="cascade"
     )
 
     @api.model
@@ -35,16 +36,14 @@ class LLMTool(models.Model):
             return result
         except Exception as e:
             if not isinstance(e, UserError):
-                raise UserError(
-                    f"Error executing tool '{self.name}' on MCP server '{self.mcp_server_id.name}': {str(e)}"
-                ) from e
+                raise UserError(f"Error executing tool '{self.name}' on MCP server '{self.mcp_server_id.name}': {str(e)}") from e
             raise
 
     def execute(self, parameters):
         self.ensure_one()
         # if mcp tool, then we don't need to construct method signature to execute the tool
         # as it is handled by mcp server via mcp_execute
-        if self.implementation == "mcp":
+        if self.implementation == 'mcp':
             result = self.mcp_execute(**parameters)
             return result
         else:

@@ -68,7 +68,6 @@ class LLMThread(models.Model):
             },
             "target": "current",
         }
-
     # override to include assistant's system prompt
     def _get_system_prompt(self):
         """Hook: return a system prompt for chat. Override in other modules. If needed"""
@@ -77,10 +76,10 @@ class LLMThread(models.Model):
         assistant_system_prompt = None
         if self.assistant_id:
             assistant_system_prompt = self.assistant_id.get_formatted_system_prompt()
-
+        
         if assistant_system_prompt and system_prompt:
             system_prompt = f"{assistant_system_prompt}\n\n{system_prompt}"
         elif assistant_system_prompt:
             system_prompt = assistant_system_prompt
-
+        
         return system_prompt

@@ -53,7 +53,7 @@ results = store.chroma_search_vectors(collection_id, query_vector, limit=10)
 
 ## Troubleshooting
 
-### KeyError: '\_type'
+### KeyError: '_type'
 
 **Symptom:** A `KeyError: '_type'` when calling `client.create_collection(...)`.
 
@@ -82,3 +82,4 @@ results = store.chroma_search_vectors(collection_id, query_vector, limit=10)
 ## License
 
 This module is released under the **LGPL-3** license.
+

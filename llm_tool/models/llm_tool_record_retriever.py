@@ -38,7 +38,9 @@ class LLMToolRecordRetriever(models.Model):
 
         # Using search_read for efficiency
         if fields:
-            result = model_obj.search_read(domain=domain, fields=fields, limit=limit)
+            result = model_obj.search_read(
+                domain=domain, fields=fields, limit=limit
+            )
         else:
             records = model_obj.search(domain=domain, limit=limit)
             result = records.read()

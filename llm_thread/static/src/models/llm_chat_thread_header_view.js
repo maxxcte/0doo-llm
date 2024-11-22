@@ -35,12 +35,9 @@ registerModel({
         }
         const providers = this.threadView?.thread?.llmChat?.llmProviders;
         if (!providers || !Array.isArray(providers)) {
-          return clear();
+            return clear();
         }
-        return (
-          providers.find((p) => p && p.id === this.selectedProviderId) ||
-          clear()
-        );
+        return providers.find((p) => p && p.id === this.selectedProviderId) || clear();
       },
     }),
     selectedModel: one("LLMModel", {
@@ -50,11 +47,9 @@ registerModel({
         }
         const models = this.threadView?.thread?.llmChat?.llmModels;
         if (!models || !Array.isArray(models)) {
-          return clear();
+            return clear();
         }
-        const matchedModel = models.find(
-          (m) => m && m.id === this.selectedModelId
-        );
+        const matchedModel = models.find((m) => m && m.id === this.selectedModelId);
         return matchedModel || clear();
       },
     }),

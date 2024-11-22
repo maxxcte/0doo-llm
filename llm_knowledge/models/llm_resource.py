@@ -310,7 +310,9 @@ class LLMKnowledgeChunker(models.Model):
             if collection.store_id:
                 # Remove chunks from this resource from the store
                 try:
-                    collection.delete_vectors(ids=chunks.ids)
+                    collection.delete_vectors(
+                        ids=chunks.ids
+                    )
                 except Exception as e:
                     _logger.warning(
                         f"Error removing vectors for chunks from collection {collection.id}: {str(e)}"
@@ -383,9 +385,9 @@ class LLMKnowledgeChunker(models.Model):
             result = collection.embed_resources(specific_resource_ids=chunked_docs.ids)
             # Check if result is not None before trying to access .get()
             if (
-                result
-                and result.get("success")
-                and result.get("processed_resources", 0) > 0
+                    result
+                    and result.get("success")
+                    and result.get("processed_resources", 0) > 0
             ):
                 any_embedded = True
 

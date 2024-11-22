@@ -1,6 +1,5 @@
-import jsonschema
-
 from odoo import _
+import jsonschema
 
 # Schema for individual argument objects
 ARGUMENT_SCHEMA = {
@@ -16,24 +15,31 @@ ARGUMENT_SCHEMA = {
                 "array",
                 "object",
                 "resource",
-                "context",
-            ],
+                "context"
+            ]
         },
-        "description": {"type": "string"},
-        "required": {"type": "boolean"},
+        "description": {
+            "type": "string"
+        },
+        "required": {
+            "type": "boolean"
+        },
         "default": {},  # Any type allowed
-        "examples": {"type": "array"},
+        "examples": {
+            "type": "array"
+        }
     },
-    "additionalProperties": True,  # Allow any other properties for flexibility
+    "additionalProperties": True  # Allow any other properties for flexibility
 }
 
 # Schema for the complete arguments_json field
 ARGUMENTS_JSON_SCHEMA = {
     "type": "object",
-    "patternProperties": {"^[a-zA-Z0-9_]+$": ARGUMENT_SCHEMA},
-    "additionalProperties": False,
+    "patternProperties": {
+        "^[a-zA-Z0-9_]+$": ARGUMENT_SCHEMA
+    },
+    "additionalProperties": False
 }
-
 
 def validate_arguments_schema(schema_text):
     """
@@ -46,7 +52,6 @@ def validate_arguments_schema(schema_text):
         tuple: (is_valid, error_message)
     """
     import json
-
     try:
         schema = json.loads(schema_text)
         jsonschema.validate(instance=schema, schema=ARGUMENTS_JSON_SCHEMA)

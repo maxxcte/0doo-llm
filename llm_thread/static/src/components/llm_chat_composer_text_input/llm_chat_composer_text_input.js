@@ -3,6 +3,7 @@ import { ComposerTextInput } from "@mail/components/composer_text_input/composer
 import { registerMessagingComponent } from "@mail/utils/messaging_component";
 
 export class LLMChatComposerTextInput extends ComposerTextInput {
+
   /**
    * @override
    */
@@ -21,7 +22,7 @@ export class LLMChatComposerTextInput extends ComposerTextInput {
     this.composerView.onInputTextarea(ev);
   }
 
-  _composerView() {
+  _composerView(){
     return this.props.record;
   }
 

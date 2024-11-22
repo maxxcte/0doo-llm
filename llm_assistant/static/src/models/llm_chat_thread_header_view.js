@@ -24,14 +24,11 @@ registerPatch({
         // and returns a record instance, which is correct.
         const assistants = this.threadView?.thread?.llmChat?.llmAssistants;
         if (!assistants || !Array.isArray(assistants)) {
-          return clear();
+            return clear();
         }
-        return (
-          assistants.find(
-            (assistantRecord) =>
-              assistantRecord && assistantRecord.id === this.selectedAssistantId
-          ) || clear()
-        );
+        return assistants.find(
+          (assistantRecord) => assistantRecord && assistantRecord.id === this.selectedAssistantId
+        ) || clear();
       },
     }),
   },
@@ -45,10 +42,10 @@ registerPatch({
       this._super();
       const currentThread = this.threadView?.thread;
       if (!currentThread) {
-        this.update({
-          selectedAssistantId: clear(),
-        });
-        return;
+          this.update({
+              selectedAssistantId: clear(),
+          });
+          return;
       }
 
       this.update({
@@ -98,8 +95,7 @@ registerPatch({
       } else {
         // Revert the local state if the server call failed
         this.update({
-          selectedAssistantId:
-            this.threadView.thread.llmAssistant?.id || clear(),
+          selectedAssistantId: this.threadView.thread.llmAssistant?.id || clear(),
         });
 
         // Show error message

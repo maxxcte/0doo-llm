@@ -1,7 +1,7 @@
 import base64
 import logging
 
-from odoo import _, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)

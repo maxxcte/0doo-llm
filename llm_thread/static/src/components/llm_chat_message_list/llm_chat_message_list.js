@@ -1,9 +1,10 @@
 /** @odoo-module **/
 
-import { useEffect, useRef } from "@odoo/owl";
+import { useRef, useEffect } from "@odoo/owl";
+
 import { MessageList } from "@mail/components/message_list/message_list";
-import { Transition } from "@web/core/transition";
 import { registerMessagingComponent } from "@mail/utils/messaging_component";
+import { Transition } from "@web/core/transition";
 
 export class LLMChatMessageList extends MessageList {
   setup() {

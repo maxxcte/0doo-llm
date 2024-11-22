@@ -48,9 +48,9 @@
                         </group>
                         <group string="Tool Annotations">
                             <field
-                name="title"
-                placeholder="Human-readable title for the tool"
-              />
+                                    name="title"
+                                    placeholder="Human-readable title for the tool"
+                            />
 
                             <field name="read_only_hint" />
                             <field

@@ -2,10 +2,8 @@
 <odoo>
     <record id="llm_assistant_knowledge_bot" model="llm.assistant">
         <field name="name">Knowledge Bot</field>
-        <field name="prompt_id" ref="llm_assistant.llm_prompt_assistant" />
-        <field
-      name="default_values"
-    ><![CDATA[{
+        <field name="prompt_id" ref="llm_assistant.llm_prompt_assistant"/>
+        <field name="default_values"><![CDATA[{
             "role": "Knowledge Assistant",
             "goal": "provide accurate and helpful information by leveraging the organization's knowledge base",
             "background": "You are an intelligent assistant with access to the organization's knowledge base. You can retrieve relevant information from documents, manuals, guides, and other stored knowledge to provide accurate and contextual responses to user queries.",

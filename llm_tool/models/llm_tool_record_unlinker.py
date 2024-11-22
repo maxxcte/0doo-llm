@@ -29,6 +29,7 @@ class LLMToolRecordUnlinker(models.Model):
             f"Executing Odoo Record Unlinker with: model={model}, domain={domain}, limit={limit}"
         )
 
+        
         model_obj = self.env[model]
 
         # Find records to delete
@@ -39,7 +40,8 @@ class LLMToolRecordUnlinker(models.Model):
 
         # Store record info before deletion for reporting
         record_info = [
-            {"id": record.id, "display_name": record.display_name} for record in records
+            {"id": record.id, "display_name": record.display_name}
+            for record in records
         ]
 
         # Count records to be deleted

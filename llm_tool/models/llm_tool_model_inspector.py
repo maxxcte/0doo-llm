@@ -1,19 +1,17 @@
 import inspect
+import json
 import logging
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-from odoo import api, models
+from odoo import _, api, models
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
 # Constants defining the checks (outside the class for better maintainability)
 METHOD_TYPE_CHECKS = [
     (lambda mo, ma, iss, isc: ma == "model", "model", "@api.model"),
-    (
-        lambda mo, ma, iss, isc: ma == "model_create",
-        "model_create",
-        "@api.model_create_multi/_single",
-    ),
+    (lambda mo, ma, iss, isc: ma == "model_create", "model_create", "@api.model_create_multi/_single"),
     (lambda mo, ma, iss, isc: iss, "static", "@staticmethod"),
     (lambda mo, ma, iss, isc: isc, "class", "@classmethod"),
     (lambda mo, ma, iss, isc: isinstance(mo, staticmethod), "static", "@staticmethod"),
@@ -21,10 +19,7 @@ METHOD_TYPE_CHECKS = [
 ]
 
 OTHER_DECORATOR_CHECKS = [
-    (
-        lambda mo: hasattr(mo, "_depends"),
-        lambda self, mo: f"@api.depends({self._format_depends_info(mo)})",
-    ),
+    (lambda mo: hasattr(mo, "_depends"), lambda self, mo: f"@api.depends({self._format_depends_info(mo)})"),
     (lambda mo: hasattr(mo, "_constrains"), lambda self, mo: "@api.constrains(...)"),
     (lambda mo: hasattr(mo, "_onchange"), lambda self, mo: "@api.onchange(...)"),
     (lambda mo: getattr(mo, "deprecated", False), lambda self, mo: "@api.deprecated"),
@@ -35,25 +30,23 @@ class LLMToolModelInspector(models.Model):
     _inherit = "llm.tool"
 
     @api.model
-    def _get_available_implementations(self) -> list[tuple[str, str]]:
+    def _get_available_implementations(self) -> List[Tuple[str, str]]:
         implementations = super()._get_available_implementations()
-        return implementations + [
-            ("odoo_model_inspector", "Odoo Comprehensive Model Inspector")
-        ]
+        return implementations + [("odoo_model_inspector", "Odoo Comprehensive Model Inspector")]
 
     def odoo_model_inspector_execute(
-        self,
-        model: str,
-        include_fields: bool = True,
-        include_methods: bool = True,
-        field_limit: int = 30,
-        method_limit: int = 20,
-        include_private: bool = False,
-        method_name_filter: str | None = None,
-        method_type_filter: list[str] | None = None,
-        field_name_filter: str | None = None,
-        field_type_filter: list[str] | None = None,
-    ) -> dict[str, Any]:
+            self,
+            model: str,
+            include_fields: bool = True,
+            include_methods: bool = True,
+            field_limit: int = 30,
+            method_limit: int = 20,
+            include_private: bool = False,
+            method_name_filter: Optional[str] = None,
+            method_type_filter: Optional[List[str]] = None,
+            field_name_filter: Optional[str] = None,
+            field_type_filter: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
         """
         Comprehensive inspection of an Odoo model including basic information, fields, and methods.
 
@@ -101,7 +94,7 @@ class LLMToolModelInspector(models.Model):
                 limit=field_limit,
                 include_private=include_private,
                 name_filter=field_name_filter,
-                type_filter=field_type_filter,
+                type_filter=field_type_filter
             )
             result["fields"] = fields_info["fields"]
             result["field_count"] = fields_info["field_count"]
@@ -114,7 +107,7 @@ class LLMToolModelInspector(models.Model):
                 limit=method_limit,
                 include_private=include_private,
                 name_filter=method_name_filter,
-                type_filter=method_type_filter,
+                type_filter=method_type_filter
             )
             result["methods"] = methods_info["methods"]
             result["method_count"] = methods_info["returned_count"]
@@ -125,13 +118,13 @@ class LLMToolModelInspector(models.Model):
 
         return result
 
-    def _get_model_basic_info(self, model_name: str) -> dict[str, Any]:
+    def _get_model_basic_info(self, model_name: str) -> Dict[str, Any]:
         """Get basic information about the model from ir.model."""
         IrModel = self.env["ir.model"]
         model_info = IrModel.search_read(
             [("model", "=", model_name)],
             ["name", "model", "modules", "transient"],
-            limit=1,
+            limit=1
         )
 
         if not model_info:
@@ -152,7 +145,7 @@ class LLMToolModelInspector(models.Model):
             "transient": info.get("transient", False),
         }
 
-    def _get_inheritance_info(self, model_obj: models.Model) -> dict[str, Any]:
+    def _get_inheritance_info(self, model_obj: models.Model) -> Dict[str, Any]:
         """Get information about model inheritance."""
         model_cls = model_obj.__class__
         try:
@@ -175,13 +168,13 @@ class LLMToolModelInspector(models.Model):
             return {"error": f"Error determining inheritance: {str(e)}"}
 
     def _get_fields_info(
-        self,
-        model_obj: models.Model,
-        limit: int = 30,
-        include_private: bool = False,
-        name_filter: str | None = None,
-        type_filter: list[str] | None = None,
-    ) -> dict[str, Any]:
+            self,
+            model_obj: models.Model,
+            limit: int = 30,
+            include_private: bool = False,
+            name_filter: Optional[str] = None,
+            type_filter: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         """Get detailed information about model fields."""
         fields_info = model_obj.fields_get()
         processed_fields = {}
@@ -244,13 +237,13 @@ class LLMToolModelInspector(models.Model):
         }
 
     def _get_methods_info(
-        self,
-        model_obj: models.Model,
-        limit: int = 20,
-        include_private: bool = False,
-        name_filter: str | None = None,
-        type_filter: list[str] | None = None,
-    ) -> dict[str, Any]:
+            self,
+            model_obj: models.Model,
+            limit: int = 20,
+            include_private: bool = False,
+            name_filter: Optional[str] = None,
+            type_filter: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         """Get detailed information about model methods."""
         model_cls = model_obj.__class__
         members = inspect.getmembers(model_cls, callable)
@@ -283,9 +276,7 @@ class LLMToolModelInspector(models.Model):
         # Sort methods by name and apply limit
         method_details_list.sort(key=lambda x: x["name"])
         total_found = len(method_details_list)
-        sliced_results = (
-            method_details_list[:limit] if limit > 0 else method_details_list
-        )
+        sliced_results = method_details_list[:limit] if limit > 0 else method_details_list
 
         return {
             "methods": sliced_results,
@@ -294,17 +285,15 @@ class LLMToolModelInspector(models.Model):
             "limited": limit > 0 and total_found > limit,
         }
 
+
+
     def _format_depends_info(self, method_obj):
         """Helper to format the @api.depends decorator string."""
         depends_info = getattr(method_obj, "_depends", {})
         if isinstance(depends_info, (dict, tuple, list)):  # Check if it's iterable
             try:
                 # Attempt to create a string representation, handle potential complex structures
-                deps_str = (
-                    ", ".join(f"'{f}'" for f in depends_info)
-                    if isinstance(depends_info, dict)
-                    else repr(depends_info)
-                )
+                deps_str = ", ".join(f"'{f}'" for f in depends_info) if isinstance(depends_info, dict) else repr(depends_info)
             except Exception:
                 deps_str = "(complex dependencies)"  # Fallback for complex/unrepresentable structures
         else:
@@ -312,8 +301,8 @@ class LLMToolModelInspector(models.Model):
         return deps_str
 
     def _extract_method_details(
-        self, model_cls, method_obj, name
-    ) -> dict[str, Any] | None:
+            self, model_cls, method_obj, name
+    ) -> Optional[Dict[str, Any]]:
         """Extract detailed information about a method."""
         details = {
             "name": name,
@@ -360,9 +349,7 @@ class LLMToolModelInspector(models.Model):
 
         # 3. Determine Primary Type and Core Decorator using METHOD_TYPE_CHECKS
         for check_func, type_str, decorator_str in METHOD_TYPE_CHECKS:
-            if check_func(
-                method_obj, method_api, is_staticmethod_static, is_classmethod_static
-            ):
+            if check_func(method_obj, method_api, is_staticmethod_static, is_classmethod_static):
                 if not type_found:
                     method_type = type_str
                     type_found = True
@@ -388,7 +375,7 @@ class LLMToolModelInspector(models.Model):
 
         return details
 
-    def _generate_model_summary(self, model_data: dict[str, Any]) -> str:
+    def _generate_model_summary(self, model_data: Dict[str, Any]) -> str:
         """Generate a concise summary of the model."""
         summary_parts = []
 
@@ -410,12 +397,8 @@ class LLMToolModelInspector(models.Model):
                 field_type = field.get("type", "unknown")
                 field_types[field_type] = field_types.get(field_type, 0) + 1
 
-            field_summary = ", ".join(
-                [f"{count} {ftype}" for ftype, count in field_types.items()]
-            )
-            summary_parts.append(
-                f"Fields: {model_data.get('field_count', 0)} shown of {model_data.get('total_fields', 0)} total ({field_summary})"
-            )
+            field_summary = ", ".join([f"{count} {ftype}" for ftype, count in field_types.items()])
+            summary_parts.append(f"Fields: {model_data.get('field_count', 0)} shown of {model_data.get('total_fields', 0)} total ({field_summary})")
 
         # Methods summary
         if "methods" in model_data:
@@ -424,11 +407,7 @@ class LLMToolModelInspector(models.Model):
                 method_type = method.get("method_type", "unknown")
                 method_types[method_type] = method_types.get(method_type, 0) + 1
 
-            method_summary = ", ".join(
-                [f"{count} {mtype}" for mtype, count in method_types.items()]
-            )
-            summary_parts.append(
-                f"Methods: {model_data.get('method_count', 0)} shown of {model_data.get('total_methods', 0)} total ({method_summary})"
-            )
+            method_summary = ", ".join([f"{count} {mtype}" for mtype, count in method_types.items()])
+            summary_parts.append(f"Methods: {model_data.get('method_count', 0)} shown of {model_data.get('total_methods', 0)} total ({method_summary})")
 
         return "\n".join(summary_parts)

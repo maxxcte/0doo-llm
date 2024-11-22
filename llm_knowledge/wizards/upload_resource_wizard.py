@@ -8,13 +8,13 @@ _logger = logging.getLogger(__name__)
 
 
 class UploadResourceWizard(models.TransientModel):
-    _name = "llm.upload.resource.wizard"  # Keep original name or rename if preferred
+    _name = "llm.upload.resource.wizard" # Keep original name or rename if preferred
     _description = "Upload RAG Resources Wizard"
 
     collection_id = fields.Many2one(
-        "llm.knowledge.collection",  # Target llm.knowledge.collection
+        "llm.knowledge.collection", # Target llm.knowledge.collection
         string="Collection",
-        required=True,  # Collection is required here
+        required=True, # Collection is required here
         help="Collection to which resources will be added",
     )
     file_ids = fields.Many2many(
@@ -44,7 +44,7 @@ class UploadResourceWizard(models.TransientModel):
     )
     # Field renamed and target model changed
     created_resource_ids = fields.Many2many(
-        "llm.resource",  # Target llm.resource
+        "llm.resource", # Target llm.resource
         string="Created Resources",
     )
     created_count = fields.Integer(string="Created", compute="_compute_created_count")
@@ -71,12 +71,12 @@ class UploadResourceWizard(models.TransientModel):
         """Create RAG resources from uploaded files and external URLs"""
         self.ensure_one()
         collection = self.collection_id
-        created_resources = self.env["llm.resource"]  # Target llm.resource
+        created_resources = self.env["llm.resource"] # Target llm.resource
 
         # Get the ir.model record for ir.attachment
         # Renamed variable
-        attachment_model_id_rec = self.env["ir.model"].search(
-            [("model", "=", "ir.attachment")], limit=1
+        attachment_model_id_rec = (
+            self.env["ir.model"].search([("model", "=", "ir.attachment")], limit=1)
         )
         if not attachment_model_id_rec:
             raise UserError(_("Could not find ir.attachment model"))
@@ -91,23 +91,23 @@ class UploadResourceWizard(models.TransientModel):
             # Use renamed field
             resource_name = self.resource_name_template.format(
                 filename=attachment.name,
-                collection=collection.name,  # Use collection name
+                collection=collection.name, # Use collection name
                 index=index + 1,
             )
 
             # Create RAG resource using model_id
-            resource = self.env["llm.resource"].create(  # Target llm.resource
+            resource = self.env["llm.resource"].create( # Target llm.resource
                 {
                     "name": resource_name,
                     "model_id": attachment_model_id,
                     "res_id": attachment.id,
-                    "collection_ids": [(4, collection.id)],  # Link to collection
+                    "collection_ids": [(4, collection.id)], # Link to collection
                 }
             )
 
             # Process resource if requested (full RAG pipeline)
             if self.process_immediately:
-                resource.process_resource()  # Calls overridden method
+                resource.process_resource() # Calls overridden method
 
             created_resources |= resource
 
@@ -123,7 +123,7 @@ class UploadResourceWizard(models.TransientModel):
                 # Use renamed field
                 resource_name = self.resource_name_template.format(
                     filename=filename,
-                    collection=collection.name,  # Use collection name
+                    collection=collection.name, # Use collection name
                     index=len(self.file_ids) + index + 1,
                 )
 
@@ -140,19 +140,19 @@ class UploadResourceWizard(models.TransientModel):
                 )
 
                 # Create RAG resource using model_id
-                resource = self.env["llm.resource"].create(  # Target llm.resource
+                resource = self.env["llm.resource"].create( # Target llm.resource
                     {
                         "name": resource_name,
                         "model_id": attachment_model_id,
                         "res_id": attachment.id,
-                        "collection_ids": [(4, collection.id)],  # Link to collection
-                        "retriever": "http",  # Specify HTTP retriever
+                        "collection_ids": [(4, collection.id)], # Link to collection
+                        "retriever": "http", # Specify HTTP retriever
                     }
                 )
 
                 # Process resource if requested (full RAG pipeline)
                 if self.process_immediately:
-                    resource.process_resource()  # Calls overridden method
+                    resource.process_resource() # Calls overridden method
 
                 created_resources |= resource
 
@@ -160,15 +160,13 @@ class UploadResourceWizard(models.TransientModel):
         self.write(
             {
                 "state": "done",
-                "created_resource_ids": [
-                    (6, 0, created_resources.ids)
-                ],  # Use renamed field
+                "created_resource_ids": [(6, 0, created_resources.ids)], # Use renamed field
             }
         )
 
         return {
             "type": "ir.actions.act_window",
-            "res_model": self._name,  # Use self._name for correct wizard model
+            "res_model": self._name, # Use self._name for correct wizard model
             "res_id": self.id,
             "view_mode": "form",
             "target": "new",
@@ -181,46 +179,13 @@ class UploadResourceWizard(models.TransientModel):
         return {
             "name": "Uploaded RAG Resources",
             "type": "ir.actions.act_window",
-            "res_model": "llm.resource",  # Target llm.resource
+            "res_model": "llm.resource", # Target llm.resource
             "view_mode": "tree,form,kanban",
-            "domain": [
-                ("id", "in", self.created_resource_ids.ids)
-            ],  # Use renamed field
-            # Use the specific views defined in llm_knowledge for llm.resource
-            "view_ids": [
-                (5, 0, 0),
-                (
-                    0,
-                    0,
-                    {
-                        "view_mode": "kanban",
-                        "view_id": self.env.ref(
-                            "llm_knowledge.view_llm_resource_kanban"
-                        ).id,
-                    },
-                ),
-                (
-                    0,
-                    0,
-                    {
-                        "view_mode": "tree",
-                        "view_id": self.env.ref(
-                            "llm_knowledge.view_llm_resource_tree"
-                        ).id,
-                    },
-                ),
-                (
-                    0,
-                    0,
-                    {
-                        "view_mode": "form",
-                        "view_id": self.env.ref(
-                            "llm_knowledge.view_llm_resource_form"
-                        ).id,
-                    },
-                ),
-            ],
-            "search_view_id": [
-                self.env.ref("llm_knowledge.view_llm_resource_search").id
-            ],
+            "domain": [("id", "in", self.created_resource_ids.ids)], # Use renamed field
+             # Use the specific views defined in llm_knowledge for llm.resource
+            "view_ids": [(5, 0, 0),
+                (0, 0, {'view_mode': 'kanban', 'view_id': self.env.ref('llm_knowledge.view_llm_resource_kanban').id}),
+                (0, 0, {'view_mode': 'tree', 'view_id': self.env.ref('llm_knowledge.view_llm_resource_tree').id}),
+                (0, 0, {'view_mode': 'form', 'view_id': self.env.ref('llm_knowledge.view_llm_resource_form').id})],
+            "search_view_id": [self.env.ref('llm_knowledge.view_llm_resource_search').id],
         }

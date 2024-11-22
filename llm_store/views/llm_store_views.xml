@@ -9,16 +9,16 @@
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button
-              name="toggle_active"
-              type="object"
-              class="oe_stat_button"
-              icon="fa-archive"
-            >
+                            name="toggle_active"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-archive"
+                        >
                             <field
-                name="active"
-                widget="boolean_toggle"
-                options="{'terminology': 'archive'}"
-              />
+                                name="active"
+                                widget="boolean_toggle"
+                                options="{'terminology': 'archive'}"
+                            />
                         </button>
                     </div>
                     <div class="oe_title">
@@ -31,10 +31,7 @@
                             <field name="service" />
                         </group>
                         <group>
-                            <field
-                name="connection_uri"
-                placeholder="postgres://username:password@localhost:5432/database"
-              />
+                            <field name="connection_uri" placeholder="postgres://username:password@localhost:5432/database" />
                             <field name="api_key" password="True" />
                             <field name="metadata" widget="json_inline" />
                         </group>
@@ -71,16 +68,16 @@
                 <field name="service" />
                 <separator />
                 <filter
-          string="Archived"
-          name="inactive"
-          domain="[('active', '=', False)]"
-        />
+                    string="Archived"
+                    name="inactive"
+                    domain="[('active', '=', False)]"
+                />
                 <group expand="0" string="Group By">
                     <filter
-            string="Service"
-            name="group_by_service"
-            context="{'group_by': 'service'}"
-          />
+                        string="Service"
+                        name="group_by_service"
+                        context="{'group_by': 'service'}"
+                    />
                 </group>
             </search>
         </field>

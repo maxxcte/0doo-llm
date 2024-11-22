@@ -27,7 +27,7 @@ export class LLMChatComposer extends Component {
     return this.composerView.composer.isSendDisabled;
   }
 
-  get isStreaming() {
+  get isStreaming(){
     return this.composerView.composer.isStreaming;
   }
 

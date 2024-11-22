@@ -464,7 +464,7 @@ registerModel({
           return [];
         }
         const providers = this.llmModels
-          .map((m) => (m && m.llmProvider ? m.llmProvider : null))
+          .map((m) => m && m.llmProvider ? m.llmProvider : null)
           .filter((p) => p && p.id);
         return [...new Map(providers.map((p) => [p.id, p])).values()];
       },
@@ -476,9 +476,7 @@ registerModel({
         }
         const activeModel = this.activeThread?.llmModel;
         if (!activeModel) {
-          return this.llmModels.length > 0 && this.llmModels[0]
-            ? this.llmModels[0]
-            : clear();
+          return this.llmModels.length > 0 && this.llmModels[0] ? this.llmModels[0] : clear();
         }
 
         const found = this.llmModels.find((m) => m && m.id === activeModel.id);

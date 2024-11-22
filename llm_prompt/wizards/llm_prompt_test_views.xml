@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Form View for LLM Prompt Test Wizard -->
     <record id="llm_prompt_test_view_form" model="ir.ui.view">
@@ -8,25 +8,16 @@
             <form string="Prompt Test Result">
                 <sheet>
                     <group>
-                        <field name="prompt_id" />
+                        <field name="prompt_id"/>
                     </group>
                     <notebook>
                         <page string="Generated Messages">
-                            <field
-                name="messages"
-                widget="ace"
-                options="{'mode': 'text'}"
-                readonly="1"
-              />
+                            <field name="messages" widget="ace" options="{'mode': 'text'}" readonly="1"/>
                         </page>
                     </notebook>
                 </sheet>
                 <footer>
-                    <button
-            string="Close"
-            class="btn-secondary"
-            special="cancel"
-          />
+                    <button string="Close" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
         </field>

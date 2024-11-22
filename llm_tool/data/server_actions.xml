@@ -3,8 +3,8 @@
     <!-- Server Action for Reset Input Schema -->
     <record id="action_reset_input_schema" model="ir.actions.server">
         <field name="name">Reset Input Schema</field>
-        <field name="model_id" ref="model_llm_tool" />
-        <field name="binding_model_id" ref="model_llm_tool" />
+        <field name="model_id" ref="model_llm_tool"/>
+        <field name="binding_model_id" ref="model_llm_tool"/>
         <field name="binding_view_types">list</field>
         <field name="state">code</field>
         <field name="code">

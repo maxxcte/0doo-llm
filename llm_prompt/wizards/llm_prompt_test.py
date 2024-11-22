@@ -1,4 +1,4 @@
-from odoo import fields, models
+from odoo import api, fields, models, _
 
 
 class LLMPromptTest(models.TransientModel):

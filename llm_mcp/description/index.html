@@ -1,205 +1,109 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>
-      LLM MCP - Model Context Protocol Integration for Odoo | AI Extensions
-    </title>
-    <meta
-      name="description"
-      content="Connect your Odoo AI chat with external tools and services using the Model Context Protocol. Enable your LLMs to interact with any MCP-compliant server for enhanced functionality."
-    />
-    <meta
-      name="keywords"
-      content="Odoo MCP integration, Model Context Protocol, AI tool integration, LLM tools, ChatGPT tools, Claude tool execution, AI function calling, external AI tools, Odoo automation, MCP server, JSON-RPC protocol"
-    />
-    <meta name="author" content="Apexive Solutions LLC" />
-  </head>
-  <body>
-    <div class="container my-5">
-      <!-- Header Section with Banner -->
-      <header class="text-center mb-5">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM MCP - Model Context Protocol Integration for Odoo | AI Extensions</title>
+    <meta name="description" content="Connect your Odoo AI chat with external tools and services using the Model Context Protocol. Enable your LLMs to interact with any MCP-compliant server for enhanced functionality.">
+    <meta name="keywords" content="Odoo MCP integration, Model Context Protocol, AI tool integration, LLM tools, ChatGPT tools, Claude tool execution, AI function calling, external AI tools, Odoo automation, MCP server, JSON-RPC protocol">
+    <meta name="author" content="Apexive Solutions LLC">
+</head>
+<body>
+<div class="container my-5">
+    <!-- Header Section with Banner -->
+    <header class="text-center mb-5">
         <h1 class="display-4">LLM MCP</h1>
-        <p class="lead">
-          Model Context Protocol Integration for Odoo AI | Connect to External
-          Tool Providers
-        </p>
-        <img
-          src="banner.jpeg"
-          alt="Model Context Protocol Integration for Odoo"
-          class="img-fluid rounded mb-3"
-          style="max-height: 300px; object-fit: cover"
-        />
-      </header>
+        <p class="lead">Model Context Protocol Integration for Odoo AI | Connect to External Tool Providers</p>
+        <img src="banner.jpeg" alt="Model Context Protocol Integration for Odoo" class="img-fluid rounded mb-3" style="max-height: 300px; object-fit: cover;">
+    </header>
 
-      <!-- Main Content -->
-      <div class="row">
+    <!-- Main Content -->
+    <div class="row">
         <!-- Description Section -->
         <div class="col-lg-8">
-          <section class="mb-4">
-            <h2>About This Module</h2>
-            <p>
-              Extend your Odoo AI capabilities with the
-              <strong>Model Context Protocol (MCP)</strong> integration. This
-              module allows your LLM models to communicate with external
-              MCP-compliant servers, expanding the tools and functions available
-              to your AI assistants.
-            </p>
-            <p>
-              MCP is a standardized protocol for AI systems to discover and
-              interact with external tools and services. By supporting this
-              protocol, your Odoo instance can connect to a wide range of
-              specialized tool providers and expand AI capabilities without
-              custom integration work.
-            </p>
-          </section>
+            <section class="mb-4">
+                <h2>About This Module</h2>
+                <p>Extend your Odoo AI capabilities with the <strong>Model Context Protocol (MCP)</strong> integration. This module allows your LLM models to communicate with external MCP-compliant servers, expanding the tools and functions available to your AI assistants.</p>
+                <p>MCP is a standardized protocol for AI systems to discover and interact with external tools and services. By supporting this protocol, your Odoo instance can connect to a wide range of specialized tool providers and expand AI capabilities without custom integration work.</p>
+            </section>
 
-          <!-- Features Section -->
-          <section class="mb-4">
-            <h2>Key Features</h2>
-            <ul class="list-group">
-              <li class="list-group-item">
-                <strong>External Tool Discovery:</strong> Automatically discover
-                and register tools exposed by MCP servers
-              </li>
-              <li class="list-group-item">
-                <strong>Standard I/O Transport:</strong> Connect to external
-                processes using standard input/output pipes
-              </li>
-              <li class="list-group-item">
-                <strong>Tool Execution Proxy:</strong> Execute external tools
-                through your LLM conversations
-              </li>
-              <li class="list-group-item">
-                <strong>MCP Protocol Support:</strong> Full compliance with the
-                JSON-RPC 2.0 based Model Context Protocol
-              </li>
-              <li class="list-group-item">
-                <strong>Server Management:</strong> Simple interface for
-                managing MCP server connections
-              </li>
-              <li class="list-group-item">
-                <strong>Seamless Integration:</strong> Works with existing LLM
-                Tool module for consistent experience
-              </li>
-            </ul>
-          </section>
+            <!-- Features Section -->
+            <section class="mb-4">
+                <h2>Key Features</h2>
+                <ul class="list-group">
+                    <li class="list-group-item"><strong>External Tool Discovery:</strong> Automatically discover and register tools exposed by MCP servers</li>
+                    <li class="list-group-item"><strong>Standard I/O Transport:</strong> Connect to external processes using standard input/output pipes</li>
+                    <li class="list-group-item"><strong>Tool Execution Proxy:</strong> Execute external tools through your LLM conversations</li>
+                    <li class="list-group-item"><strong>MCP Protocol Support:</strong> Full compliance with the JSON-RPC 2.0 based Model Context Protocol</li>
+                    <li class="list-group-item"><strong>Server Management:</strong> Simple interface for managing MCP server connections</li>
+                    <li class="list-group-item"><strong>Seamless Integration:</strong> Works with existing LLM Tool module for consistent experience</li>
+                </ul>
+            </section>
 
-          <!-- Installation Section -->
-          <section class="mb-4">
-            <h2>Installation</h2>
-            <ol class="list-group list-group-numbered">
-              <li class="list-group-item">
-                Install the required dependencies: <code>base</code>,
-                <code>mail</code>, <code>llm</code>, <code>llm_tool</code>.
-              </li>
-              <li class="list-group-item">
-                Download the module from the Odoo Store or GitHub.
-              </li>
-              <li class="list-group-item">
-                Upload and install the module in your Odoo instance.
-              </li>
-              <li class="list-group-item">
-                Configure your MCP servers from the LLM Configuration menu.
-              </li>
-            </ol>
-          </section>
+            <!-- Installation Section -->
+            <section class="mb-4">
+                <h2>Installation</h2>
+                <ol class="list-group list-group-numbered">
+                    <li class="list-group-item">Install the required dependencies: <code>base</code>, <code>mail</code>, <code>llm</code>, <code>llm_tool</code>.</li>
+                    <li class="list-group-item">Download the module from the Odoo Store or GitHub.</li>
+                    <li class="list-group-item">Upload and install the module in your Odoo instance.</li>
+                    <li class="list-group-item">Configure your MCP servers from the LLM Configuration menu.</li>
+                </ol>
+            </section>
 
-          <!-- Usage Section -->
-          <section class="mb-4">
-            <h2>Usage Example</h2>
-            <p>
-              Once installed, you can easily connect to MCP-compliant servers:
-            </p>
-            <ol class="list-group list-group-numbered">
-              <li class="list-group-item">
-                Navigate to <strong>LLM Configuration → MCP Servers</strong>
-              </li>
-              <li class="list-group-item">
-                Create a new MCP server with the command to execute
-              </li>
-              <li class="list-group-item">
-                Click "Start Server" to establish the connection
-              </li>
-              <li class="list-group-item">
-                Tools from the server will be automatically discovered and
-                registered
-              </li>
-              <li class="list-group-item">
-                Use these tools in your LLM conversations just like any other
-                tool
-              </li>
-            </ol>
-          </section>
+            <!-- Usage Section -->
+            <section class="mb-4">
+                <h2>Usage Example</h2>
+                <p>Once installed, you can easily connect to MCP-compliant servers:</p>
+                <ol class="list-group list-group-numbered">
+                    <li class="list-group-item">Navigate to <strong>LLM Configuration → MCP Servers</strong></li>
+                    <li class="list-group-item">Create a new MCP server with the command to execute</li>
+                    <li class="list-group-item">Click "Start Server" to establish the connection</li>
+                    <li class="list-group-item">Tools from the server will be automatically discovered and registered</li>
+                    <li class="list-group-item">Use these tools in your LLM conversations just like any other tool</li>
+                </ol>
+            </section>
         </div>
 
         <!-- Sidebar with Module Info -->
         <div class="col-lg-4">
-          <div class="card mb-4">
-            <div class="card-body">
-              <h3 class="card-title">Module Information</h3>
-              <ul class="list-unstyled">
-                <li><strong>Name:</strong> LLM MCP</li>
-                <li><strong>Version:</strong> 16.0.1.0.0</li>
-                <li><strong>Category:</strong> Technical</li>
-                <li><strong>Author:</strong> Apexive Solutions LLC</li>
-                <li>
-                  <strong>Website:</strong>
-                  <a href="https://github.com/apexive/odoo-llm" target="_blank"
-                    >GitHub</a
-                  >
-                </li>
-                <li><strong>License:</strong> LGPL-3</li>
-                <li>
-                  <strong>Dependencies:</strong> base, mail, llm, llm_tool
-                </li>
-              </ul>
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title">Module Information</h3>
+                    <ul class="list-unstyled">
+                        <li><strong>Name:</strong> LLM MCP</li>
+                        <li><strong>Version:</strong> 16.0.1.0.0</li>
+                        <li><strong>Category:</strong> Technical</li>
+                        <li><strong>Author:</strong> Apexive Solutions LLC</li>
+                        <li><strong>Website:</strong> <a href="https://github.com/apexive/odoo-llm" target="_blank">GitHub</a></li>
+                        <li><strong>License:</strong> LGPL-3</li>
+                        <li><strong>Dependencies:</strong> base, mail, llm, llm_tool</li>
+                    </ul>
+                </div>
             </div>
-          </div>
 
-          <div class="card">
-            <div class="card-body">
-              <h3 class="card-title">Get Started</h3>
-              <p>
-                Enhance your Odoo AI capabilities with external tools through
-                the Model Context Protocol.
-              </p>
-              <a
-                href="https://github.com/apexive/odoo-llm"
-                class="btn btn-primary"
-                target="_blank"
-                >Download from GitHub</a
-              >
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Get Started</h3>
+                    <p>Enhance your Odoo AI capabilities with external tools through the Model Context Protocol.</p>
+                    <a href="https://github.com/apexive/odoo-llm" class="btn btn-primary" target="_blank">Download from GitHub</a>
+                </div>
             </div>
-          </div>
 
-          <div class="card mt-4">
-            <div class="card-body">
-              <h3 class="card-title">MCP Protocol</h3>
-              <p>
-                The Model Context Protocol is a standardized way for AI systems
-                to interact with external tools and services. By supporting MCP,
-                your Odoo instance can leverage a growing ecosystem of
-                specialized AI tools.
-              </p>
-              <p>
-                For more information about MCP, visit the
-                <a
-                  href="https://github.com/llm-tools/model-context-protocol"
-                  target="_blank"
-                  >official protocol repository</a
-                >.
-              </p>
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h3 class="card-title">MCP Protocol</h3>
+                    <p>The Model Context Protocol is a standardized way for AI systems to interact with external tools and services. By supporting MCP, your Odoo instance can leverage a growing ecosystem of specialized AI tools.</p>
+                    <p>For more information about MCP, visit the <a href="https://github.com/llm-tools/model-context-protocol" target="_blank">official protocol repository</a>.</p>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-
-      <!-- Footer -->
-      <footer class="text-center mt-5">
-        <p>&copy; 2025 Apexive Solutions LLC. All rights reserved.</p>
-      </footer>
     </div>
-  </body>
+
+    <!-- Footer -->
+    <footer class="text-center mt-5">
+        <p>&copy; 2025 Apexive Solutions LLC. All rights reserved.</p>
+    </footer>
+</div>
+</body>
 </html>

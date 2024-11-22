@@ -27,13 +27,11 @@ class LLMProvider(models.Model):
 
     @api.constrains("name")
     def _check_unique_name(self):
-        other_providers = self.search([("id", "not in", self.ids)])
+        other_providers = self.search([('id', 'not in', self.ids)])
         existing_names_lower = [p.name.lower() for p in other_providers if p.name]
         for record in self:
             if record.name and record.name.lower() in existing_names_lower:
-                raise ValidationError(
-                    _("The provider name must be unique (case-insensitive).")
-                )
+                raise ValidationError(_("The provider name must be unique (case-insensitive)."))
 
         return True
 
@@ -54,7 +52,7 @@ class LLMProvider(models.Model):
             )
 
         return getattr(self, service_method)(*args, **kwargs)
-
+    
     # TODO: maybe combine with with _dispatch?
     def _dispatch_on_message(self, message_record, method, *args, **kwargs):
         """Dispatch method call to appropriate service implementation"""

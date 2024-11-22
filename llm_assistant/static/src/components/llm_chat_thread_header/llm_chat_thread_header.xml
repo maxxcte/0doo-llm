@@ -41,11 +41,7 @@
                         </a>
                     </li>
                     <li><hr class="dropdown-divider" /></li>
-                    <t
-            t-foreach="llmAssistants"
-            t-as="assistant"
-            t-key="assistant.id"
-          >
+                    <t t-foreach="llmAssistants" t-as="assistant" t-key="assistant.id">
                         <li>
                             <a
                 class="dropdown-item text-truncate"

@@ -80,7 +80,7 @@ class LLMResource(models.Model):
         compute="_compute_kanban_state",
         store=True,
     )
-
+    
     # Selection fields for retrievers and parsers
     retriever = fields.Selection(
         selection="_get_available_retrievers",
@@ -103,7 +103,7 @@ class LLMResource(models.Model):
     def _get_available_retrievers(self):
         """Get all available retriever methods"""
         return [("default", "Default Retriever")]
-
+        
     @api.model
     def _get_available_parsers(self):
         """Get all available parser methods"""
