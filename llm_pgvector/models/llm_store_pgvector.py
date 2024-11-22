@@ -154,6 +154,9 @@ class LLMStorePgVector(models.Model):
         """Delete vectors (embeddings) for specified chunk IDs"""
         self.ensure_one()
 
+        if ids is None:
+            return False
+
         # Get the collection to determine the embedding model
         collection = self.env["llm.knowledge.collection"].browse(collection_id)
         if not collection.exists() or not collection.embedding_model_id:

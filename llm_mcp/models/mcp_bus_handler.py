@@ -17,7 +17,7 @@ class MCPBusHandler(models.AbstractModel):
     @api.model
     def _register_hook(self):
         """Register hook to initialize bus listener on server start"""
-        super(MCPBusHandler, self)._register_hook()
+        super()._register_hook()
 
         # This will be called automatically when the registry is built
         self._start_bus_listeners()

@@ -222,6 +222,9 @@ class LLMStoreChroma(models.Model):
         collection = self._get_chroma_collection(collection_id)
         if not collection:
             return False
+        
+        if ids is None:
+            return False
 
         try:
             # Convert IDs to strings if needed

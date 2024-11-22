@@ -228,7 +228,7 @@ class MCPBusBridgeThread(threading.Thread):
                 try:
                     self.process.terminate()
                     self.process.wait(timeout=2)
-                except:
+                except Exception as _e:
                     pass
 
             # Start the process with pipes for stdin, stdout, stderr
@@ -353,7 +353,7 @@ class MCPBusBridgeThread(threading.Thread):
             self.bus_wrapper = BusSubscriber(self._on_bus_notification)
 
             # Subscribe to channels
-            with self._get_environment() as env:
+            with self._get_environment() as _env:
                 dispatch.subscribe(
                     channels=self.channels_to_subscribe,
                     last=self.last_notification_id,
@@ -406,5 +406,5 @@ class MCPBusBridgeThread(threading.Thread):
                     _logger.warning(f"Error terminating process: {e}")
                     try:
                         self.process.kill()
-                    except:
+                    except Exception as _e:
                         pass

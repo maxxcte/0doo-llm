@@ -186,7 +186,7 @@ class LLMPrompt(models.Model):
             except json.JSONDecodeError as e:
                 raise ValidationError(
                     _("Invalid JSON in example arguments: %s") % str(e)
-                )
+                ) from e
 
     def get_prompt_data(self):
         """Returns the prompt data in the MCP format"""
@@ -376,8 +376,8 @@ class LLMPrompt(models.Model):
 
         try:
             example_args = json.loads(self.example_args or "{}")
-        except json.JSONDecodeError:
-            raise ValidationError(_("Invalid example arguments JSON"))
+        except json.JSONDecodeError as e:
+            raise ValidationError(_("Invalid example arguments JSON")) from e
 
         messages = self.get_messages(example_args)
 

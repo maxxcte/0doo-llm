@@ -26,7 +26,7 @@ class MCPBusManager:
 
         with cls._lock:
             if key not in cls._instances:
-                instance = super(MCPBusManager, cls).__new__(cls)
+                instance = super().__new__(cls)
                 instance._init_properties(env, server_id, command, args)
                 cls._instances[key] = instance
             return cls._instances[key]
@@ -82,7 +82,7 @@ class MCPBusManager:
                 stderr_output = "N/A"
                 try:
                     stderr_output = self.process.stderr.read()
-                except:
+                except Exception as _e:
                     pass
                 _logger.error(
                     f"Process exited immediately with code {self.process.returncode} and error: {stderr_output}"
@@ -261,7 +261,7 @@ class MCPBusManager:
             return request_id
         except Exception as e:
             _logger.error(f"Error sending message to MCP server {self.server_id}: {e}")
-            raise UserError(f"Failed to communicate with MCP server: {e}")
+            raise UserError(f"Failed to communicate with MCP server: {e}") from e
 
     def _get_next_request_id(self):
         """Get a unique request ID for JSON-RPC requests"""
@@ -284,7 +284,7 @@ class MCPBusManager:
                 stderr_output = "N/A"
                 try:
                     stderr_output = "".join(self.process.stderr.readlines())
-                except:
+                except Exception as _e:
                     pass
                 _logger.error(
                     f"MCP server {self.server_id} process exited with code {exit_code} while waiting for response {request_id}. Error: {stderr_output}"

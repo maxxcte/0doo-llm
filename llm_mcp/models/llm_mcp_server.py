@@ -57,7 +57,7 @@ class LLMMCPServer(models.Model):
         except Exception as e:
             error_msg = f"Failed to get manager for server {self.name}: {str(e)}"
             _logger.error(error_msg)
-            raise UserError(error_msg)
+            raise UserError(error_msg) from e
 
     def start_server(self):
         """Start the server and connect to it"""
@@ -100,7 +100,7 @@ class LLMMCPServer(models.Model):
             except Exception as e:
                 error_msg = f"Failed to start MCP server {self.name}: {str(e)}"
                 _logger.error(error_msg)
-                raise UserError(error_msg)
+                raise UserError(error_msg) from e
         elif self.transport == "internal":
             # For internal transport, no process to start
             self.is_connected = True
@@ -136,7 +136,7 @@ class LLMMCPServer(models.Model):
             except Exception as e:
                 raise UserError(
                     f"Could not connect to MCP server {self.name}: {str(e)}"
-                )
+                ) from e
 
         if self.transport == "stdio":
             try:
@@ -155,7 +155,7 @@ class LLMMCPServer(models.Model):
             except Exception as e:
                 error_msg = f"Error listing tools from server {self.name}: {str(e)}"
                 _logger.error(error_msg)
-                raise UserError(error_msg)
+                raise UserError(error_msg) from e
         elif self.transport == "internal":
             # For internal, just return the tools already defined
             return self.tool_ids
@@ -232,7 +232,7 @@ class LLMMCPServer(models.Model):
             except Exception as e:
                 raise UserError(
                     f"Could not connect to MCP server {self.name}: {str(e)}"
-                )
+                ) from e
 
         if self.transport == "stdio":
             try:

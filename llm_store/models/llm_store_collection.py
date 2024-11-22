@@ -1,4 +1,5 @@
-from odoo import fields, models
+from odoo import _, fields, models
+from odoo.exceptions import UserError
 
 
 class LLMStoreCollection(models.AbstractModel):
@@ -42,7 +43,7 @@ class LLMStoreCollection(models.AbstractModel):
         # To be implemented by specific provider modules
         return True
 
-    def delete_vectors(self, ids=[]):
+    def delete_vectors(self, ids=None):
         """Remove all vectors from this collection"""
         if self.store_id:
             return self.store_id._delete_vectors(self.id, ids)
