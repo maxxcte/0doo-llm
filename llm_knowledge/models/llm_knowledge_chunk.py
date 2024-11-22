@@ -113,12 +113,10 @@ class LLMKnowledgeChunk(models.Model):
                     and isinstance(arg[2], str)
             ):
                 vector_search_term = arg[2]
-                args = [a for a in args if a != arg]  # Remove the embedding condition
+                args = [a for a in args if a != arg]
                 break
 
-        # Get query_vector either from kwargs or by converting search term
         query_vector = kwargs.get("query_vector")
-        # TODO: Make sure to iterate over all collections and combine results if collection_id is not provided
         collection_id = kwargs.get("collection_id")
 
         if vector_search_term and not query_vector:
@@ -132,15 +130,12 @@ class LLMKnowledgeChunk(models.Model):
                 query_vector = embedding_model.embedding(vector_search_term.strip())[0]
                 collection_id = collection.id
 
-        # If we have a query vector and collection, use the store for search
         if query_vector is not None and collection_id:
             collection = self.env["llm.knowledge.collection"].browse(collection_id)
             if collection.exists() and collection.store_id:
-                # Get search parameters
                 min_similarity = kwargs.get("query_min_similarity",
                                                   self.env.context.get("search_min_similarity", 0.5))
                 query_operator = kwargs.get("query_operator", self.env.context.get("search_vector_operator", "<=>"))
-                # Use the store's vector search capability
                 try:
                     results = collection.search_vectors(
                         query_vector=query_vector,
@@ -154,7 +149,6 @@ class LLMKnowledgeChunk(models.Model):
                     if count:
                         return len(results)
 
-                    # Extract chunk IDs and similarity scores
                     chunk_ids = []
                     similarities = []
 
@@ -162,14 +156,9 @@ class LLMKnowledgeChunk(models.Model):
                         chunk_ids.append(result.get('id'))
                         similarities.append(result.get('score', 0.0))
 
-                    # Store similarity scores in context for the virtual field
                     similarity_scores = dict(zip(chunk_ids, similarities))
-
-                    # Return the found chunks with similarity scores in context
                     return self.browse(chunk_ids).with_context(similarity_scores=similarity_scores)
                 except Exception as e:
                     _logger.error(f"Error in vector search: {str(e)}")
-                    # Fall back to standard search
 
-        # Fallback to standard search if vector search is not possible
         return super().search(args, offset=offset, limit=limit, order=order, count=count, **kwargs)
