@@ -1,6 +1,7 @@
 import logging
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -112,6 +113,13 @@ class LLMKnowledgeChunk(models.Model):
 
         query_vector = kwargs.get("query_vector")
         specific_collection_id = kwargs.get("collection_id")
+        if query_vector and not specific_collection_id:
+            raise UserError(
+                _(
+                    "A pre-computed 'query_vector' can only be used when a specific 'collection_id' is also provided."
+                    " Searching across multiple collections requires a 'vector_search_term' for model-specific embedding generation."
+                )
+            )
 
         can_vector_search = bool(query_vector or vector_search_term)
         if not can_vector_search:
