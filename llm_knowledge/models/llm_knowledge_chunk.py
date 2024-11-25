@@ -146,7 +146,7 @@ class LLMKnowledgeChunk(models.Model):
                 try:
                     model_vector_map[model.id] = model.embedding(vector_search_term.strip())[0]
                 except Exception:
-                    collections = collections.filtered(lambda c: c.embedding_model_id.id != model.id)
+                    collections = collections.filtered(lambda c, failed_model_id=model.id: c.embedding_model_id.id != failed_model_id)
 
         if not collections:
             return super().search(original_args, offset=offset, limit=limit, order=order, count=count, **kwargs)
