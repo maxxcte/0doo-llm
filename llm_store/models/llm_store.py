@@ -1,3 +1,5 @@
+import re
+
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
@@ -97,6 +99,40 @@ class LLMStore(models.Model):
             Boolean indicating if collection exists
         """
         return self._dispatch("collection_exists", name, **kwargs)
+
+    # New sanitization methods
+    def _default_sanitize_collection_name(self, name):
+        """Default sanitizer for collection names, based on most common collection naming rules."""
+        # 1. Lowercase everything
+        s = name.lower()
+
+        # 2. Replace invalid chars with hyphens
+        s = re.sub(r'[^a-z0-9._-]', '-', s)
+
+        # 3. Collapse consecutive dots
+        s = re.sub(r'\.{2,}', '.', s)
+
+        # 4. Trim to max 63 chars
+        s = s[:63]
+        # 5. Strip non-alphanumeric from ends
+        s = re.sub(r'^[^a-z0-9]+', '', s)
+        s = re.sub(r'[^a-z0-9]+$', '', s)
+
+        # 6. If too short, pad with 'a'
+        if len(s) < 3:
+            s = s.ljust(3, 'a')
+
+        return s
+
+    def sanitize_collection_name(self, name):
+        """Sanitize a collection name based on the store type."""
+        return self._dispatch("sanitize_collection_name", name)
+
+    def get_collection_name(self, collection_id):
+        """Generate a sanitized collection name for the given ID."""
+        db_name = self.env.cr.dbname
+        raw_name = f"odoo_{db_name}_{collection_id}"
+        return self.sanitize_collection_name(raw_name)
 
     # Vector Management
     def _insert_vectors(self, collection_id, vectors, metadata=None, ids=None, **kwargs):

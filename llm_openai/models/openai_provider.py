@@ -345,7 +345,7 @@ class LLMProvider(models.Model):
 
         # Format the rest of the messages
         for message in messages:
-            formatted_message = self._dispatch("format_message", record=message)
+            formatted_message = self._dispatch_on_message(message, "format_message")
             if formatted_message:
                 formatted_messages.append(formatted_message)
 

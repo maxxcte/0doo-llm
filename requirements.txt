@@ -1,18 +1,14 @@
 # generated from manifests external_dependencies
 PyMuPDF
 anthropic
-chromadb-client
 emoji
 llama_index
-markdown2
 markdownify
-mistralai
 nltk
 numpy
 ollama
 openai
 pgvector
 pydantic>=2.0.0
-re
 replicate
 requests

@@ -34,6 +34,13 @@ class LLMKnowledgeCollection(models.Model):
         tracking=True,
         help="The model used to create embeddings for documents in this collection",
     )
+    dimension = fields.Integer(
+        string="Dimension",
+        compute='_compute_dimension',
+        store=True,
+        readonly=True,
+        help="Dimension of vectors in this collection, derived from the embedding model."
+    )
     resource_ids = fields.Many2many(
         "llm.resource",
         string="Resources",

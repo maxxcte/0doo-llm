@@ -1,9 +1,9 @@
 import logging
-import numpy as np
+
 from pgvector import Vector
 from pgvector.psycopg2 import register_vector
 
-from odoo import api, fields, models, _
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
