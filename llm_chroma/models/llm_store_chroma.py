@@ -243,9 +243,10 @@ class LLMStoreChroma(models.Model):
             _logger.error(f"Error deleting vectors: {str(e)}")
             return False
 
-    def chroma_search_vectors(self, collection_id, query_vector, limit=10, filter=None, min_similarity=0.5, **kwargs):
+    def chroma_search_vectors(self, collection_id, query_vector, limit=10, filter=None, **kwargs):
         """Search for similar vectors in a Chroma collection"""
         self.ensure_one()
+        
         collection = self._get_chroma_collection(collection_id)
         if not collection:
             return []
@@ -273,8 +274,6 @@ class LLMStoreChroma(models.Model):
                 distance = float(results['distances'][0][i]) if 'distances' in results and results['distances'][0] else float('inf')
                 # Convert L2 distance to similarity score [0, 1] (1 = closest)
                 score = 1.0 / (1.0 + distance) if distance != float('inf') else 0.0
-                if score < min_similarity:
-                    continue
                 formatted_results.append({
                     'id': int(id_val),  # Convert string ID to integer
                     'score': score,

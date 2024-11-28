@@ -1,6 +1,6 @@
 import logging
 
-from odoo import _, api, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -8,6 +8,20 @@ _logger = logging.getLogger(__name__)
 
 class LLMResourceRetriever(models.Model):
     _inherit = "llm.resource"
+    # Selection fields for retrievers and parsers
+    retriever = fields.Selection(
+        selection="_get_available_retrievers",
+        string="Retriever",
+        default="default",
+        required=True,
+        help="Method used to retrieve resource content",
+        tracking=True,
+    )
+
+    @api.model
+    def _get_available_retrievers(self):
+        """Get all available retriever methods"""
+        return [("default", "Default Retriever")]
 
     def retrieve(self):
         """Retrieve resource content from the related record with proper error handling and lock management"""
