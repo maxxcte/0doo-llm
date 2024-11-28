@@ -40,32 +40,22 @@ class LLMProvider(models.Model):
         """Get client instance using dispatch pattern"""
         return self._dispatch("get_client")
 
-    def _dispatch(self, method, *args, **kwargs):
-        """Dispatch method call to appropriate service implementation"""
+    def _dispatch(self, method, *args, record=None, **kwargs):
+        """Dispatch method call to appropriate service implementation on self or a given record."""
         if not self.service:
             raise UserError(_("Provider service not configured"))
 
         service_method = f"{self.service}_{method}"
-        if not hasattr(self, service_method):
+        target_obj = record if record else self
+        target_name = record._name if record else self._name
+
+        if not hasattr(target_obj, service_method):
             raise NotImplementedError(
-                _("Method %s not implemented for service %s") % (method, self.service)
+                _("Method '%s' not implemented for service '%s' on target '%s'")
+                % (method, self.service, target_name)
             )
 
-        return getattr(self, service_method)(*args, **kwargs)
-    
-    # TODO: maybe combine with with _dispatch?
-    def _dispatch_on_message(self, message_record, method, *args, **kwargs):
-        """Dispatch method call to appropriate service implementation"""
-        if not self.service:
-            raise UserError(_("Provider service not configured"))
-
-        service_method = f"{self.service}_{method}"
-        if not hasattr(message_record, service_method):
-            raise NotImplementedError(
-                _("Method %s not implemented for service %s") % (method, self.service)
-            )
-
-        return getattr(message_record, service_method)(*args, **kwargs)
+        return getattr(target_obj, service_method)(*args, **kwargs)
 
     @api.model
     def _selection_service(self):

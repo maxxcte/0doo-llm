@@ -18,37 +18,25 @@ class LLMProvider(models.Model):
         services = super()._get_available_services()
         return services + [("mistral", "Mistral AI")]
 
-    def _dispatch(self, method, *args, **kwargs):
+    def _dispatch(self, method, *args, record=None, **kwargs):
         if not self.service:
             raise UserError(_("Provider service not configured"))
         if self.service == "mistral":
+            # Mistral uses OpenAI compatible API for many things
             service_method = f"openai_{method}"
-            if not hasattr(self, service_method):
+            target_obj = record if record else self
+            target_name = record._name if record else self._name
+            if not hasattr(target_obj, service_method):
                 raise NotImplementedError(
-                    _("Method %s not implemented for service %s") % (method, self.service)
+                    _("Method '%s' (via '%s') not implemented for service '%s' on target '%s'")
+                    % (method, service_method, self.service, target_name)
                 )
 
-            return getattr(self, service_method)(*args, **kwargs)
+            return getattr(target_obj, service_method)(*args, **kwargs)
         else:
-            return super()._dispatch(method, *args, **kwargs)
-
-    def _dispatch_on_message(self, message_record, method, *args, **kwargs):
-        """Dispatch method call to appropriate service implementation"""
-        if not self.service:
-            raise UserError(_("Provider service not configured"))
-        if self.service == "mistral":
-            service_method = f"openai_{method}"
-            if not hasattr(message_record, service_method):
-                raise NotImplementedError(
-                    _("Method %s not implemented for service %s") % (method, self.service)
-                )
-
-            return getattr(message_record, service_method)(*args, **kwargs)
-        else:
-            return super()._dispatch_on_message(message_record, method, *args, **kwargs)
+            return super()._dispatch(method, *args, record=record, **kwargs)
 
     def openai_models(self):
-        
         models = self.client.models.list()
         if self.service == "mistral":
             for model in models.data:
