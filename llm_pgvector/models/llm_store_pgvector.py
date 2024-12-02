@@ -33,6 +33,13 @@ class LLMStorePgVector(models.Model):
     # Store Interface Implementation
     # -------------------------------------------------------------------------
 
+    # Add the specific sanitization method for pgvector compatibility
+    def pgvector_sanitize_collection_name(self, name):
+        """Sanitize a collection name for pgvector (uses default)."""
+        # Although pgvector doesn't use collection names directly,
+        # no-op for now
+        return name
+
     def pgvector_collection_exists(self, collection_id):
         """Check if a collection exists - for pgvector, collections always 'exist'"""
         self.ensure_one()
