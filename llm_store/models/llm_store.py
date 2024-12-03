@@ -128,7 +128,7 @@ class LLMStore(models.Model):
         """Sanitize a collection name based on the store type."""
         return self._dispatch("sanitize_collection_name", name)
 
-    def get_collection_name(self, collection_id):
+    def get_santized_collection_name(self, collection_id):
         """Generate a sanitized collection name for the given ID."""
         db_name = self.env.cr.dbname
         raw_name = f"odoo_{db_name}_{collection_id}"

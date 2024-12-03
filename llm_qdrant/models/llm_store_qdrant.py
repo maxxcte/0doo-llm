@@ -66,7 +66,7 @@ class LLMStoreQdrant(models.Model):
         if not client:
             return False
 
-        qdrant_collection_name = self.get_collection_name(collection_id)
+        qdrant_collection_name = self.get_santized_collection_name(collection_id)
 
         return client.collection_exists(collection_name=qdrant_collection_name)
 
@@ -91,7 +91,7 @@ class LLMStoreQdrant(models.Model):
                 # Generate a sample embedding to determine dimensions
                 sample_embedding = embedding_model.embedding("")[0]
                 dimension = len(sample_embedding) if sample_embedding else None
-        qdrant_collection_name = self.get_collection_name(collection_id)
+        qdrant_collection_name = self.get_santized_collection_name(collection_id)
 
         if self.qdrant_collection_exists(collection_id):
             # TODO: could check dimension mismatch here if needed
@@ -119,7 +119,7 @@ class LLMStoreQdrant(models.Model):
         if not client:
             raise UserError(_("Failed to connect to Qdrant server"))
 
-        qdrant_collection_name = self.get_collection_name(collection_id)
+        qdrant_collection_name = self.get_santized_collection_name(collection_id)
 
         if not self.qdrant_collection_exists(collection_id):
             return True
@@ -156,7 +156,7 @@ class LLMStoreQdrant(models.Model):
         if not client:
             raise UserError(_("Failed to connect to Qdrant server"))
 
-        qdrant_collection_name = self.get_collection_name(collection_id)
+        qdrant_collection_name = self.get_santized_collection_name(collection_id)
 
         if not ids or len(ids) != len(vectors):
             raise UserError(
@@ -225,7 +225,7 @@ class LLMStoreQdrant(models.Model):
         if not ids:
             return False
 
-        qdrant_collection_name = self.get_collection_name(collection_id)
+        qdrant_collection_name = self.get_santized_collection_name(collection_id)
 
         point_ids = [int(vid) for vid in ids if str(vid).isdigit() and int(vid) >= 0]
         if len(point_ids) != len(ids):
@@ -263,7 +263,7 @@ class LLMStoreQdrant(models.Model):
         if not client:
             return []
 
-        qdrant_collection_name = self.get_collection_name(collection_id)
+        qdrant_collection_name = self.get_santized_collection_name(collection_id)
         qdrant_filter = self._convert_odoo_filter_to_qdrant(filter) if filter else None
         score_threshold = min_similarity
 
@@ -399,7 +399,7 @@ class LLMStoreQdrant(models.Model):
         if not client:
             raise UserError(_("Failed to connect to Qdrant server"))
 
-        qdrant_collection_name = self.get_collection_name(collection_id)
+        qdrant_collection_name = self.get_santized_collection_name(collection_id)
 
         field_name = kwargs.get("field_name")
         field_schema = kwargs.get("field_schema")
