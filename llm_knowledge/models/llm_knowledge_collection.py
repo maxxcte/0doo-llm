@@ -1,8 +1,9 @@
 import logging
 
 from odoo import _, api, fields, models
-from odoo.tools.safe_eval import safe_eval
 from odoo.exceptions import UserError
+from odoo.tools.safe_eval import safe_eval
+
 _logger = logging.getLogger(__name__)
 
 
@@ -132,24 +133,16 @@ class LLMKnowledgeCollection(models.Model):
                         if old_store.exists():
                             collection._cleanup_old_store(old_store)
 
-                    # Then initialize the new store if it exists
                     if collection.store_id:
                         collection._initialize_store()
 
-                # If embedding model changed but store didn't, resources need to be re-embedded
-                # The store doesn't know about embedding models, it just stores vectors
-                if embedding_model_changed:
-                    # Mark resources for re-embedding
-                    ready_resources = collection.resource_ids.filtered(
-                        lambda r: r.state == 'ready'
+                    collection._reset_ready_resources(
+                        message=_("Store changed. Reset {count} resources for re-embedding into the new store.")
                     )
-                    if ready_resources:
-                        ready_resources.write({'state': 'chunked'})
-
-                        collection.message_post(
-                            body=_(f"Embedding model changed. Reset {len(ready_resources)} resources for re-embedding."),
-                            message_type="notification",
-                        )
+                if embedding_model_changed:
+                    collection._reset_ready_resources(
+                        message=_("Embedding model changed. Reset {count} resources for re-embedding.")
+                    )
 
         return result
 
@@ -189,6 +182,23 @@ class LLMKnowledgeCollection(models.Model):
         except Exception as e:
             _logger.warning(f"Error cleaning up old store: {str(e)}")
             return False
+
+    def _reset_ready_resources(self, message="Reset {{count}} resources for re-embedding."):
+        """Finds ready resources, resets their state to 'chunked', and posts a message."""
+        self.ensure_one()
+        ready_resources = self.resource_ids.filtered(
+            lambda r: r.state == 'ready'
+        )
+        if ready_resources:
+            count = len(ready_resources)
+            ready_resources.write({'state': 'chunked'})
+            self.message_post(
+                body=message.format(count=count),
+                message_type="notification",
+            )
+            return count
+        else:
+            return 0
 
     def action_view_resources(self):
         """Open a view with all resources in this collection"""
@@ -368,21 +378,15 @@ class LLMKnowledgeCollection(models.Model):
                     collection.store_id.create_collection(collection.id)
 
                     # Mark resources for re-embedding
-                    ready_docs = collection.resource_ids.filtered(lambda d: d.state == "ready")
-                    if ready_docs:
-                        ready_docs.write({"state": "chunked"})
-
-                        collection.message_post(
-                            body=_(
-                                f"Reset {len(ready_docs)} resources for re-embedding with model {collection.embedding_model_id.name}."
-                            ),
-                            message_type="notification",
-                        )
-                    else:
+                    reset_count = collection._reset_ready_resources(
+                        message=_(f"Reset {{count}} resources for re-embedding with model {collection.embedding_model_id.name}.")
+                    )
+                    if not reset_count:
                         collection.message_post(
                             body=_("No resources found to reindex."),
                             message_type="notification",
                         )
+
                 except Exception as e:
                     collection.message_post(
                         body=_(f"Error reindexing collection: {str(e)}"),
@@ -390,17 +394,10 @@ class LLMKnowledgeCollection(models.Model):
                     )
             else:
                 # For collections without a store, just reset resource states
-                ready_docs = collection.resource_ids.filtered(lambda d: d.state == "ready")
-                if ready_docs:
-                    ready_docs.write({"state": "chunked"})
-
-                    collection.message_post(
-                        body=_(
-                            f"Reset {len(ready_docs)} resources for re-embedding with model {collection.embedding_model_id.name}."
-                        ),
-                        message_type="notification",
-                    )
-                else:
+                reset_count = collection._reset_ready_resources(
+                    message=_(f"Reset {{count}} resources for re-embedding with model {collection.embedding_model_id.name}.")
+                )
+                if not reset_count:
                     collection.message_post(
                         body=_("No resources found to reindex."),
                         message_type="notification",
