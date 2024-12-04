@@ -80,9 +80,6 @@ class LLMStoreQdrant(models.Model):
             raise UserError(_("Failed to connect to Qdrant server"))
 
         collection_record = self.env["llm.knowledge.collection"].browse(collection_id)
-        if collection_record.exists() and collection_record.dimension:
-            dimension = collection_record.dimension
-
         if not dimension and collection_record.embedding_model_id:
             embedding_model = self.env["llm.model"].browse(
                 collection_record.embedding_model_id.id
