@@ -1,4 +1,5 @@
 import logging
+import re
 from urllib.parse import urlparse
 
 import chromadb
@@ -7,6 +8,9 @@ from odoo import _, api, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
+
+
+
 
 class LLMStoreChroma(models.Model):
     _inherit = "llm.store"
@@ -17,16 +21,12 @@ class LLMStoreChroma(models.Model):
         services = super()._get_available_services()
         return services + [("chroma", "Chroma")]
 
-    # Add the specific sanitization method for Chroma
-    def chroma_sanitize_collection_name(self, name):
-        """Sanitize a collection name for Chroma.
-        Chroma's rules match the default sanitizer.
-        """
-        return self._default_sanitize_collection_name(name)
-
     # -------------------------------------------------------------------------
     # Chroma Client Management
     # -------------------------------------------------------------------------
+
+    def _get_chroma_collection_name(self, collection_id):
+        return f"odoo_{self.env.cr.dbname}_{collection_id}"
 
     def _get_chroma_client(self):
         """Get a Chroma client for the current store configuration"""
@@ -76,11 +76,12 @@ class LLMStoreChroma(models.Model):
         if not collection.exists():
             return False
         
-        collection_name = self.get_santized_collection_name(collection_id)
+        collection_name = self._get_chroma_collection_name(collection_id)
             
         # Check if collection exists in Chroma
         collections = client.list_collections()
-        return any(c.name == collection_name for c in collections)
+        sanitized_collection_name = self._sanitize_collection_name(collection_name)
+        return any(c.name == sanitized_collection_name for c in collections)
 
     def chroma_create_collection(self, collection_id, dimension=None, metadata=None, **kwargs):
         """Create a collection in Chroma"""
@@ -107,21 +108,22 @@ class LLMStoreChroma(models.Model):
         }
         # Use the default embedding function
         try:
-            collection_name = self.get_santized_collection_name(collection_id)
-            _logger.info(f"Creating collection {collection_name} in Chroma")
+            collection_name = self._get_chroma_collection_name(collection_id)
+            sanitized_collection_name = self._sanitize_collection_name(collection_name)
+            _logger.info(f"Creating collection {sanitized_collection_name} in Chroma")
             client.create_collection(
-                name=collection_name,
+                name=sanitized_collection_name,
                 metadata=metadata
             )
 
             return True
         except Exception as err:
             _logger.error(
-                "Could not create collection %s: %s", collection_name, err
+                "Could not create collection %s: %s", sanitized_collection_name, err
             )
             raise UserError(
                 _("Could not create collection %s: %s")
-                % (collection_name, err)
+                % (sanitized_collection_name, err)
             ) from err
 
     def chroma_delete_collection(self, collection_id, **kwargs):
@@ -139,9 +141,10 @@ class LLMStoreChroma(models.Model):
                 return True  # Nothing to delete
                 
             # Delete collection in Chroma
-            collection_name = self.get_santized_collection_name(collection_id)
-            client.delete_collection(name=collection_name)
-            _logger.info(f"Deleted collection {collection_name} from Chroma")
+            collection_name = self._get_chroma_collection_name(collection_id)
+            sanitized_collection_name = self._sanitize_collection_name(collection_name)
+            client.delete_collection(name=sanitized_collection_name)
+            _logger.info(f"Deleted collection {sanitized_collection_name} from Chroma")
             return True
         except Exception as err:
             _logger.error(f"Error deleting collection: {str(err)}")
@@ -175,11 +178,12 @@ class LLMStoreChroma(models.Model):
         if not client:
             return None
             
-        collection_name = self.get_santized_collection_name(collection_id)
+        collection_name = self._get_chroma_collection_name(collection_id)
             
         try:
             # Get collection from Chroma
-            return client.get_collection(name=collection_name)
+            sanitized_collection_name = self._sanitize_collection_name(collection_name)
+            return client.get_collection(name=sanitized_collection_name)
         except Exception as e:
             _logger.error(f"Error getting collection {collection_name}: {str(e)}")
             return None
@@ -239,9 +243,10 @@ class LLMStoreChroma(models.Model):
             _logger.error(f"Error deleting vectors: {str(e)}")
             return False
 
-    def chroma_search_vectors(self, collection_id, query_vector, limit=10, filter=None, min_similarity=0.5, **kwargs):
+    def chroma_search_vectors(self, collection_id, query_vector, limit=10, filter=None, **kwargs):
         """Search for similar vectors in a Chroma collection"""
         self.ensure_one()
+        
         collection = self._get_chroma_collection(collection_id)
         if not collection:
             return []
@@ -269,8 +274,6 @@ class LLMStoreChroma(models.Model):
                 distance = float(results['distances'][0][i]) if 'distances' in results and results['distances'][0] else float('inf')
                 # Convert L2 distance to similarity score [0, 1] (1 = closest)
                 score = 1.0 / (1.0 + distance) if distance != float('inf') else 0.0
-                if score < min_similarity:
-                    continue
                 formatted_results.append({
                     'id': int(id_val),  # Convert string ID to integer
                     'score': score,
@@ -316,3 +319,28 @@ class LLMStoreChroma(models.Model):
         # Chroma manages its own indices, so this is a no-op
         _logger.info("Chroma manages its own indices, no explicit index creation needed")
         return True
+    
+
+    def _sanitize_collection_name(self, name):
+        """Sanitize a collection name for Chroma"""
+        # 1. Lowercase everything
+        s = name.lower()
+
+        # 2. Replace invalid chars with hyphens
+        s = re.sub(r'[^a-z0-9._-]', '-', s)
+
+        # 3. Collapse consecutive dots
+        s = re.sub(r'\.{2,}', '.', s)
+
+        # 4. Trim to max 63 chars
+        s = s[:63]
+
+        # 5. Strip non-alphanumeric from ends
+        s = re.sub(r'^[^a-z0-9]+', '', s)
+        s = re.sub(r'[^a-z0-9]+$', '', s)
+
+        # 6. If too short, pad with 'a'
+        if len(s) < 3:
+            s = s.ljust(3, 'a')
+
+        return s

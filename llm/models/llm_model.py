@@ -1,12 +1,5 @@
 from odoo import api, fields, models
 
-MODEL_USE = [
-    ("embedding", "Embedding"),
-    ("completion", "Completion"),
-    ("chat", "Chat"),
-    ("multimodal", "Multimodal"),
-]
-
 
 class LLMModel(models.Model):
     _name = "llm.model"
@@ -24,8 +17,9 @@ class LLMModel(models.Model):
     )
 
     model_use = fields.Selection(
-        MODEL_USE,
+        selection="_get_available_model_usages",
         required=True,
+        default="chat",
     )
     default = fields.Boolean(default=False)
     active = fields.Boolean(default=True)
@@ -35,6 +29,15 @@ class LLMModel(models.Model):
     model_info = fields.Json()
     parameters = fields.Text()
     template = fields.Text()
+
+    @api.model
+    def _get_available_model_usages(self):
+        return [
+            ("embedding", "Embedding"),
+            ("completion", "Completion"),
+            ("chat", "Chat"),
+            ("multimodal", "Multimodal"),
+        ]
 
     @api.model_create_multi
     def create(self, vals_list):

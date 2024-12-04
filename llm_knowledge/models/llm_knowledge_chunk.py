@@ -1,7 +1,6 @@
 import logging
 
-from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -97,9 +96,15 @@ class LLMKnowledgeChunk(models.Model):
     
     @api.model
     def search(self, args, offset=0, limit=None, order=None, count=False, **kwargs):
+        """
+        Extend search to support semantic search via store implementations
+
+        The semantic search can be triggered in two ways:
+        1. Via the 'embedding' field in args with a string value
+        2. Via a query_vector and collection_id provided directly in kwargs
+        """
+        # Check if semantic search is requested via the embedding field
         vector_search_term = None
-        original_args = list(args) # Keep original args for potential fallback
-        search_args = [] # Args to pass to vector store filter or fallback search
         for arg in args:
             if (
                     isinstance(arg, (list, tuple))
@@ -108,120 +113,63 @@ class LLMKnowledgeChunk(models.Model):
                     and isinstance(arg[2], str)
             ):
                 vector_search_term = arg[2]
-            else:
-                search_args.append(arg)
+                args = [a for a in args if a != arg]  # Remove the embedding condition
+                break
 
+        # Get query_vector either from kwargs or by converting search term
         query_vector = kwargs.get("query_vector")
-        specific_collection_id = kwargs.get("collection_id")
-        if query_vector and not specific_collection_id:
-            raise UserError(
-                _(
-                    "A pre-computed 'query_vector' can only be used when a specific 'collection_id' is also provided."
-                    " Searching across multiple collections requires a 'vector_search_term' for model-specific embedding generation."
-                )
-            )
+        # TODO: Make sure to iterate over all collections and combine results if collection_id is not provided
+        collection_id = kwargs.get("collection_id")
 
-        can_vector_search = bool(query_vector or vector_search_term)
-        if not can_vector_search:
-            return super().search(original_args, offset=offset, limit=limit, order=order, count=count, **kwargs)
-
-        collections = self.env["llm.knowledge.collection"]
-        if specific_collection_id:
-            collection = self.env["llm.knowledge.collection"].browse(specific_collection_id)
-            if collection.exists() and collection.store_id and (query_vector or collection.embedding_model_id):
-                collections |= collection
-            else:
-                return super().search(original_args, offset=offset, limit=limit, order=order, count=count, **kwargs)
-        else:
-            domain = [
-                ("active", "=", True),
-                ("store_id", "!=", False),
-            ]
-            if vector_search_term and not query_vector:
-                domain.append(("embedding_model_id", "!=", False))
-            collections = self.env["llm.knowledge.collection"].search(domain)
-
-        if not collections:
-            return 0 if count else self.browse([])
-
-        model_vector_map = {}
         if vector_search_term and not query_vector:
-            embedding_models = collections.mapped("embedding_model_id")
-            if not embedding_models:
-                return super().search(original_args, offset=offset, limit=limit, order=order, count=count, **kwargs)
+            # Get a default collection to use its embedding model
+            collection = collection_id and self.env["llm.knowledge.collection"].browse(collection_id) or \
+                         self.env["llm.knowledge.collection"].search([], limit=1)
 
-            for model in embedding_models:
+            if collection and collection.embedding_model_id:
+                # Generate the vector using the collection's embedding model
+                embedding_model = collection.embedding_model_id
+                query_vector = embedding_model.embedding(vector_search_term.strip())[0]
+                collection_id = collection.id
+
+        # If we have a query vector and collection, use the store for search
+        if query_vector is not None and collection_id:
+            collection = self.env["llm.knowledge.collection"].browse(collection_id)
+            if collection.exists() and collection.store_id:
+                # Get search parameters
+                min_similarity = kwargs.get("query_min_similarity",
+                                                  self.env.context.get("search_min_similarity", 0.5))
+                query_operator = kwargs.get("query_operator", self.env.context.get("search_vector_operator", "<=>"))
+                # Use the store's vector search capability
                 try:
-                    model_vector_map[model.id] = model.embedding(vector_search_term.strip())[0]
-                except Exception:
-                    collections = collections.filtered(lambda c, failed_model_id=model.id: c.embedding_model_id.id != failed_model_id)
+                    results = collection.search_vectors(
+                        query_vector=query_vector,
+                        limit=limit,
+                        filter=args if args else None,
+                        query_operator=query_operator,
+                        min_similarity=min_similarity,
+                        offset=offset,
+                    )
 
-        if not collections:
-            return super().search(original_args, offset=offset, limit=limit, order=order, count=count, **kwargs)
+                    if count:
+                        return len(results)
 
-        return self._vector_search_aggregate(
-            collections=collections,
-            query_vector=query_vector,
-            vector_search_term=vector_search_term,
-            model_vector_map=model_vector_map,
-            search_args=search_args,
-            min_similarity=kwargs.get("query_min_similarity", self.env.context.get("search_min_similarity", 0.5)),
-            query_operator=kwargs.get("query_operator", self.env.context.get("search_vector_operator", "<=>")),
-            offset=offset,
-            limit=limit,
-            count=count,
-        )
+                    # Extract chunk IDs and similarity scores
+                    chunk_ids = []
+                    similarities = []
 
-    def _vector_search_aggregate(
-        self,
-        collections,
-        query_vector,
-        vector_search_term,
-        model_vector_map,
-        search_args,
-        min_similarity,
-        query_operator,
-        offset,
-        limit,
-        count,
-    ):
-        """Performs vector search across collections, aggregates, sorts, and limits."""
-        # List of tuples: (score, chunk_id)
-        aggregated_results = []
+                    for result in results:
+                        chunk_ids.append(result.get('id'))
+                        similarities.append(result.get('score', 0.0))
 
-        for collection in collections:
-            current_query_vector = query_vector
-            if not current_query_vector and vector_search_term:
-                current_query_vector = model_vector_map.get(collection.embedding_model_id.id)
+                    # Store similarity scores in context for the virtual field
+                    similarity_scores = dict(zip(chunk_ids, similarities))
 
-            if not current_query_vector or not collection.store_id:
-                continue
+                    # Return the found chunks with similarity scores in context
+                    return self.browse(chunk_ids).with_context(similarity_scores=similarity_scores)
+                except Exception as e:
+                    _logger.error(f"Error in vector search: {str(e)}")
+                    # Fall back to standard search
 
-            try:
-                results = collection.search_vectors(
-                    query_vector=current_query_vector,
-                    limit=limit,
-                    filter=search_args if search_args else None,
-                    query_operator=query_operator,
-                    min_similarity=min_similarity,
-                    offset=0,
-                )
-                for result in results:
-                    aggregated_results.append((result.get('score', 0.0), result.get('id')))
-            except Exception as e:
-                _logger.error(f"Error searching collection {collection.name}: {e}")
-                continue
-
-        if not aggregated_results:
-            return 0 if count else self.browse([])
-
-        aggregated_results.sort(key=lambda x: (x[0], -x[1]), reverse=True)
-
-        if count:
-            return len(aggregated_results)
-
-        final_results = aggregated_results[offset : offset + limit if limit else None]
-        chunk_ids = [res[1] for res in final_results]
-        similarities = [res[0] for res in final_results]
-        similarity_scores = dict(zip(chunk_ids, similarities))
-        return self.browse(chunk_ids).with_context(similarity_scores=similarity_scores)
+        # Fallback to standard search if vector search is not possible
+        return super().search(args, offset=offset, limit=limit, order=order, count=count, **kwargs)
