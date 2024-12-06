@@ -1,9 +1,9 @@
 import logging
-import numpy as np
+
 from pgvector import Vector
 from pgvector.psycopg2 import register_vector
 
-from odoo import api, fields, models, _
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -32,6 +32,13 @@ class LLMStorePgVector(models.Model):
     # -------------------------------------------------------------------------
     # Store Interface Implementation
     # -------------------------------------------------------------------------
+
+    # Add the specific sanitization method for pgvector compatibility
+    def pgvector_sanitize_collection_name(self, name):
+        """Sanitize a collection name for pgvector (uses default)."""
+        # Although pgvector doesn't use collection names directly,
+        # no-op for now
+        return name
 
     def pgvector_collection_exists(self, collection_id):
         """Check if a collection exists - for pgvector, collections always 'exist'"""
