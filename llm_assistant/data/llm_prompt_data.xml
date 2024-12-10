@@ -3,10 +3,17 @@
         <!-- Assistant Prompt Template -->
         <record id="llm_prompt_assistant" model="llm.prompt">
             <field name="name">Assistant Template</field>
-            <field name="description">Template for assistant system prompts with role, goal, background, and instructions</field>
+            <field
+      name="description"
+    >Template for assistant system prompts with role, goal, background, and instructions</field>
             <field name="category_id" ref="llm_prompt.category_general" />
-            <field name="tag_ids" eval="[(6, 0, [ref('llm_prompt.tag_assistant')])]"></field>
-            <field name="arguments_json"><![CDATA[{
+            <field
+      name="tag_ids"
+      eval="[(6, 0, [ref('llm_prompt.tag_assistant')])]"
+    />
+            <field
+      name="arguments_json"
+    ><![CDATA[{
             "role": {
             "type": "string",
             "description": "The role of the assistant (e.g., 'Assistant', 'Customer Support', 'Data Analyst')",
@@ -38,11 +45,16 @@
         </record>
 
         <!-- Template for the system message -->
-        <record id="llm_prompt_template_assistant_system" model="llm.prompt.template">
+        <record
+    id="llm_prompt_template_assistant_system"
+    model="llm.prompt.template"
+  >
             <field name="prompt_id" ref="llm_prompt_assistant" />
             <field name="role">system</field>
             <field name="sequence">10</field>
-            <field name="content"><![CDATA[You are a {{ role }}.
+            <field
+      name="content"
+    ><![CDATA[You are a {{ role }}.
 
 Your goal is to {{ goal }}
 

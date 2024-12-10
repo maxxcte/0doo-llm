@@ -81,12 +81,11 @@ class LLMAssistant(models.Model):
         tracking=True,
     )
 
-    @api.depends('prompt_id', 'default_values')
+    @api.depends("prompt_id", "default_values")
     def _compute_system_prompt_preview(self):
         """Compute preview of the formatted system prompt"""
         for assistant in self:
             assistant.system_prompt_preview = assistant.get_formatted_system_prompt()
-
 
     @api.depends("thread_ids")
     def _compute_thread_count(self):
@@ -108,14 +107,14 @@ class LLMAssistant(models.Model):
     def create(self, vals_list):
         """Override create to ensure default_values is valid JSON"""
         for vals in vals_list:
-            if 'default_values' in vals and vals['default_values']:
+            if "default_values" in vals and vals["default_values"]:
                 try:
-                    json.loads(vals['default_values'])
+                    json.loads(vals["default_values"])
                 except json.JSONDecodeError:
-                    vals['default_values'] = "{}"
+                    vals["default_values"] = "{}"
         return super().create(vals_list)
 
-    @api.onchange('prompt_id')
+    @api.onchange("prompt_id")
     def _onchange_prompt_id(self):
         """Update default_values when prompt_id changes"""
         if self.prompt_id:
@@ -150,21 +149,28 @@ class LLMAssistant(models.Model):
             messages = self.prompt_id.get_messages(arg_values)
 
             # Find the system message
-            system_message = next((msg for msg in messages if msg.get('role') == 'system'), None)
-            if system_message and 'content' in system_message:
-                if isinstance(system_message['content'], dict) and 'text' in system_message['content']:
-                    return system_message['content']['text']
-                elif isinstance(system_message['content'], str):
-                    return system_message['content']
+            system_message = next(
+                (msg for msg in messages if msg.get("role") == "system"), None
+            )
+            if system_message and "content" in system_message:
+                if (
+                    isinstance(system_message["content"], dict)
+                    and "text" in system_message["content"]
+                ):
+                    return system_message["content"]["text"]
+                elif isinstance(system_message["content"], str):
+                    return system_message["content"]
 
             # If no system message found, return the first message content
-            if messages and 'content' in messages[0]:
-                if isinstance(messages[0]['content'], dict) and 'text' in messages[0]['content']:
-                    return messages[0]['content']['text']
-                elif isinstance(messages[0]['content'], str):
-                    return messages[0]['content']
+            if messages and "content" in messages[0]:
+                if (
+                    isinstance(messages[0]["content"], dict)
+                    and "text" in messages[0]["content"]
+                ):
+                    return messages[0]["content"]["text"]
+                elif isinstance(messages[0]["content"], str):
+                    return messages[0]["content"]
 
         except Exception as e:
             _logger.error("Error generating system prompt from template: %s", str(e))
             return _("Error generating system prompt preview: %s") % str(e)
-        

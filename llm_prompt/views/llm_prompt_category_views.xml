@@ -1,15 +1,15 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <odoo>
     <!-- Category Tree View -->
     <record id="llm_prompt_category_view_tree" model="ir.ui.view">
         <field name="name">llm.prompt.category.tree</field>
         <field name="model">llm.prompt.category</field>
         <field name="arch" type="xml">
-            <tree string="Prompt Categories">
-                <field name="sequence" widget="handle"/>
-                <field name="complete_name"/>
-                <field name="code"/>
-                <field name="prompt_count"/>
+            <tree>
+                <field name="sequence" widget="handle" />
+                <field name="complete_name" />
+                <field name="code" />
+                <field name="prompt_count" />
             </tree>
         </field>
     </record>
@@ -22,38 +22,53 @@
             <form string="Prompt Category">
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="toggle_active" type="object" class="oe_stat_button" icon="fa-archive">
-                            <field name="active" widget="boolean_toggle" options="{'terminology': 'archive'}"/>
+                        <button
+              name="toggle_active"
+              type="object"
+              class="oe_stat_button"
+              icon="fa-archive"
+            >
+                            <field
+                name="active"
+                widget="boolean_toggle"
+                options="{'terminology': 'archive'}"
+              />
                         </button>
                     </div>
                     <div class="oe_title">
-                        <label for="name" class="oe_edit_only"/>
+                        <label for="name" class="oe_edit_only" />
                         <h1>
-                            <field name="name" placeholder="e.g. Data Analysis"/>
+                            <field
+                name="name"
+                placeholder="e.g. Data Analysis"
+              />
                         </h1>
                     </div>
                     <group>
                         <group>
-                            <field name="parent_id"/>
-                            <field name="code"/>
-                            <field name="sequence"/>
+                            <field name="parent_id" />
+                            <field name="code" />
+                            <field name="sequence" />
                         </group>
                         <group>
-                            <field name="complete_name" readonly="1"/>
-                            <field name="prompt_count" readonly="1"/>
+                            <field name="complete_name" readonly="1" />
+                            <field name="prompt_count" readonly="1" />
                         </group>
                     </group>
                     <notebook>
                         <page string="Description">
-                            <field name="description" placeholder="Describe the purpose of this category..."/>
+                            <field
+                name="description"
+                placeholder="Describe the purpose of this category..."
+              />
                         </page>
                         <page string="Child Categories">
                             <field name="child_ids">
                                 <tree editable="bottom">
-                                    <field name="sequence" widget="handle"/>
-                                    <field name="name"/>
-                                    <field name="code"/>
-                                    <field name="prompt_count"/>
+                                    <field name="sequence" widget="handle" />
+                                    <field name="name" />
+                                    <field name="code" />
+                                    <field name="prompt_count" />
                                 </tree>
                             </field>
                         </page>
@@ -69,11 +84,20 @@
         <field name="model">llm.prompt.category</field>
         <field name="arch" type="xml">
             <search string="Search Categories">
-                <field name="name"/>
-                <field name="code"/>
-                <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
+                <field name="name" />
+                <field name="code" />
+                <filter
+          string="Archived"
+          name="inactive"
+          domain="[('active', '=', False)]"
+        />
                 <group expand="0" string="Group By">
-                    <filter string="Parent Category" name="group_by_parent" domain="[]" context="{'group_by': 'parent_id'}"/>
+                    <filter
+            string="Parent Category"
+            name="group_by_parent"
+            domain="[]"
+            context="{'group_by': 'parent_id'}"
+          />
                 </group>
             </search>
         </field>

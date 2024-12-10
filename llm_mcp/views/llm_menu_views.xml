@@ -2,10 +2,10 @@
 <odoo>
     <!-- Menu Item for MCP Servers -->
     <menuitem
-            id="menu_llm_mcp_server"
-            name="MCP Servers"
-            parent="llm.menu_llm_config"
-            action="action_llm_mcp_server"
-            sequence="26"
-    />
+    id="menu_llm_mcp_server"
+    name="MCP Servers"
+    parent="llm.menu_llm_config"
+    action="action_llm_mcp_server"
+    sequence="26"
+  />
 </odoo>

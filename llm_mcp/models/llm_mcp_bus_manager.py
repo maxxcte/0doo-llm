@@ -1,24 +1,22 @@
-import logging
 import json
+import logging
+import select
+import shlex
+import subprocess
 import threading
 import time
-import uuid
-import subprocess
-import shlex
-import select
-from contextlib import contextmanager
 
-import odoo
-from odoo import api, models, fields
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
+
 
 class MCPBusManager:
     """
     Manager for MCP server communication using the Odoo bus system.
     This replaces the direct pipe communication with a bus-based approach.
     """
+
     _instances = {}
     _lock = threading.Lock()
 
@@ -28,7 +26,7 @@ class MCPBusManager:
 
         with cls._lock:
             if key not in cls._instances:
-                instance = super(MCPBusManager, cls).__new__(cls)
+                instance = super().__new__(cls)
                 instance._init_properties(env, server_id, command, args)
                 cls._instances[key] = instance
             return cls._instances[key]
@@ -76,7 +74,7 @@ class MCPBusManager:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                bufsize=1
+                bufsize=1,
             )
 
             # Check if process started
@@ -84,16 +82,17 @@ class MCPBusManager:
                 stderr_output = "N/A"
                 try:
                     stderr_output = self.process.stderr.read()
-                except:
+                except Exception as _e:
                     pass
-                _logger.error(f"Process exited immediately with code {self.process.returncode} and error: {stderr_output}")
+                _logger.error(
+                    f"Process exited immediately with code {self.process.returncode} and error: {stderr_output}"
+                )
                 return False
 
             # Start reader thread
             self.stop_event.clear()
             self.process_thread = threading.Thread(
-                target=self._process_reader_loop,
-                name=f"mcp-reader-{self.server_id}"
+                target=self._process_reader_loop, name=f"mcp-reader-{self.server_id}"
             )
             self.process_thread.daemon = True
             self.process_thread.start()
@@ -101,16 +100,20 @@ class MCPBusManager:
             # Start error reader thread
             error_thread = threading.Thread(
                 target=self._process_error_reader_loop,
-                name=f"mcp-error-{self.server_id}"
+                name=f"mcp-error-{self.server_id}",
             )
             error_thread.daemon = True
             error_thread.start()
 
-            _logger.info(f"MCP process started successfully for server {self.server_id}")
+            _logger.info(
+                f"MCP process started successfully for server {self.server_id}"
+            )
             return True
 
         except Exception as e:
-            _logger.error(f"Failed to start MCP process for server {self.server_id}: {e}")
+            _logger.error(
+                f"Failed to start MCP process for server {self.server_id}: {e}"
+            )
             return False
 
     def _stop_process(self):
@@ -128,7 +131,9 @@ class MCPBusManager:
                 try:
                     self.process.wait(timeout=5)
                 except subprocess.TimeoutExpired:
-                    _logger.warning(f"MCP process for server {self.server_id} did not terminate, killing it")
+                    _logger.warning(
+                        f"MCP process for server {self.server_id} did not terminate, killing it"
+                    )
                     self.process.kill()
                     self.process.wait(timeout=2)
 
@@ -140,7 +145,9 @@ class MCPBusManager:
             self.process_thread = None
             return True
         except Exception as e:
-            _logger.error(f"Error stopping MCP process for server {self.server_id}: {e}")
+            _logger.error(
+                f"Error stopping MCP process for server {self.server_id}: {e}"
+            )
             return False
 
     def _process_reader_loop(self):
@@ -150,7 +157,9 @@ class MCPBusManager:
         try:
             while not self.stop_event.is_set():
                 if not self.process or self.process.poll() is not None:
-                    _logger.warning(f"MCP process for server {self.server_id} has exited, reader thread stopping")
+                    _logger.warning(
+                        f"MCP process for server {self.server_id} has exited, reader thread stopping"
+                    )
                     break
 
                 # Check if stdout has data
@@ -168,21 +177,31 @@ class MCPBusManager:
                 try:
                     # Parse JSON response
                     response = json.loads(line)
-                    if isinstance(response, dict) and 'id' in response:
-                        request_id = response['id']
-                        _logger.info(f"Received response with id {request_id} from MCP server {self.server_id}")
+                    if isinstance(response, dict) and "id" in response:
+                        request_id = response["id"]
+                        _logger.info(
+                            f"Received response with id {request_id} from MCP server {self.server_id}"
+                        )
                         self._responses[request_id] = response
                         self._response_event.set()
                     else:
-                        _logger.warning(f"Received unexpected response format from MCP server {self.server_id}: {response}")
+                        _logger.warning(
+                            f"Received unexpected response format from MCP server {self.server_id}: {response}"
+                        )
                 except json.JSONDecodeError as e:
-                    _logger.warning(f"Invalid JSON from MCP server {self.server_id}: {e}, data: {line}")
+                    _logger.warning(
+                        f"Invalid JSON from MCP server {self.server_id}: {e}, data: {line}"
+                    )
                 except Exception as e:
-                    _logger.error(f"Error processing response from MCP server {self.server_id}: {e}")
+                    _logger.error(
+                        f"Error processing response from MCP server {self.server_id}: {e}"
+                    )
 
         except Exception as e:
             if not self.stop_event.is_set():
-                _logger.error(f"Error in reader thread for MCP server {self.server_id}: {e}")
+                _logger.error(
+                    f"Error in reader thread for MCP server {self.server_id}: {e}"
+                )
 
         _logger.info(f"Reader thread for MCP server {self.server_id} exiting")
 
@@ -206,24 +225,28 @@ class MCPBusManager:
                 _logger.warning(f"MCP server {self.server_id} stderr: {line}")
         except Exception as e:
             if not self.stop_event.is_set():
-                _logger.error(f"Error reading stderr from MCP server {self.server_id}: {e}")
+                _logger.error(
+                    f"Error reading stderr from MCP server {self.server_id}: {e}"
+                )
 
     def _send_message(self, message):
         """Send a message to the MCP server process"""
         if not self.process or self.process.poll() is not None:
             if not self._start_process():
-                raise UserError(f"Failed to start MCP server process for server {self.server_id}")
+                raise UserError(
+                    f"Failed to start MCP server process for server {self.server_id}"
+                )
 
         try:
             # Add request ID if not present
-            if 'id' not in message:
-                message['id'] = self._get_next_request_id()
+            if "id" not in message:
+                message["id"] = self._get_next_request_id()
 
             # Register this request
-            request_id = message['id']
+            request_id = message["id"]
             self._pending_requests[request_id] = {
-                'timestamp': time.time(),
-                'message': message
+                "timestamp": time.time(),
+                "message": message,
             }
 
             # Reset response event
@@ -238,7 +261,7 @@ class MCPBusManager:
             return request_id
         except Exception as e:
             _logger.error(f"Error sending message to MCP server {self.server_id}: {e}")
-            raise UserError(f"Failed to communicate with MCP server: {e}")
+            raise UserError(f"Failed to communicate with MCP server: {e}") from e
 
     def _get_next_request_id(self):
         """Get a unique request ID for JSON-RPC requests"""
@@ -248,7 +271,9 @@ class MCPBusManager:
 
     def _wait_for_response(self, request_id, timeout=30):
         """Wait for a response from the MCP server"""
-        _logger.info(f"Waiting for response to request {request_id} from MCP server {self.server_id}")
+        _logger.info(
+            f"Waiting for response to request {request_id} from MCP server {self.server_id}"
+        )
         start_time = time.time()
 
         # Wait for response with timeout
@@ -259,9 +284,11 @@ class MCPBusManager:
                 stderr_output = "N/A"
                 try:
                     stderr_output = "".join(self.process.stderr.readlines())
-                except:
+                except Exception as _e:
                     pass
-                _logger.error(f"MCP server {self.server_id} process exited with code {exit_code} while waiting for response {request_id}. Error: {stderr_output}")
+                _logger.error(
+                    f"MCP server {self.server_id} process exited with code {exit_code} while waiting for response {request_id}. Error: {stderr_output}"
+                )
                 return None
 
             # Check if we have a response
@@ -269,7 +296,9 @@ class MCPBusManager:
                 response = self._responses.pop(request_id)
                 if request_id in self._pending_requests:
                     del self._pending_requests[request_id]
-                _logger.info(f"Received response for request {request_id} from MCP server {self.server_id}")
+                _logger.info(
+                    f"Received response for request {request_id} from MCP server {self.server_id}"
+                )
                 return response
 
             # Wait for the event with timeout
@@ -288,10 +317,12 @@ class MCPBusManager:
                     "jsonrpc": "2.0",
                     "id": ping_id,
                     "method": "echo",
-                    "params": {"message": "ping"}
+                    "params": {"message": "ping"},
                 }
                 json_str = json.dumps(ping)
-                _logger.info(f"Sending ping to check if MCP server {self.server_id} is responsive: {json_str}")
+                _logger.info(
+                    f"Sending ping to check if MCP server {self.server_id} is responsive: {json_str}"
+                )
                 self.process.stdin.write(f"{json_str}\n")
                 self.process.stdin.flush()
 
@@ -299,11 +330,15 @@ class MCPBusManager:
                 ping_start = time.time()
                 while time.time() - ping_start < 5:
                     if ping_id in self._responses:
-                        _logger.info(f"MCP server {self.server_id} responded to ping, but not to original request {request_id}")
+                        _logger.info(
+                            f"MCP server {self.server_id} responded to ping, but not to original request {request_id}"
+                        )
                         break
                     time.sleep(0.1)
                 else:
-                    _logger.error(f"MCP server {self.server_id} is not responding to ping either, may be frozen")
+                    _logger.error(
+                        f"MCP server {self.server_id} is not responding to ping either, may be frozen"
+                    )
             except Exception as e:
                 _logger.error(f"Error sending ping to MCP server {self.server_id}: {e}")
 
@@ -322,7 +357,9 @@ class MCPBusManager:
         try:
             # Make sure the process is started
             if not self._start_process():
-                _logger.error(f"Failed to start process for MCP server {self.server_id}")
+                _logger.error(
+                    f"Failed to start process for MCP server {self.server_id}"
+                )
                 return False
 
             # Send initialize request according to MCP protocol
@@ -331,15 +368,10 @@ class MCPBusManager:
                 "id": self._get_next_request_id(),
                 "method": "initialize",
                 "params": {
-                    "clientInfo": {
-                        "name": "odoo-llm-mcp-bus",
-                        "version": "1.0.0"
-                    },
+                    "clientInfo": {"name": "odoo-llm-mcp-bus", "version": "1.0.0"},
                     "protocolVersion": "0.1.0",
-                    "capabilities": {
-                        "tools": {}
-                    }
-                }
+                    "capabilities": {"tools": {}},
+                },
             }
 
             request_id = initialize_request["id"]
@@ -353,7 +385,7 @@ class MCPBusManager:
             response = self._wait_for_response(request_id, timeout=15)
 
             if response is None:
-                _logger.error(f"No response received for MCP initialization")
+                _logger.error("No response received for MCP initialization")
                 return False
 
             if "result" in response:
@@ -369,12 +401,14 @@ class MCPBusManager:
                 initialized_notification = {
                     "jsonrpc": "2.0",
                     "method": "notifications/initialized",
-                    "params": {}
+                    "params": {},
                 }
-                _logger.info(f"Sending initialized notification")
+                _logger.info("Sending initialized notification")
                 self._send_message(initialized_notification)
 
-                _logger.info(f"MCP server initialized successfully with protocol version {self.protocol_version}")
+                _logger.info(
+                    f"MCP server initialized successfully with protocol version {self.protocol_version}"
+                )
                 return True
             else:
                 error_message = "Unknown error"
@@ -400,7 +434,7 @@ class MCPBusManager:
                 "jsonrpc": "2.0",
                 "id": request_id,
                 "method": "tools/list",
-                "params": {}
+                "params": {},
             }
 
             _logger.info(f"Sending tools/list request with id {request_id}")
@@ -414,7 +448,9 @@ class MCPBusManager:
                 return None
 
             if "result" in response and "tools" in response["result"]:
-                _logger.info(f"Successfully listed {len(response['result']['tools'])} tools from MCP server")
+                _logger.info(
+                    f"Successfully listed {len(response['result']['tools'])} tools from MCP server"
+                )
                 return response["result"]["tools"]
             else:
                 error_message = "Unknown error"
@@ -440,20 +476,23 @@ class MCPBusManager:
                 "jsonrpc": "2.0",
                 "id": request_id,
                 "method": "tools/call",
-                "params": {
-                    "name": tool_name,
-                    "arguments": arguments
-                }
+                "params": {"name": tool_name, "arguments": arguments},
             }
 
-            _logger.info(f"Sending tools/call request for tool '{tool_name}' with id {request_id}")
+            _logger.info(
+                f"Sending tools/call request for tool '{tool_name}' with id {request_id}"
+            )
             self._send_message(request)
 
             # Wait for response
-            response = self._wait_for_response(request_id, timeout=30)  # Longer timeout for tool execution
+            response = self._wait_for_response(
+                request_id, timeout=30
+            )  # Longer timeout for tool execution
 
             if response is None:
-                _logger.error(f"No response received for tools/call request for tool '{tool_name}'")
+                _logger.error(
+                    f"No response received for tools/call request for tool '{tool_name}'"
+                )
                 return {"error": "No response from MCP server"}
 
             if "result" in response:
@@ -466,7 +505,9 @@ class MCPBusManager:
                         for content_item in result["content"]:
                             if content_item.get("type") == "text":
                                 error_content += content_item.get("text", "")
-                    _logger.error(f"Tool '{tool_name}' execution failed: {error_content}")
+                    _logger.error(
+                        f"Tool '{tool_name}' execution failed: {error_content}"
+                    )
                     return {"error": error_content or "Tool execution failed"}
 
                 # Tool execution succeeded, extract content

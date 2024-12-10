@@ -1,9 +1,10 @@
-from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
 import json
 import re
-import jsonschema
-from .arguments_schema import ARGUMENTS_JSON_SCHEMA, validate_arguments_schema
+
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
+
+from .arguments_schema import validate_arguments_schema
 
 
 class LLMPrompt(models.Model):
@@ -36,30 +37,30 @@ class LLMPrompt(models.Model):
 
     # Tags
     tag_ids = fields.Many2many(
-        'llm.prompt.tag',
-        'llm_prompt_tag_rel',
-        'prompt_id',
-        'tag_id',
-        string='Tags',
-        help="Classify and analyze your prompts"
+        "llm.prompt.tag",
+        "llm_prompt_tag_rel",
+        "prompt_id",
+        "tag_id",
+        string="Tags",
+        help="Classify and analyze your prompts",
     )
 
     # Provider and Publisher relations
     provider_ids = fields.Many2many(
-        'llm.provider',
-        'llm_prompt_provider_rel',
-        'prompt_id',
-        'provider_id',
-        string='Compatible Providers',
+        "llm.provider",
+        "llm_prompt_provider_rel",
+        "prompt_id",
+        "provider_id",
+        string="Compatible Providers",
         help="LLM providers that can use this prompt",
     )
 
     publisher_ids = fields.Many2many(
-        'llm.publisher',
-        'llm_prompt_publisher_rel',
-        'prompt_id',
-        'publisher_id',
-        string='Compatible Publishers',
+        "llm.publisher",
+        "llm_prompt_publisher_rel",
+        "prompt_id",
+        "publisher_id",
+        string="Compatible Publishers",
         help="LLM publishers whose models work well with this prompt",
     )
 
@@ -116,11 +117,7 @@ class LLMPrompt(models.Model):
     )
 
     _sql_constraints = [
-        (
-            "name_unique",
-            "UNIQUE(name)",
-            "The prompt name must be unique."
-        ),
+        ("name_unique", "UNIQUE(name)", "The prompt name must be unique."),
     ]
 
     @api.depends("template_ids")
@@ -153,7 +150,9 @@ class LLMPrompt(models.Model):
             # Check templates
             for template in prompt.template_ids:
                 if template.content:
-                    template_args = self._extract_arguments_from_template(template.content)
+                    template_args = self._extract_arguments_from_template(
+                        template.content
+                    )
                     used_args.update(template_args)
 
             # Find undefined arguments
@@ -185,7 +184,9 @@ class LLMPrompt(models.Model):
             try:
                 json.loads(prompt.example_args)
             except json.JSONDecodeError as e:
-                raise ValidationError(_("Invalid JSON in example arguments: %s") % str(e))
+                raise ValidationError(
+                    _("Invalid JSON in example arguments: %s") % str(e)
+                ) from e
 
     def get_prompt_data(self):
         """Returns the prompt data in the MCP format"""
@@ -355,7 +356,7 @@ class LLMPrompt(models.Model):
                 arguments[arg_name] = {
                     "type": "string",
                     "description": f"Auto-detected argument: {arg_name}",
-                    "required": False
+                    "required": False,
                 }
                 updated = True
 
@@ -375,22 +376,24 @@ class LLMPrompt(models.Model):
 
         try:
             example_args = json.loads(self.example_args or "{}")
-        except json.JSONDecodeError:
-            raise ValidationError(_("Invalid example arguments JSON"))
+        except json.JSONDecodeError as e:
+            raise ValidationError(_("Invalid example arguments JSON")) from e
 
         messages = self.get_messages(example_args)
 
         # Create a wizard to show the result
-        wizard = self.env['llm.prompt.test'].create({
-            'prompt_id': self.id,
-            'messages': json.dumps(messages, indent=2),
-        })
+        wizard = self.env["llm.prompt.test"].create(
+            {
+                "prompt_id": self.id,
+                "messages": json.dumps(messages, indent=2),
+            }
+        )
 
         return {
-            'name': _('Prompt Test Result'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'llm.prompt.test',
-            'view_mode': 'form',
-            'res_id': wizard.id,
-            'target': 'new',
+            "name": _("Prompt Test Result"),
+            "type": "ir.actions.act_window",
+            "res_model": "llm.prompt.test",
+            "view_mode": "form",
+            "res_id": wizard.id,
+            "target": "new",
         }

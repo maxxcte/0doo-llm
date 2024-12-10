@@ -1,5 +1,7 @@
 import logging
+
 from odoo import api, fields, models
+
 from ..fields import PgVector
 
 _logger = logging.getLogger(__name__)
@@ -66,10 +68,12 @@ class LLMKnowledgeChunkEmbedding(models.Model):
         """Override create to handle special cases"""
         for vals in vals_list:
             # If embedding_model_id not provided, try to get from collection
-            if not vals.get('embedding_model_id') and vals.get('chunk_id'):
-                chunk = self.env['llm.knowledge.chunk'].browse(vals['chunk_id'])
+            if not vals.get("embedding_model_id") and vals.get("chunk_id"):
+                chunk = self.env["llm.knowledge.chunk"].browse(vals["chunk_id"])
                 # Get first collection's embedding model
                 if chunk.collection_ids and chunk.collection_ids[0].embedding_model_id:
-                    vals['embedding_model_id'] = chunk.collection_ids[0].embedding_model_id.id
+                    vals["embedding_model_id"] = chunk.collection_ids[
+                        0
+                    ].embedding_model_id.id
 
         return super().create(vals_list)

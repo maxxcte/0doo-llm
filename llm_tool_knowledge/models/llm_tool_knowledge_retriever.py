@@ -1,6 +1,5 @@
 import logging
 from typing import Any
-from pydantic import BaseModel, ConfigDict, Field
 
 from odoo import api, models
 
@@ -36,7 +35,9 @@ class LLMToolKnowledgeRetriever(models.Model):
                     for collection_id, name in available_collections
                 ]
             )
-            schema["properties"]["collection_id"]["description"] += f"Available collections are: {collections_description}"
+            schema["properties"]["collection_id"]["description"] += (
+                f"Available collections are: {collections_description}"
+            )
         return schema
 
     def knowledge_retriever_execute(
@@ -69,9 +70,7 @@ class LLMToolKnowledgeRetriever(models.Model):
         )
         collection = None
         if collection_id:
-            collection = self.env["llm.knowledge.collection"].browse(
-                collection_id
-            )
+            collection = self.env["llm.knowledge.collection"].browse(collection_id)
 
         if not collection:
             raise ValueError("Collection not found")
@@ -98,9 +97,10 @@ class LLMToolKnowledgeRetriever(models.Model):
             "collection_id": collection.id,
             "results": result_data,
             "total_chunks": len(result_data),
-            "embedding_model": collection.embedding_model_id.name if collection.embedding_model_id else "Unknown",
+            "embedding_model": collection.embedding_model_id.name
+            if collection.embedding_model_id
+            else "Unknown",
         }
-
 
     def _group_chunks_by_resource(self, chunks):
         """Group chunks by their parent resource."""
@@ -144,7 +144,9 @@ class LLMToolKnowledgeRetriever(models.Model):
 
         # Sort chunks within each resource by similarity
         for resource_id in chunks_by_doc:
-            chunks_by_doc[resource_id].sort(key=lambda chunk: chunk.similarity, reverse=True)
+            chunks_by_doc[resource_id].sort(
+                key=lambda chunk: chunk.similarity, reverse=True
+            )
             # Limit to top_k chunks per resource
             chunks_by_doc[resource_id] = chunks_by_doc[resource_id][:top_k]
 

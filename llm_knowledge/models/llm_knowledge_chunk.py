@@ -45,18 +45,16 @@ class LLMKnowledgeChunk(models.Model):
         related="resource_id.collection_ids",
         store=False,
     )
-    #TODO: Is this only for searching?
+    # TODO: Is this only for searching?
     embedding = fields.Char(
-        string='Embedding',
+        string="Embedding",
         compute=None,
         store=False,
     )
 
     # Virtual field to store similarity score in search results
     similarity = fields.Float(
-        string="Similarity Score",
-        store=False,
-        compute="_compute_similarity"
+        string="Similarity Score", store=False, compute="_compute_similarity"
     )
 
     @api.depends("resource_id.name", "sequence")
@@ -89,12 +87,12 @@ class LLMKnowledgeChunk(models.Model):
     def get_collection_embedding_models(self):
         """Helper method to get embedding models for this chunk's collections"""
         self.ensure_one()
-        models = self.env['llm.model']
+        models = self.env["llm.model"]
         for collection in self.collection_ids:
             if collection.embedding_model_id:
                 models |= collection.embedding_model_id
         return models
-    
+
     @api.model
     def search(self, args, offset=0, limit=None, order=None, count=False, **kwargs):
         vector_search_term = None
@@ -102,10 +100,10 @@ class LLMKnowledgeChunk(models.Model):
         search_args = [] # Args to pass to vector store filter or fallback search
         for arg in args:
             if (
-                    isinstance(arg, (list, tuple))
-                    and len(arg) == 3
-                    and arg[0] == "embedding"
-                    and isinstance(arg[2], str)
+                isinstance(arg, (list, tuple))
+                and len(arg) == 3
+                and arg[0] == "embedding"
+                and isinstance(arg[2], str)
             ):
                 vector_search_term = arg[2]
             else:

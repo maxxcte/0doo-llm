@@ -27,7 +27,10 @@ registerPatch({
         // ENTER: submit the message only if the dropdown mention proposition is not displayed
         case "Enter":
           // Prevent sending if the composer is disabled (e.g., empty, uploading, or LLM streaming)
-          if (this.composer.isSendDisabled || this.composer.thread.state === 'streaming') {
+          if (
+            this.composer.isSendDisabled ||
+            this.composer.thread.state === "streaming"
+          ) {
             // Prevent default Enter behavior (like newline)
             ev.preventDefault();
             // Stop processing

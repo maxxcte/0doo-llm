@@ -3,7 +3,7 @@ import json
 import logging
 from typing import Any, get_type_hints
 
-from pydantic import ValidationError, create_model
+from pydantic import create_model
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
@@ -200,7 +200,7 @@ class LLMTool(models.Model):
 
         return tool_def
 
-    @api.onchange('implementation')
+    @api.onchange("implementation")
     def _onchange_implementation(self):
         """When implementation changes and input_schema is empty, populate it with the implementation schema"""
         if self.implementation and not self.input_schema:
@@ -216,7 +216,6 @@ class LLMTool(models.Model):
                 record.input_schema = json.dumps(schema, indent=2)
         # Return an action to reload the view
         return {
-            'type': 'ir.actions.client',
-            'tag': 'reload',
+            "type": "ir.actions.client",
+            "tag": "reload",
         }
-
