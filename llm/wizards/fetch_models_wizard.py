@@ -5,6 +5,7 @@ from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
+
 class ModelLine(models.TransientModel):
     _name = "llm.fetch.models.line"
     _description = "LLM Model Import Line"

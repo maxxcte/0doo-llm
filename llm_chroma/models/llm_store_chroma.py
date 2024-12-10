@@ -8,6 +8,7 @@ from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
+
 class LLMStoreChroma(models.Model):
     _inherit = "llm.store"
     _description = "Chroma Vector Store Implementation"
@@ -71,9 +72,9 @@ class LLMStoreChroma(models.Model):
         collection = self.env["llm.knowledge.collection"].browse(collection_id)
         if not collection.exists():
             return False
-        
+
         collection_name = self.get_santized_collection_name(collection_id)
-            
+
         # Check if collection exists in Chroma
         collections = client.list_collections()
         return any(c.name == collection_name for c in collections)
@@ -107,19 +108,13 @@ class LLMStoreChroma(models.Model):
         try:
             collection_name = self.get_santized_collection_name(collection_id)
             _logger.info(f"Creating collection {collection_name} in Chroma")
-            client.create_collection(
-                name=collection_name,
-                metadata=metadata
-            )
+            client.create_collection(name=collection_name, metadata=metadata)
 
             return True
         except Exception as err:
-            _logger.error(
-                "Could not create collection %s: %s", collection_name, err
-            )
+            _logger.error("Could not create collection %s: %s", collection_name, err)
             raise UserError(
-                _("Could not create collection %s: %s")
-                % (collection_name, err)
+                _("Could not create collection %s: %s") % (collection_name, err)
             ) from err
 
     def chroma_delete_collection(self, collection_id, **kwargs):
@@ -172,9 +167,9 @@ class LLMStoreChroma(models.Model):
         client = self._get_chroma_client()
         if not client:
             return None
-            
+
         collection_name = self.get_santized_collection_name(collection_id)
-            
+
         try:
             # Get collection from Chroma
             return client.get_collection(name=collection_name)
@@ -223,7 +218,7 @@ class LLMStoreChroma(models.Model):
         collection = self._get_chroma_collection(collection_id)
         if not collection:
             return False
-        
+
         if ids is None:
             return False
 
@@ -238,7 +233,15 @@ class LLMStoreChroma(models.Model):
             _logger.error(f"Error deleting vectors: {str(e)}")
             return False
 
-    def chroma_search_vectors(self, collection_id, query_vector, limit=10, filter=None, min_similarity=0.5, **kwargs):
+    def chroma_search_vectors(
+        self,
+        collection_id,
+        query_vector,
+        limit=10,
+        filter=None,
+        min_similarity=0.5,
+        **kwargs,
+    ):
         """Search for similar vectors in a Chroma collection"""
         self.ensure_one()
         collection = self._get_chroma_collection(collection_id)
@@ -273,15 +276,19 @@ class LLMStoreChroma(models.Model):
                     else float("inf")
                 )
                 # Convert L2 distance to similarity score [0, 1] (1 = closest)
-                score = 1.0 / (1.0 + distance) if distance != float('inf') else 0.0
+                score = 1.0 / (1.0 + distance) if distance != float("inf") else 0.0
                 if score < min_similarity:
                     continue
-                formatted_results.append({
-                    'id': int(id_val),  # Convert string ID to integer
-                    'score': score,
-                    'metadata': results['metadatas'][0][i] if 'metadatas' in results and results['metadatas'][0] else {}
-                })
-                
+                formatted_results.append(
+                    {
+                        "id": int(id_val),  # Convert string ID to integer
+                        "score": score,
+                        "metadata": results["metadatas"][0][i]
+                        if "metadatas" in results and results["metadatas"][0]
+                        else {},
+                    }
+                )
+
             return formatted_results
         except Exception as e:
             _logger.error(f"Error searching vectors: {str(e)}")
@@ -319,5 +326,7 @@ class LLMStoreChroma(models.Model):
     def chroma_create_index(self, collection_id, index_type=None, **kwargs):
         """Create an index on a Chroma collection"""
         # Chroma manages its own indices, so this is a no-op
-        _logger.info("Chroma manages its own indices, no explicit index creation needed")
+        _logger.info(
+            "Chroma manages its own indices, no explicit index creation needed"
+        )
         return True

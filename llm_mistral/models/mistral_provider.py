@@ -28,7 +28,9 @@ class LLMProvider(models.Model):
             record_name = record._name
             if not hasattr(record, service_method):
                 raise NotImplementedError(
-                    _("Method '%s' (via '%s') not implemented for service '%s' on target '%s'")
+                    _(
+                        "Method '%s' (via '%s') not implemented for service '%s' on target '%s'"
+                    )
                     % (method, service_method, self.service, record_name)
                 )
 
@@ -78,9 +80,11 @@ class LLMProvider(models.Model):
 
         if isinstance(data, bytes):
             # Convert bytes to base64 string
-            data = base64.b64encode(data).decode('utf-8')
+            data = base64.b64encode(data).decode("utf-8")
         elif not isinstance(data, str):
-            raise TypeError(f"Input 'data' must be a string (URL, bytes or Base64) or bytes. Got: {type(data)}")
+            raise TypeError(
+                f"Input 'data' must be a string (URL, bytes or Base64) or bytes. Got: {type(data)}"
+            )
 
         if not mimetype:
             raise ValueError("Mimetype parameter is required.")
@@ -88,19 +92,19 @@ class LLMProvider(models.Model):
         payload = {}
         is_image_type = mimetype.startswith("image/")
         data_is_url = is_url(data)
-        data_is_base64 = False # Check only if not a URL
+        data_is_base64 = False  # Check only if not a URL
 
         if data_is_url:
             _logger.info(f"Processing data as URL: {data} with mimetype: {mimetype}")
             if is_image_type:
                 payload = {
                     "type": "image_url",
-                    "image_url": data  # Pass the raw URL
+                    "image_url": data,  # Pass the raw URL
                 }
             else:
                 payload = {
                     "type": "document_url",
-                    "document_url": data # Pass the raw URL
+                    "document_url": data,  # Pass the raw URL
                 }
         else:
             # If not a URL, check if it's a valid Base64 string
@@ -111,23 +115,19 @@ class LLMProvider(models.Model):
                 data_uri = f"data:{mimetype};base64,{data}"
 
                 if is_image_type:
-                    payload = {
-                        "type": "image_url",
-                        "image_url": data_uri
-                    }
+                    payload = {"type": "image_url", "image_url": data_uri}
                 else:
-                    payload = {
-                        "type": "document_url",
-                        "document_url": data_uri
-                    }
+                    payload = {"type": "document_url", "document_url": data_uri}
             else:
                 # Input string is neither a valid URL nor valid Base64
-                 raise ValueError("Input 'data' string is neither a valid URL nor a valid Base64 string.")
+                raise ValueError(
+                    "Input 'data' string is neither a valid URL nor a valid Base64 string."
+                )
 
         # Ensure a payload was actually constructed
         if not payload:
-             # This state should theoretically not be reached if the logic above is sound
-             raise ValueError("Internal Error: Failed to construct payload.")
+            # This state should theoretically not be reached if the logic above is sound
+            raise ValueError("Internal Error: Failed to construct payload.")
         # Call the actual method that interacts with the Mistral API
         return self._process_ocr(model_name, payload, **kwargs)
 
@@ -139,43 +139,44 @@ class LLMProvider(models.Model):
 
 
 def is_base64_string(data_string):
-  """
-  Checks if the provided string appears to be a valid Base64 encoded string.
+    """
+    Checks if the provided string appears to be a valid Base64 encoded string.
 
-  Note: This checks the format (characters, padding, length), but doesn't
-  guarantee the decoded data is meaningful.
+    Note: This checks the format (characters, padding, length), but doesn't
+    guarantee the decoded data is meaningful.
 
-  Args:
-    data_string: The string to check.
+    Args:
+      data_string: The string to check.
 
-  Returns:
-    True if the string could be Base64, False otherwise.
-  """
-  if not isinstance(data_string, str):
-    return False
-  try:
-    string_bytes = data_string.encode('ascii')
-    base64.b64decode(string_bytes, validate=True)
-    return len(string_bytes) % 4 == 0
-  except Exception as e:
-    _logger.exception(f"Base64 check failed, error: {str(e)}")
-    return False
+    Returns:
+      True if the string could be Base64, False otherwise.
+    """
+    if not isinstance(data_string, str):
+        return False
+    try:
+        string_bytes = data_string.encode("ascii")
+        base64.b64decode(string_bytes, validate=True)
+        return len(string_bytes) % 4 == 0
+    except Exception as e:
+        _logger.exception(f"Base64 check failed, error: {str(e)}")
+        return False
+
 
 def is_url(data_string):
-  """
-  Checks if the provided string is a valid HTTP or HTTPS URL.
+    """
+    Checks if the provided string is a valid HTTP or HTTPS URL.
 
-  Args:
-    data_string: The string to check.
+    Args:
+      data_string: The string to check.
 
-  Returns:
-    True if the string is a valid HTTP/HTTPS URL, False otherwise.
-  """
-  if not isinstance(data_string, str):
-      return False
-  try:
-      result = urlparse(data_string)
-      return all([result.scheme in ['http', 'https'], result.netloc])
-  except Exception as e:
-    _logger.exception(f"Url check failed, error: {str(e)}")
-    return False
+    Returns:
+      True if the string is a valid HTTP/HTTPS URL, False otherwise.
+    """
+    if not isinstance(data_string, str):
+        return False
+    try:
+        result = urlparse(data_string)
+        return all([result.scheme in ["http", "https"], result.netloc])
+    except Exception as e:
+        _logger.exception(f"Url check failed, error: {str(e)}")
+        return False

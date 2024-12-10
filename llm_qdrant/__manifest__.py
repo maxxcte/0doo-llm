@@ -9,7 +9,7 @@ Requires the qdrant-client Python package.
     """,
     "author": "Apexive Solutions LLC",
     "website": "https://github.com/apexive/odoo-llm",
-    "depends": ["llm_knowledge","llm_store"],
+    "depends": ["llm_knowledge", "llm_store"],
     "installable": True,
     "application": False,
     "auto_install": False,

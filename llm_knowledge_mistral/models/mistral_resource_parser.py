@@ -61,7 +61,7 @@ class LLMResourceParser(models.Model):
 
         for page_idx, page in enumerate(ocr_response.pages, start=1):
             page_md = page.markdown.strip()
-            
+
             for img in page.images:
                 data_uri = img.image_base64 or ""
                 if not data_uri:

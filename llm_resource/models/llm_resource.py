@@ -80,7 +80,7 @@ class LLMResource(models.Model):
         compute="_compute_kanban_state",
         store=True,
     )
-    
+
     @api.depends("res_model", "res_id")
     def _compute_external_url(self):
         """Compute external URL from related record if available"""

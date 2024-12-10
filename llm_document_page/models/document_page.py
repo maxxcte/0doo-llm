@@ -27,4 +27,10 @@ class DocumentPage(models.Model):
             for child in self.child_ids:
                 content_parts.append(f"- [{child.name}]({child.backend_url})")
 
-        return [{"field_name": "content", "mimetype": "text/markdown", "rawcontent": "\n\n".join(content_parts)}]
+        return [
+            {
+                "field_name": "content",
+                "mimetype": "text/markdown",
+                "rawcontent": "\n\n".join(content_parts),
+            }
+        ]

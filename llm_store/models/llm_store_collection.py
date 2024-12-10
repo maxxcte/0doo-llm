@@ -42,7 +42,7 @@ class LLMStoreCollection(models.AbstractModel):
         """Update stats about this collection from the store"""
         # To be implemented by specific provider modules
         return True
-    
+
     def delete_vectors(self, ids=None):
         """Remove all vectors from this collection"""
         if ids is None:

@@ -56,9 +56,7 @@ class LLMResourceParser(models.Model):
                 if success:
                     resource.write({"state": "parsed"})
                     self.env.cr.commit()
-                    resource._post_message(
-                        "Resource successfully parsed", "success"
-                    )
+                    resource._post_message("Resource successfully parsed", "success")
                 else:
                     resource._post_message(
                         "Parsing completed but did not return success", "warning"
@@ -76,7 +74,6 @@ class LLMResourceParser(models.Model):
                 resource._unlock()
         resources._unlock()
 
-
     def _get_parser(self, record, field_name, mimetype):
         if self.parser != "default":
             return getattr(self, f"parse_{self.parser}")
@@ -85,7 +82,7 @@ class LLMResourceParser(models.Model):
             if hasattr(record, "display_name")
             else f"{record._name} #{record.id}"
         )
-        
+
         is_markdown = ".md" in record_name.lower()
         if mimetype == "application/pdf":
             return self._parse_pdf
@@ -120,14 +117,22 @@ class LLMResourceParser(models.Model):
         results = []
 
         # Start with the record name/display_name if available
-        record_name_field = "display_name" if hasattr(record, "display_name") else "name"
-        record_name = record[record_name_field] if hasattr(record, record_name_field) else f"{record._name} #{record.id}"
+        record_name_field = (
+            "display_name" if hasattr(record, "display_name") else "name"
+        )
+        record_name = (
+            record[record_name_field]
+            if hasattr(record, record_name_field)
+            else f"{record._name} #{record.id}"
+        )
         if record_name:
-            results.append({
-                "field_name": record_name_field,
-                "mimetype": "text/plain",
-                "rawcontent": record_name,
-            })
+            results.append(
+                {
+                    "field_name": record_name_field,
+                    "mimetype": "text/plain",
+                    "rawcontent": record_name,
+                }
+            )
 
         # Try to include description or common text fields
         common_text_fields = [
@@ -142,11 +147,13 @@ class LLMResourceParser(models.Model):
         for field_name in common_text_fields:
             if hasattr(record, field_name) and record[field_name]:
                 # Use text/plain for now, could be refined based on field type
-                results.append({
-                    "field_name": field_name,
-                    "mimetype": "text/plain",
-                    "rawcontent": record[field_name],
-                })
+                results.append(
+                    {
+                        "field_name": field_name,
+                        "mimetype": "text/plain",
+                        "rawcontent": record[field_name],
+                    }
+                )
 
         return results
 
@@ -204,7 +211,6 @@ class LLMResourceParser(models.Model):
         if field["mimetype"] != "application/pdf":
             return False
 
-
         # Open PDF using PyMuPDF
         text_content = []
         image_count = 0
@@ -251,9 +257,7 @@ class LLMResourceParser(models.Model):
                             # Add image reference to markdown content
                             if img_attachment:
                                 image_url = f"/web/image/{img_attachment.id}"
-                                text_content.append(
-                                    f"\n![{image_name}]({image_url})\n"
-                                )
+                                text_content.append(f"\n![{image_name}]({image_url})\n")
                                 image_count += 1
                     except Exception as e:
                         self._post_message(
@@ -276,17 +280,15 @@ class LLMResourceParser(models.Model):
         image_url = f"/web/image/{record.id}"
         self.content = f"![{record.name}]({image_url})"
         return True
-    
+
     def _parse_default(self, record, field):
         # Default to a generic description for unsupported types
         mimetype = field["mimetype"]
         self.content = f"""
             # {record.name}
-            
+
             **File Type**: {mimetype}
             **Description**: This file is of type {mimetype} which cannot be directly parsed into text content.
             **Access**: [Open file](/web/content/{record.id})
                             """
         return True
-
-    
