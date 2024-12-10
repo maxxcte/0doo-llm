@@ -6,26 +6,46 @@ This repository provides a comprehensive framework for integrating Large Languag
 
 ## 🚀 Features
 
-- **Multiple LLM Provider Support**: Connect to OpenAI, Anthropic, Ollama, LiteLLM proxy, and Replicate
-- **Unified API**: Consistent interface for all LLM operations regardless of provider
-- **Chat UI**: Modern, responsive interface with real-time message streaming
-- **Thread Management**: Organize and manage AI conversations
-- **Model Management**: Configure and use different models for various tasks
-- **Security**: Role-based access control and proper API key management
+- **Multiple LLM Provider Support**: Connect to OpenAI, Anthropic, Ollama, Mistral, Replicate, and LiteLLM proxy.
+- **Unified API**: Consistent interface for all LLM operations regardless of the provider.
+- **Chat UI**: Modern, responsive interface with real-time message streaming.
+- **Thread Management**: Organize and manage AI conversations effectively.
+- **Model Management**: Configure and utilize different models for various tasks.
+- **Knowledge Base (RAG)**: Store, index, and retrieve documents for Retrieval-Augmented Generation.
+- **Vector Store Integrations**: Supports ChromaDB, pgvector, and Qdrant for efficient similarity searches.
+- **Tool Use Framework**: Allows LLMs to use tools to interact with Odoo data and perform actions.
+- **AI Assistants**: Build and manage specialized AI assistants with custom instructions and tools.
+- **Prompt Management**: Create, manage, and reuse prompts for consistent interactions.
+- **Security**: Role-based access control and secure API key management.
 
 ## 📦 Modules
 
-| Module          | Description                                                          |
-|-----------------|----------------------------------------------------------------------|
-| `llm`           | Base module with core functionality and provider framework           |
-| `llm_tool`     | Adds tool functionality that allows LLMs to perform actions in Odoo  |
-| `llm_thread`    | Chat threads and conversation management                             |
-| `llm_assistant`     | Assistant management for specialized AI assistants with custom tools     |
-| `llm_openai`    | OpenAI (GPT) provider integration                                    |
-| `llm_anthropic` | Anthropic (Claude) provider integration                              |
-| `llm_ollama`    | Ollama provider for local model deployment                           |
-| `llm_litellm`   | LiteLLM proxy for centralized model management                       |
-| `llm_replicate` | Replicate.com integration                                            |
+| Module                     | Description                                                              |
+|----------------------------|--------------------------------------------------------------------------|
+| `llm`                      | Base module with core functionality and provider framework               |
+| `llm_anthropic`            | Anthropic (Claude) provider integration                                |
+| `llm_assistant`            | Assistant management for specialized AI agents with custom tools         |
+| `llm_chroma`               | ChromaDB vector store integration                                        |
+| `llm_document_page`        | Integration with document pages (e.g., knowledge articles)               |
+| `llm_knowledge`            | Core knowledge base functionality (embedding, storage, retrieval)        |
+| `llm_knowledge_automation` | Automation rules related to knowledge base processing                    |
+| `llm_knowledge_llama`      | LlamaIndex integration for knowledge base functionality (tentative)      |
+| `llm_knowledge_mistral`    | Mistral-specific features for knowledge base (tentative)                 |
+| `llm_litellm`              | LiteLLM proxy for centralized model management                           |
+| `llm_mail_message_subtypes`| LLM integration for mail message subtypes (e.g., summarization)          |
+| `llm_mcp`                  | Model Context Protocol Support                                          |
+| `llm_mistral`              | Mistral AI provider integration                                          |
+| `llm_ollama`               | Ollama provider for local model deployment                               |
+| `llm_openai`               | OpenAI (GPT) provider integration                                        |
+| `llm_pgvector`             | pgvector (PostgreSQL) vector store integration                           |
+| `llm_prompt`               | Management and templating of prompts                                     |
+| `llm_qdrant`               | Qdrant vector store integration                                          |
+| `llm_replicate`            | Replicate.com provider integration                                       |
+| `llm_resource`             | Management of LLM-related resources (e.g., models, configurations)     |
+| `llm_store`                | Abstraction layer for vector stores                                      |
+| `llm_thread`               | Chat threads and conversation management                                 |
+| `llm_tool`                 | Framework for LLM tools (allowing LLMs to interact with Odoo)          |
+| `llm_tool_knowledge`       | Tool for LLMs to query the knowledge base                                |
 
 ## 🛠️ Installation
 
@@ -88,12 +108,12 @@ We welcome contributions! Here's how you can help:
 
 ## 🔮 Roadmap
 
-- Enhanced RAG (Retrieval Augmented Generation) capabilities
-- Function calling support for model-driven actions
-- Multi-modal content handling (images, audio)
-- Advanced prompt templates and management
-- Integration with other Odoo modules (CRM, HR, etc.)
-- Improving assistant frameworks for complex task automation
+- [x] Enhanced RAG (Retrieval Augmented Generation) capabilities (Foundation built, further enhancements planned)
+- [x] Function calling support for model-driven actions (Framework exists via `llm_tool`, expansion planned)
+- [ ] Multi-modal content handling (images, audio)
+- [x] Advanced prompt templates and management (Basic management via `llm_prompt`, advanced features planned)
+- [ ] Integration with other Odoo modules (CRM, HR, etc.)
+- [x] Improving assistant frameworks for complex task automation (Foundation via `llm_assistant`, improvements planned)
 
 ## 📜 License
 
