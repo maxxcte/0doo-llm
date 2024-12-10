@@ -141,7 +141,7 @@ class LLMStorePgVector(models.Model):
 
         # Prepare values for batch creation
         vals_list = []
-        for chunk_id, vector in zip(ids, vectors):
+        for chunk_id, vector in zip(ids, vectors):  # noqa: B905
             vals_list.append(
                 {
                     "chunk_id": chunk_id,

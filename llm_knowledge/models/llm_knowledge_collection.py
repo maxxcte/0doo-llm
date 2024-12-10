@@ -527,7 +527,7 @@ class LLMKnowledgeCollection(models.Model):
                     # Create chunk embedding records
                     embedding_vals_list = []
                     for _i, (chunk_id, vector) in enumerate(
-                        zip(chunk_ids, embeddings)
+                        zip(chunk_ids, embeddings)  # noqa: B905
                     ):
                         embedding_vals_list.append(
                             {

@@ -18,8 +18,8 @@ class LLMToolRecordRetriever(models.Model):
     def odoo_record_retriever_execute(
         self,
         model: str,
-        domain: list[list[Any]] = [],
-        fields: list[str] = [],
+        domain: list[list[Any]] = [],  # noqa: B006
+        fields: list[str] = [],  # noqa: B006
         limit: int = 100,
     ) -> dict[str, Any]:
         """

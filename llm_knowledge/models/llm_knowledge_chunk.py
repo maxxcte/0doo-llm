@@ -269,5 +269,5 @@ class LLMKnowledgeChunk(models.Model):
         final_results = aggregated_results[offset : offset + limit if limit else None]
         chunk_ids = [res[1] for res in final_results]
         similarities = [res[0] for res in final_results]
-        similarity_scores = dict(zip(chunk_ids, similarities))
+        similarity_scores = dict(zip(chunk_ids, similarities))  # noqa: B905
         return self.browse(chunk_ids).with_context(similarity_scores=similarity_scores)
