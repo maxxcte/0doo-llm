@@ -196,33 +196,10 @@ class LLMKnowledgeCollection(models.Model):
         if ready_resources:
             count = len(ready_resources)
             ready_resources.write({"state": "chunked"})
-            self._post_message(message.format(count=count), message_type='info')
+            self._post_styled_message(message.format(count=count), message_type='info')
             return count
         else:
             return 0
-
-    # TODO: Find a way to DRY this method for llm.resource and llm.store.collection maybe
-    def _post_message(self, message, message_type="info"):
-        """
-        Post a message to the resource's chatter with appropriate styling.
-
-        Args:
-            message (str): The message to post
-            message_type (str): Type of message (error, warning, success, info)
-        """
-        if message_type == "error":
-            body = f"<p class='text-danger'><strong>Error:</strong> {message}</p>"
-        elif message_type == "warning":
-            body = f"<p class='text-warning'><strong>Warning:</strong> {message}</p>"
-        elif message_type == "success":
-            body = f"<p class='text-success'><strong>Success:</strong> {message}</p>"
-        else:  # info
-            body = f"<p><strong>Info:</strong> {message}</p>"
-
-        return self.message_post(
-            body=body,
-            message_type="comment",
-        )
 
     def action_view_resources(self):
         """Open a view with all resources in this collection"""
@@ -272,7 +249,7 @@ class LLMKnowledgeCollection(models.Model):
                 model_name = domain_filter.model_name
                 # Validate model exists
                 if model_name not in self.env:
-                    collection._post_message(
+                    collection._post_styled_message(
                         _(f"Model '{model_name}' not found. Skipping."), message_type='warning'
                     )
                     continue
@@ -285,7 +262,7 @@ class LLMKnowledgeCollection(models.Model):
                 records = model.search(domain)
 
                 if not records:
-                    collection._post_message(
+                    collection._post_styled_message(
                         body=_( # Keep body= for now, adjust later if needed
                             f"No records found for model '{domain_filter.model_id.name}' with given domain."
                         ), message_type='info'
@@ -361,7 +338,7 @@ class LLMKnowledgeCollection(models.Model):
 
             # Post summary message
             if created_count > 0 or linked_count > 0 or removed_count > 0:
-                collection._post_message(
+                collection._post_styled_message(
                     body=_( # Keep body= for now, adjust later if needed
                         f"Synchronization complete: Created {created_count} new resources, "
                         f"linked {linked_count} existing resources, "
@@ -369,7 +346,7 @@ class LLMKnowledgeCollection(models.Model):
                     ), message_type='success'
                 )
             else:
-                collection._post_message(
+                collection._post_styled_message(
                     body=_( # Keep body= for now, adjust later if needed
                         "No changes made - collection is already in sync with domains."
                     ), message_type='info'
@@ -404,18 +381,18 @@ class LLMKnowledgeCollection(models.Model):
                         )
                     )
                     if not reset_count:
-                        collection._post_message(
+                        collection._post_styled_message(
                             _("No resources found to reindex."), message_type='info'
                         )
                     else:
-                        collection._post_message(
+                        collection._post_styled_message(
                             _(
                                 f"Reset {reset_count} resources for re-embedding with model {collection.embedding_model_id.name}."
                             ), message_type='info'
                         )
 
                 except Exception as e:
-                    collection._post_message(
+                    collection._post_styled_message(
                         _(f"Error reindexing collection: {str(e)}"), message_type='error'
                     )
             else:
@@ -426,11 +403,11 @@ class LLMKnowledgeCollection(models.Model):
                     )
                 )
                 if not reset_count:
-                    collection._post_message(
+                    collection._post_styled_message(
                         _("No resources found to reindex."), message_type='info'
                     )
                 else:
-                    collection._post_message(
+                    collection._post_styled_message(
                         message=_(
                             f"Reset {reset_count} resources for re-embedding with model {collection.embedding_model_id.name}."
                         ), message_type='info'
@@ -462,14 +439,14 @@ class LLMKnowledgeCollection(models.Model):
         """
         for collection in self:
             if not collection.embedding_model_id:
-                collection._post_message(
+                collection._post_styled_message(
                     _("No embedding model configured for this collection."), message_type='warning'
                 )
                 continue
 
             # Ensure we have a store to use
             if not collection.store_id:
-                collection._post_message(
+                collection._post_styled_message(
                     _("No vector store configured for this collection."), message_type='warning'
                 )
                 continue
@@ -496,7 +473,7 @@ class LLMKnowledgeCollection(models.Model):
                 message = _("No chunks found for resources in chunked state")
                 if specific_resource_ids:
                     message += _(" for the specified resource IDs")
-                collection._post_message(message, message_type='info')
+                collection._post_styled_message(message, message_type='info')
                 continue
             _logger.info(f"Collection '{collection.name}': Starting embedding for {len(chunks_to_process)} chunks from {len(chunks_to_process.mapped('resource_id'))} resources.")
 
@@ -515,7 +492,7 @@ class LLMKnowledgeCollection(models.Model):
             successfully_processed_chunk_ids = set()  # Track successfully processed chunk IDs
             if not total_chunks:
                 message = _("All chunks already have embeddings for the selected model")
-                collection._post_message(message, message_type='info')
+                collection._post_styled_message(message, message_type='info')
                 continue
             _logger.info(f"Collection '{collection.name}': Starting embedding for {total_chunks} chunks from {len(resource_target_chunks)} resources.")
 
@@ -570,7 +547,7 @@ class LLMKnowledgeCollection(models.Model):
                         batch_num + 1, batch_start_index, batch_end_index, resource_ids_str, str(e)
                     )
                     _logger.error(error_msg)
-                    collection._post_message(error_msg, message_type='error')
+                    collection._post_styled_message(error_msg, message_type='error')
                     # Continue with the next batch
 
             # Update resource states to ready - only update resources that had chunks processed
@@ -595,7 +572,7 @@ class LLMKnowledgeCollection(models.Model):
                     f"Successfully embedded {processed_chunks_count} chunks from {doc_count} resources using {collection.embedding_model_id.name}."
                 )
 
-                collection._post_message(msg, message_type='success')
+                collection._post_styled_message(msg, message_type='success')
 
                 return {
                     "success": True,
@@ -610,7 +587,7 @@ class LLMKnowledgeCollection(models.Model):
                      message = _("No chunks were successfully embedded. Check logs for errors.")
 
                 _logger.warning(f"Collection '{collection.name}': {message}")
-                collection._post_message(message, message_type='warning')
+                collection._post_styled_message(message, message_type='warning')
 
                 return {
                     "success": False,

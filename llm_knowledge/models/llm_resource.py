@@ -112,13 +112,13 @@ class LLMKnowledgeChunker(models.Model):
                         # Mark as chunked
                         resource.write({"state": "chunked"})
                     else:
-                        resource._post_message(
+                        resource._post_styled_message(
                             "Failed to create chunks - no content or empty result",
                             "warning",
                         )
 
                 except Exception as e:
-                    resource._post_message(
+                    resource._post_styled_message(
                         f"Error chunking resource: {str(e)}", "error"
                     )
                     resource._unlock()
@@ -222,7 +222,7 @@ class LLMKnowledgeChunker(models.Model):
             chunks.append(chunk)
 
         # Post success message
-        self._post_message(
+        self._post_styled_message(
             f"Created {len(chunks)} chunks (target size: {chunk_size}, overlap: {chunk_overlap})",
             "success",
         )

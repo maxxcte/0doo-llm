@@ -96,7 +96,7 @@ class IrAttachmentExtension(models.Model):
         url = self.url
 
         if not url:
-            llm_resource._post_message(
+            llm_resource._post_styled_message(
                 f"No URL found for attachment {self.name}", "error"
             )
             return False
@@ -180,7 +180,7 @@ class IrAttachmentExtension(models.Model):
             )
 
             # Post success message
-            llm_resource._post_message(
+            llm_resource._post_styled_message(
                 f"Successfully retrieved and parsed content from URL: {url} ({len(text_content)} characters)",
                 "success",
             )
@@ -200,7 +200,7 @@ class IrAttachmentExtension(models.Model):
             )
 
             # Post success message
-            llm_resource._post_message(
+            llm_resource._post_styled_message(
                 f"Successfully retrieved content from URL: {url} ({len(content)} bytes, {content_type})",
                 "success",
             )

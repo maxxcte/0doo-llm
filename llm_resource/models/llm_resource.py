@@ -120,28 +120,6 @@ class LLMResource(models.Model):
         for record in self:
             record.kanban_state = "blocked" if record.lock_date else "normal"
 
-    def _post_message(self, message, message_type="info"):
-        """
-        Post a message to the resource's chatter with appropriate styling.
-
-        Args:
-            message (str): The message to post
-            message_type (str): Type of message (error, warning, success, info)
-        """
-        if message_type == "error":
-            body = f"<p class='text-danger'><strong>Error:</strong> {message}</p>"
-        elif message_type == "warning":
-            body = f"<p class='text-warning'><strong>Warning:</strong> {message}</p>"
-        elif message_type == "success":
-            body = f"<p class='text-success'><strong>Success:</strong> {message}</p>"
-        else:  # info
-            body = f"<p><strong>Info:</strong> {message}</p>"
-
-        return self.message_post(
-            body=body,
-            message_type="comment",
-        )
-
     def _lock(self, state_filter=None, stale_lock_minutes=10):
         """Lock resources for processing and return the ones successfully locked"""
         now = fields.Datetime.now()

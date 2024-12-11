@@ -1,3 +1,4 @@
+from . import mail_thread
 from . import llm_resource
 from . import llm_resource_retriever
 from . import llm_resource_parser

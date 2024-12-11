@@ -56,9 +56,9 @@ class LLMResourceParser(models.Model):
                 if success:
                     resource.write({"state": "parsed"})
                     self.env.cr.commit()
-                    resource._post_message("Resource successfully parsed", "success")
+                    resource._post_styled_message("Resource successfully parsed", "success")
                 else:
-                    resource._post_message(
+                    resource._post_styled_message(
                         "Parsing completed but did not return success", "warning"
                     )
 
@@ -69,7 +69,7 @@ class LLMResourceParser(models.Model):
                     str(e),
                     exc_info=True,
                 )
-                resource._post_message(f"Error parsing resource: {str(e)}", "error")
+                resource._post_styled_message(f"Error parsing resource: {str(e)}", "error")
             finally:
                 resource._unlock()
         resources._unlock()
@@ -260,7 +260,7 @@ class LLMResourceParser(models.Model):
                                 text_content.append(f"\n![{image_name}]({image_url})\n")
                                 image_count += 1
                     except Exception as e:
-                        self._post_message(
+                        self._post_styled_message(
                             f"Error extracting image: {str(e)}", "warning"
                         )
 

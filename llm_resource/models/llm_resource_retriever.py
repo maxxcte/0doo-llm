@@ -44,7 +44,7 @@ class LLMResourceRetriever(models.Model):
                     # Get the related record
                     record = self.env[resource.res_model].browse(resource.res_id)
                     if not record.exists():
-                        resource._post_message(
+                        resource._post_styled_message(
                             _("Referenced record not found"), "error"
                         )
                         continue
@@ -75,7 +75,7 @@ class LLMResourceRetriever(models.Model):
                         str(e),
                         exc_info=True,
                     )
-                    resource._post_message(
+                    resource._post_styled_message(
                         f"Error retrieving resource: {str(e)}", "error"
                     )
 

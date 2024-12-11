@@ -105,7 +105,7 @@ class LLMResourceLlamaChunker(models.Model):
             created_chunks.append(chunk)
 
         # Post success message
-        self._post_message(
+        self._post_styled_message(
             f"Created {len(created_chunks)} chunks using LlamaIndex MarkdownNodeParser",
             "success",
         )
@@ -168,7 +168,7 @@ class LLMResourceLlamaChunker(models.Model):
             created_chunks.append(chunk)
 
         # Post success message
-        self._post_message(
+        self._post_styled_message(
             f"Created {len(created_chunks)} chunks using LlamaIndex SentenceSplitter "
             f"(size: {self.target_chunk_size}, overlap: {self.target_chunk_overlap})",
             "success",
@@ -232,7 +232,7 @@ class LLMResourceLlamaChunker(models.Model):
             created_chunks.append(chunk)
 
         # Post success message
-        self._post_message(
+        self._post_styled_message(
             f"Created {len(created_chunks)} chunks using LlamaIndex TokenTextSplitter "
             f"(size: {self.target_chunk_size}, overlap: {self.target_chunk_overlap})",
             "success",
@@ -296,7 +296,7 @@ class LLMResourceLlamaChunker(models.Model):
             created_chunks.append(chunk)
 
         # Post success message
-        self._post_message(
+        self._post_styled_message(
             f"Created {len(created_chunks)} hierarchical chunks using LlamaIndex "
             f"HierarchicalNodeParser with sizes {chunk_sizes}",
             "success",
@@ -348,13 +348,13 @@ class LLMResourceLlamaChunker(models.Model):
                         # Mark as chunked
                         resource.write({"state": "chunked"})
                     else:
-                        resource._post_message(
+                        resource._post_styled_message(
                             "Failed to create chunks - no content or empty result",
                             "warning",
                         )
 
                 except Exception as e:
-                    resource._post_message(
+                    resource._post_styled_message(
                         f"Error chunking resource: {str(e)}", "error"
                     )
                     resource._unlock()
