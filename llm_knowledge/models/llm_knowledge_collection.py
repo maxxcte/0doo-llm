@@ -134,13 +134,13 @@ class LLMKnowledgeCollection(models.Model):
                         collection._initialize_store()
 
                     collection._reset_ready_resources(
-                        message=_(
+                        success_message=_(
                             "Store changed. Reset {count} resources for re-embedding into the new store."
                         )
                     )
                 if embedding_model_changed:
                     collection._reset_ready_resources(
-                        message=_(
+                        success_message=_(
                             "Embedding model changed. Reset {count} resources for re-embedding."
                         )
                     )
@@ -188,7 +188,7 @@ class LLMKnowledgeCollection(models.Model):
             return False
 
     def _reset_ready_resources(
-        self, message="Reset {{count}} resources for re-embedding."
+        self, success_message="Reset {{count}} resources for re-embedding."
     ):
         """Finds ready resources, resets their state to 'chunked', and posts a message."""
         self.ensure_one()
@@ -196,7 +196,7 @@ class LLMKnowledgeCollection(models.Model):
         if ready_resources:
             count = len(ready_resources)
             ready_resources.write({"state": "chunked"})
-            self._post_styled_message(message.format(count=count), message_type='info')
+            self._post_styled_message(success_message.format(count=count), message_type='info')
             return count
         else:
             return 0
@@ -376,19 +376,13 @@ class LLMKnowledgeCollection(models.Model):
 
                     # Mark resources for re-embedding
                     reset_count = collection._reset_ready_resources(
-                        message=_(
+                        success_message=_(
                             f"Reset {{count}} resources for re-embedding with model {collection.embedding_model_id.name}."
                         )
                     )
                     if not reset_count:
                         collection._post_styled_message(
                             _("No resources found to reindex."), message_type='info'
-                        )
-                    else:
-                        collection._post_styled_message(
-                            _(
-                                f"Reset {reset_count} resources for re-embedding with model {collection.embedding_model_id.name}."
-                            ), message_type='info'
                         )
 
                 except Exception as e:
@@ -398,7 +392,7 @@ class LLMKnowledgeCollection(models.Model):
             else:
                 # For collections without a store, just reset resource states
                 reset_count = collection._reset_ready_resources(
-                    message=_(
+                    success_message=_(
                         f"Reset {{count}} resources for re-embedding with model {collection.embedding_model_id.name}."
                     )
                 )
