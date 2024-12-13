@@ -265,22 +265,63 @@
             </tree>
         </field>
     </record>
+    
+    <!-- Kanban View for "Documents" Menu -->
+    <record id="view_llm_resource_document_kanban" model="ir.ui.view">
+        <field name="name">llm.resource.document.kanban</field>
+        <field name="model">llm.resource</field>
+        <field name="arch" type="xml">
+            <kanban group_by="state">
+                <field name="name"/>
+                <field name="model_id"/>
+                <field name="collection_ids"/>
+                <field name="state"/>
+                <field name="chunk_count"/>
+                <field name="kanban_state"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <strong class="o_kanban_record_title"><field name="name"/></strong>
+                                <div class="o_kanban_tags_section">
+                                    <field name="collection_ids" widget="many2many_tags"/>
+                                </div>
+                                <ul>
+                                    <li>Model: <field name="model_id"/></li>
+                                    <li>Chunks: <field name="chunk_count"/></li>
+                                </ul>
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left">
+                                        <field name="state" widget="label_selection" 
+                                               options="{'classes': {'draft': 'default', 'retrieved': 'warning', 'parsed': 'success'}}"/>
+                                    </div>
+                                    <div class="oe_kanban_bottom_right">
+                                        <field name="kanban_state" widget="state_selection"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
 
     <!-- Action for "Documents" Menu -->
     <record id="action_llm_knowledge_document" model="ir.actions.act_window">
         <field name="name">Documents</field>
         <field name="res_model">llm.resource</field>
-        <field name="view_mode">tree,form</field>
-        <!-- Use the specific tree view and the inherited form view -->
+        <field name="view_mode">kanban,tree,form</field>
+        <!-- Use the specific views -->
         <field
       name="view_ids"
       eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_llm_resource_document_kanban')}),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_llm_resource_document_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_llm_resource_form')})]"
     />
-        <field
-      name="domain"
-    >[('state', 'in', ['chunked', 'ready']), ('collection_ids', '!=', False)]</field>
+        <field name="domain">[('collection_ids', '!=', False)]</field>
+        <field name="context">{'search_default_group_by_state': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Manage knowledge documents.
