@@ -23,4 +23,16 @@ action = model.action_mass_process_resources()
 action = model.action_mass_unlock()
         </field>
     </record>
+    
+    <!-- Server Action for Mass Reset -->
+    <record id="action_mass_reset_resources" model="ir.actions.server">
+        <field name="name">Reset Resources</field>
+        <field name="model_id" ref="llm_resource.model_llm_resource" />
+        <field name="binding_model_id" ref="llm_resource.model_llm_resource" />
+        <field name="binding_view_types">list,form,kanban</field>
+        <field name="state">code</field>
+        <field name="code">
+action = model.action_mass_reset()
+        </field>
+    </record>
 </odoo>
