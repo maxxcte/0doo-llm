@@ -550,41 +550,44 @@ class LLMKnowledgeCollection(models.Model):
             for res_id, target_chunks in resource_target_chunks.items():
                 if target_chunks.issubset(successfully_processed_chunk_ids):
                     fully_processed_resource_ids.add(res_id)
+            
+            collection._finalize_embedding(fully_processed_resource_ids, processed_chunks_count)
+    
+    def _finalize_embedding(self, fully_processed_resource_ids,processed_chunks_count ):
+        # Update states only for fully processed resources
+        if fully_processed_resource_ids:
+            _logger.info(f"Updating state to 'ready' for {len(fully_processed_resource_ids)} fully processed resources.")
+            self.env["llm.resource"].browse(list(fully_processed_resource_ids)).write(
+                {"state": "ready"}
+            )
+            # Final commit after state updates
+            self.env.cr.commit()
 
-            # Update states only for fully processed resources
-            if fully_processed_resource_ids:
-                _logger.info(f"Updating state to 'ready' for {len(fully_processed_resource_ids)} fully processed resources.")
-                self.env["llm.resource"].browse(list(fully_processed_resource_ids)).write(
-                    {"state": "ready"}
-                )
-                # Final commit after state updates
-                self.env.cr.commit()
+            # Prepare message with resource details for clarity
+            doc_count = len(fully_processed_resource_ids)
+            msg = _(
+                f"Successfully embedded {processed_chunks_count} chunks from {doc_count} resources using {self.embedding_model_id.name}."
+            )
 
-                # Prepare message with resource details for clarity
-                doc_count = len(fully_processed_resource_ids)
-                msg = _(
-                    f"Successfully embedded {processed_chunks_count} chunks from {doc_count} resources using {collection.embedding_model_id.name}."
-                )
+            self._post_styled_message(msg, message_type='success')
 
-                collection._post_styled_message(msg, message_type='success')
-
-                return {
-                    "success": True,
-                    "processed_chunks": processed_chunks_count,
-                    "processed_resources": doc_count,
-                }
+            return {
+                "success": True,
+                "processed_chunks": processed_chunks_count,
+                "processed_resources": doc_count,
+            }
+        else:
+            # Check if any chunks were processed at all, even if no resource was fully completed
+            if processed_chunks_count > 0:
+                    message = _("Processed %d chunks, but no resources were fully completed due to errors in some batches.") % processed_chunks_count
             else:
-                # Check if any chunks were processed at all, even if no resource was fully completed
-                if processed_chunks_count > 0:
-                     message = _("Processed %d chunks, but no resources were fully completed due to errors in some batches.") % processed_chunks_count
-                else:
-                     message = _("No chunks were successfully embedded. Check logs for errors.")
+                    message = _("No chunks were successfully embedded. Check logs for errors.")
 
-                _logger.warning(f"Collection '{collection.name}': {message}")
-                collection._post_styled_message(message, message_type='warning')
+            _logger.warning(f"Collection '{self.name}': {message}")
+            self._post_styled_message(message, message_type='warning')
 
-                return {
-                    "success": False,
-                    "processed_chunks": processed_chunks_count,
-                    "processed_resources": 0,
-                }
+            return {
+                "success": False,
+                "processed_chunks": processed_chunks_count,
+                "processed_resources": 0,
+            }
