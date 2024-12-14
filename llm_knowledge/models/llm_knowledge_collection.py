@@ -4,6 +4,8 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.safe_eval import safe_eval
 
+from .llm_resource import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
+
 _logger = logging.getLogger(__name__)
 
 
@@ -72,6 +74,22 @@ class LLMKnowledgeCollection(models.Model):
         ondelete="cascade",
         tracking=True,
     )
+    
+    # Default chunking settings for resources in this collection
+    default_chunk_size = fields.Integer(
+        string="Default Chunk Size",
+        default=DEFAULT_CHUNK_SIZE,
+        required=True,
+        help="Default target size of chunks in tokens for resources in this collection",
+        tracking=True,
+    )
+    default_chunk_overlap = fields.Integer(
+        string="Default Chunk Overlap",
+        default=DEFAULT_CHUNK_OVERLAP,
+        required=True,
+        help="Default number of tokens to overlap between chunks for resources in this collection",
+        tracking=True,
+    )
 
     @api.depends("resource_ids.chunk_ids")
     def _compute_chunk_ids(self):
@@ -96,6 +114,12 @@ class LLMKnowledgeCollection(models.Model):
             # Initialize the store if one is assigned
             if collection.store_id:
                 collection._initialize_store()
+            # Apply default chunk settings to resources if they exist
+            if collection.resource_ids:
+                collection._apply_chunk_settings_to_resources(
+                    update_size=True,
+                    update_overlap=True,
+                )
         return collections
 
     def write(self, vals):
@@ -144,6 +168,13 @@ class LLMKnowledgeCollection(models.Model):
                             "Embedding model changed. Reset {count} resources for re-embedding."
                         )
                     )
+
+        # Check if chunk settings were updated
+        if 'default_chunk_size' in vals or 'default_chunk_overlap' in vals:
+            self._apply_chunk_settings_to_resources(
+                update_size='default_chunk_size' in vals, 
+                update_overlap='default_chunk_overlap' in vals
+            )
 
         return result
 
@@ -591,3 +622,19 @@ class LLMKnowledgeCollection(models.Model):
                 "processed_chunks": processed_chunks_count,
                 "processed_resources": 0,
             }
+
+    def _apply_chunk_settings_to_resources(self, update_size=True, update_overlap=True):
+        """Apply collection chunk settings to all resources in this collection"""
+        for collection in self:
+            if not collection.resource_ids:
+                continue
+                
+            # Only update the fields that were changed
+            update_vals = {}
+            if update_size:
+                update_vals['target_chunk_size'] = collection.default_chunk_size
+            if update_overlap:
+                update_vals['target_chunk_overlap'] = collection.default_chunk_overlap
+                
+            if update_vals:
+                collection.resource_ids.write(update_vals)

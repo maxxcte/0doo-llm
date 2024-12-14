@@ -86,7 +86,8 @@
                             <field name="store_id" required="1" />
                         </group>
                         <group>
-                            <!-- Add store fields here if needed -->
+                            <field name="default_chunk_size" />
+                            <field name="default_chunk_overlap" />
                         </group>
                     </group>
                     <notebook>

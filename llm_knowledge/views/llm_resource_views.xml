@@ -166,6 +166,15 @@
           name="target_chunk_overlap"
           attrs="{'readonly': [('state', 'not in', ['draft', 'retrieved', 'parsed'])]}"
         />
+                 <label for="action_reset_chunk_settings" colspan="2"/>
+                 <button
+              name="action_reset_chunk_settings"
+              string="RESET CHUNK SETTINGS"
+              type="object"
+              class="btn-primary"
+              colspan="2"
+              attrs="{'invisible': [('state', 'not in', ['draft', 'retrieved', 'parsed'])]}"
+            />
             </xpath>
 
             <!-- Add Chunks page to notebook -->
