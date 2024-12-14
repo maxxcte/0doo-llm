@@ -273,8 +273,21 @@
         <field name="inherit_id" ref="llm_resource.view_llm_resource_kanban" />
         <field name="mode">primary</field>
         <field name="arch" type="xml">
+            <!-- Add group_by attribute to kanban -->
             <xpath expr="//kanban" position="attributes">
                 <attribute name="group_by">state</attribute>
+            </xpath>
+            
+            <!-- Add collection_ids field definition -->
+            <xpath expr="//field[@name='res_id']" position="after">
+                <field name="collection_ids"/>
+            </xpath>
+            
+            <!-- Add collection_ids display in the UI -->
+            <xpath expr="//div[@class='o_kanban_record_body']/div[1]" position="after">
+                <div t-if="record.collection_ids.raw_value.length > 0" class="mt-2">
+                    <field name="collection_ids" widget="many2many_tags"/>
+                </div>
             </xpath>
         </field>
     </record>
