@@ -12,7 +12,7 @@ class LLMStoreCollection(models.AbstractModel):
         "llm.store",
         string="Vector Store",
         required=True,
-        ondelete="cascade",
+        ondelete="restrict",
         tracking=True,
     )
 

@@ -67,14 +67,6 @@ class LLMKnowledgeCollection(models.Model):
         help="Chunks belonging to the resources included in this collection.",
     )
 
-    store_id = fields.Many2one(
-        "llm.store",
-        string="Vector Store",
-        required=True,
-        ondelete="cascade",
-        tracking=True,
-    )
-    
     # Default chunking settings for resources in this collection
     default_chunk_size = fields.Integer(
         string="Default Chunk Size",
@@ -582,7 +574,7 @@ class LLMKnowledgeCollection(models.Model):
                 if target_chunks.issubset(successfully_processed_chunk_ids):
                     fully_processed_resource_ids.add(res_id)
             
-            collection._finalize_embedding(fully_processed_resource_ids, processed_chunks_count)
+            return collection._finalize_embedding(fully_processed_resource_ids, processed_chunks_count)
     
     def _finalize_embedding(self, fully_processed_resource_ids,processed_chunks_count ):
         # Update states only for fully processed resources
