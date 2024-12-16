@@ -100,19 +100,25 @@ class LLMKnowledgeChunk(models.Model):
         for chunk in self:
             for collection in chunk.collection_ids:
                 if collection.id not in chunks_by_collection:
-                    chunks_by_collection[collection.id] = self.env['llm.knowledge.chunk']
+                    chunks_by_collection[collection.id] = self.env[
+                        "llm.knowledge.chunk"
+                    ]
                 chunks_by_collection[collection.id] |= chunk
-        
+
         # Remove vectors from each collection's store
         for collection_id, chunks in chunks_by_collection.items():
-            collection = self.env['llm.knowledge.collection'].browse(collection_id)
+            collection = self.env["llm.knowledge.collection"].browse(collection_id)
             if collection.store_id:
                 try:
                     collection.delete_vectors(ids=chunks.ids)
-                    _logger.info(f"Removed {len(chunks)} vectors from collection {collection.name} (ID: {collection.id})")
+                    _logger.info(
+                        f"Removed {len(chunks)} vectors from collection {collection.name} (ID: {collection.id})"
+                    )
                 except Exception as e:
-                    _logger.warning(f"Error removing vectors for chunks from collection {collection.name} (ID: {collection.id}): {str(e)}")
-        
+                    _logger.warning(
+                        f"Error removing vectors for chunks from collection {collection.name} (ID: {collection.id}): {str(e)}"
+                    )
+
         # Proceed with standard deletion
         return super().unlink()
 

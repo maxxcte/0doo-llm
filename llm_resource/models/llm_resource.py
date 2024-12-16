@@ -234,11 +234,11 @@ class LLMResource(models.Model):
                     "sticky": False,
                 },
             }
-            
+
         resources = self.browse(active_ids)
         # Filter resources that are not in draft state
-        non_draft_resources = resources.filtered(lambda r: r.state != 'draft')
-        
+        non_draft_resources = resources.filtered(lambda r: r.state != "draft")
+
         if not non_draft_resources:
             return {
                 "type": "ir.actions.client",
@@ -250,19 +250,21 @@ class LLMResource(models.Model):
                     "sticky": False,
                 },
             }
-            
+
         # Reset resources to draft state and unlock them
-        non_draft_resources.write({
-            'state': 'draft',
-            'lock_date': False,
-        })
-        
+        non_draft_resources.write(
+            {
+                "state": "draft",
+                "lock_date": False,
+            }
+        )
+
         # Reload the view to reflect changes
         return {
             "type": "ir.actions.client",
             "tag": "reload",
             "params": {
-                "menu_id": self.env.context.get('menu_id'),
-                "action": self.env.context.get('action'),
+                "menu_id": self.env.context.get("menu_id"),
+                "action": self.env.context.get("action"),
             },
         }

@@ -166,15 +166,15 @@
           name="target_chunk_overlap"
           attrs="{'readonly': [('state', 'not in', ['draft', 'retrieved', 'parsed'])]}"
         />
-                 <label for="action_reset_chunk_settings" colspan="2"/>
+                 <label for="action_reset_chunk_settings" colspan="2" />
                  <button
-              name="action_reset_chunk_settings"
-              string="RESET CHUNK SETTINGS"
-              type="object"
-              class="btn-primary"
-              colspan="2"
-              attrs="{'invisible': [('state', 'not in', ['draft', 'retrieved', 'parsed'])]}"
-            />
+          name="action_reset_chunk_settings"
+          string="RESET CHUNK SETTINGS"
+          type="object"
+          class="btn-primary"
+          colspan="2"
+          attrs="{'invisible': [('state', 'not in', ['draft', 'retrieved', 'parsed'])]}"
+        />
             </xpath>
 
             <!-- Add Chunks page to notebook -->
@@ -274,7 +274,7 @@
             </tree>
         </field>
     </record>
-    
+
     <!-- Kanban View for "Documents" Menu -->
     <record id="view_llm_resource_document_kanban" model="ir.ui.view">
         <field name="name">llm.resource.document.kanban</field>
@@ -286,16 +286,22 @@
             <xpath expr="//kanban" position="attributes">
                 <attribute name="group_by">state</attribute>
             </xpath>
-            
+
             <!-- Add collection_ids field definition -->
             <xpath expr="//field[@name='res_id']" position="after">
-                <field name="collection_ids"/>
+                <field name="collection_ids" />
             </xpath>
-            
+
             <!-- Add collection_ids display in the UI -->
-            <xpath expr="//div[@class='o_kanban_record_body']/div[1]" position="after">
-                <div t-if="record.collection_ids.raw_value.length > 0" class="mt-2">
-                    <field name="collection_ids" widget="many2many_tags"/>
+            <xpath
+        expr="//div[@class='o_kanban_record_body']/div[1]"
+        position="after"
+      >
+                <div
+          t-if="record.collection_ids.raw_value.length > 0"
+          class="mt-2"
+        >
+                    <field name="collection_ids" widget="many2many_tags" />
                 </div>
             </xpath>
         </field>

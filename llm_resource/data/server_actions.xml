@@ -23,7 +23,7 @@ action = model.action_mass_process_resources()
 action = model.action_mass_unlock()
         </field>
     </record>
-    
+
     <!-- Server Action for Mass Reset -->
     <record id="action_mass_reset_resources" model="ir.actions.server">
         <field name="name">Reset Resources</field>
