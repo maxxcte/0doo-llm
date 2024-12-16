@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from odoo import api, models
 from odoo.exceptions import UserError
@@ -22,9 +22,9 @@ class LLMToolModelMethodExecutor(models.Model):
         self,
         model: str,
         method: str,
-        record_ids: list[int] | None = None,
-        args: list[Any] | None = None,
-        kwargs: dict[str, Any] | None = None,
+        record_ids: Optional[list[int]] = None,
+        args: Optional[list[Any]] = None,
+        kwargs: Optional[dict[str, Any]] = None,
         allow_private: bool = False,
     ) -> dict[str, Any]:
         """Executes the specified method on the model or records.

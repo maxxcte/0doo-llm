@@ -1,6 +1,6 @@
 import inspect
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from odoo import api, models
 
@@ -49,10 +49,10 @@ class LLMToolModelInspector(models.Model):
         field_limit: int = 30,
         method_limit: int = 20,
         include_private: bool = False,
-        method_name_filter: str | None = None,
-        method_type_filter: list[str] | None = None,
-        field_name_filter: str | None = None,
-        field_type_filter: list[str] | None = None,
+        method_name_filter: Optional[str] = None,
+        method_type_filter: Optional[list[str]] = None,
+        field_name_filter: Optional[str] = None,
+        field_type_filter: Optional[list[str]] = None,
     ) -> dict[str, Any]:
         """
         Comprehensive inspection of an Odoo model including basic information, fields, and methods.
@@ -179,8 +179,8 @@ class LLMToolModelInspector(models.Model):
         model_obj: models.Model,
         limit: int = 30,
         include_private: bool = False,
-        name_filter: str | None = None,
-        type_filter: list[str] | None = None,
+        name_filter: Optional[str] = None,
+        type_filter: Optional[list[str]] = None,
     ) -> dict[str, Any]:
         """Get detailed information about model fields."""
         fields_info = model_obj.fields_get()
@@ -248,8 +248,8 @@ class LLMToolModelInspector(models.Model):
         model_obj: models.Model,
         limit: int = 20,
         include_private: bool = False,
-        name_filter: str | None = None,
-        type_filter: list[str] | None = None,
+        name_filter: Optional[str] = None,
+        type_filter: Optional[list[str]] = None,
     ) -> dict[str, Any]:
         """Get detailed information about model methods."""
         model_cls = model_obj.__class__
@@ -313,7 +313,7 @@ class LLMToolModelInspector(models.Model):
 
     def _extract_method_details(
         self, model_cls, method_obj, name
-    ) -> dict[str, Any] | None:
+    ) -> Optional[dict[str, Any]]:
         """Extract detailed information about a method."""
         details = {
             "name": name,
