@@ -83,6 +83,18 @@ class LLMKnowledgeCollection(models.Model):
         tracking=True,
     )
 
+    default_chunker = fields.Selection(
+        selection="_get_available_chunkers",
+        string="Default Chunker",
+        default="default",
+        required=True,
+        help="Default chunker to use for resources in this collection",
+        tracking=True,
+    )
+    @api.model
+    def _get_available_chunkers(self):
+        return self.env["llm.resource"]._get_available_chunkers()
+
     @api.depends("resource_ids.chunk_ids")
     def _compute_chunk_ids(self):
         for collection in self:
@@ -111,6 +123,7 @@ class LLMKnowledgeCollection(models.Model):
                 collection._apply_chunk_settings_to_resources(
                     update_size=True,
                     update_overlap=True,
+                    update_chunker=True,
                 )
         return collections
 
@@ -162,10 +175,11 @@ class LLMKnowledgeCollection(models.Model):
                     )
 
         # Check if chunk settings were updated
-        if "default_chunk_size" in vals or "default_chunk_overlap" in vals:
+        if "default_chunk_size" in vals or "default_chunk_overlap" in vals or "default_chunker" in vals:
             self._apply_chunk_settings_to_resources(
                 update_size="default_chunk_size" in vals,
                 update_overlap="default_chunk_overlap" in vals,
+                update_chunker="default_chunker" in vals,
             )
 
         return result
@@ -667,7 +681,7 @@ class LLMKnowledgeCollection(models.Model):
                 "processed_resources": 0,
             }
 
-    def _apply_chunk_settings_to_resources(self, update_size=True, update_overlap=True):
+    def _apply_chunk_settings_to_resources(self, update_size=True, update_overlap=True, update_chunker=True):
         """Apply collection chunk settings to all resources in this collection"""
         for collection in self:
             if not collection.resource_ids:
@@ -679,6 +693,7 @@ class LLMKnowledgeCollection(models.Model):
                 update_vals["target_chunk_size"] = collection.default_chunk_size
             if update_overlap:
                 update_vals["target_chunk_overlap"] = collection.default_chunk_overlap
-
+            if update_chunker:
+                update_vals["chunker"] = collection.default_chunker
             if update_vals:
                 collection.resource_ids.write(update_vals)
