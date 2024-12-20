@@ -4,6 +4,7 @@ from odoo import _, api, fields, models
 
 _logger = logging.getLogger(__name__)
 
+
 class LLMKnowledgeChunker(models.Model):
     _inherit = "llm.resource"
 
@@ -13,7 +14,7 @@ class LLMKnowledgeChunker(models.Model):
             ("ready", "Ready"),
         ],
     )
-    
+
     collection_ids = fields.Many2many(
         "llm.knowledge.collection",
         relation="llm_knowledge_resource_collection_rel",

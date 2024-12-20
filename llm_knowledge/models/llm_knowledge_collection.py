@@ -91,6 +91,7 @@ class LLMKnowledgeCollection(models.Model):
         help="Default chunker to use for resources in this collection",
         tracking=True,
     )
+
     @api.model
     def _get_available_chunkers(self):
         return self.env["llm.resource"]._get_available_chunkers()
@@ -175,7 +176,11 @@ class LLMKnowledgeCollection(models.Model):
                     )
 
         # Check if chunk settings were updated
-        if "default_chunk_size" in vals or "default_chunk_overlap" in vals or "default_chunker" in vals:
+        if (
+            "default_chunk_size" in vals
+            or "default_chunk_overlap" in vals
+            or "default_chunker" in vals
+        ):
             self._apply_chunk_settings_to_resources(
                 update_size="default_chunk_size" in vals,
                 update_overlap="default_chunk_overlap" in vals,
@@ -622,16 +627,17 @@ class LLMKnowledgeCollection(models.Model):
             return collection._finalize_embedding(
                 fully_processed_resource_ids, processed_chunks_count
             )
-    
+
     def _post_resources_error(self, resource_ids, error_msg, batch_num):
         resources = self.env["llm.resource"].browse(list(resource_ids))
         for resource in resources:
-            resource_error_msg = _("Failed to process this resource in batch %d: %s") % (
-                            batch_num + 1,
-                            error_msg,
-                        )
+            resource_error_msg = _(
+                "Failed to process this resource in batch %d: %s"
+            ) % (
+                batch_num + 1,
+                error_msg,
+            )
             resource._post_styled_message(resource_error_msg, message_type="error")
-            
 
     def _finalize_embedding(self, fully_processed_resource_ids, processed_chunks_count):
         # Update states only for fully processed resources
@@ -681,7 +687,9 @@ class LLMKnowledgeCollection(models.Model):
                 "processed_resources": 0,
             }
 
-    def _apply_chunk_settings_to_resources(self, update_size=True, update_overlap=True, update_chunker=True):
+    def _apply_chunk_settings_to_resources(
+        self, update_size=True, update_overlap=True, update_chunker=True
+    ):
         """Apply collection chunk settings to all resources in this collection"""
         for collection in self:
             if not collection.resource_ids:
