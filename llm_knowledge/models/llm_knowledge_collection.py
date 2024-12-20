@@ -593,6 +593,9 @@ class LLMKnowledgeCollection(models.Model):
                     )
                     _logger.error(error_msg)
                     collection._post_styled_message(error_msg, message_type="error")
+                    # Post messages to individual resources
+                    # Batch read all resources at once
+                    self._post_resources_error(resource_ids_in_batch, str(e), batch_num)
                     # Continue with the next batch
 
             # Update resource states to ready - only update resources that had chunks processed
@@ -605,6 +608,16 @@ class LLMKnowledgeCollection(models.Model):
             return collection._finalize_embedding(
                 fully_processed_resource_ids, processed_chunks_count
             )
+    
+    def _post_resources_error(self, resource_ids, error_msg, batch_num):
+        resources = self.env["llm.resource"].browse(list(resource_ids))
+        for resource in resources:
+            resource_error_msg = _("Failed to process this resource in batch %d: %s") % (
+                            batch_num + 1,
+                            error_msg,
+                        )
+            resource._post_styled_message(resource_error_msg, message_type="error")
+            
 
     def _finalize_embedding(self, fully_processed_resource_ids, processed_chunks_count):
         # Update states only for fully processed resources
