@@ -4,7 +4,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.safe_eval import safe_eval
 
-from .llm_resource import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
+from .llm_resource_chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
 
 _logger = logging.getLogger(__name__)
 
