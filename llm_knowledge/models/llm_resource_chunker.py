@@ -229,6 +229,7 @@ class LLMKnowledgeChunker(models.Model):
             {
                 "target_chunk_size": DEFAULT_CHUNK_SIZE,
                 "target_chunk_overlap": DEFAULT_CHUNK_OVERLAP,
+                "chunker": "default",
             }
         )
 
