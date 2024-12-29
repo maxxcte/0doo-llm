@@ -29,25 +29,16 @@ class LLMResourceHTTPRetriever(models.Model):
         retrievers.append(("http", "HTTP Retriever"))
         return retrievers
 
-
-class IrAttachmentExtension(models.Model):
-    _inherit = "ir.attachment"
-
-    def rag_retrieve(self, llm_resource):
+    def retrieve_http(self, retrieval_details, record):
         """
         Implementation for HTTP retrieval when the attachment has an external URL
         """
         self.ensure_one()
-        if llm_resource.retriever == "http" and self.url:
-            return self._http_retrieve(llm_resource)
+        _logger.info("Retrieving HTTP resource: %s", retrieval_details)
+        if retrieval_details["type"] == "url":
+            return self._http_retrieve(retrieval_details, record)
         else:
-            _logger.info(
-                "Falling back to default retriever for attachment %s",self.name)
-            return (
-                super().rag_retrieve(llm_resource)
-                if hasattr(super(), "rag_retrieve")
-                else False
-            )
+            raise ValueError("Unsupported retrieval type: " + retrieval_details["type"])
 
     def _ensure_full_urls(self, markdown_content, base_url):
         """
@@ -241,7 +232,14 @@ class IrAttachmentExtension(models.Model):
         else:
             return {'markdown_content': None, 'decoded_successfully': False}
 
-    def _http_update_attachment(self, content, content_type, filename):
+    def _http_store_content(
+        self,
+        content,
+        content_type,
+        filename,
+        retrieval_details,
+        record,
+    ):
         """
         Updates the ir.attachment record with the fetched content.
 
@@ -249,37 +247,45 @@ class IrAttachmentExtension(models.Model):
         :param content_type: Determined MIME type
         :param filename: Determined filename
         """
-        content_base64 = base64.b64encode(content)
-        self.write(
-            {
-                "datas": content_base64,
-                "mimetype": content_type,
-                "name": filename,
-                "type": "binary",
-            }
-        )
+
+        fields_to_update = retrieval_details["target_fields"]
+        for field in fields_to_update:
+            target_field_type = record._fields[field["content"]].type
+            if field["content"]:
+                if target_field_type == "binary":
+                    content = base64.b64encode(content)
+                record.write({field["content"]: content})
+            if field["mimetype"]:
+                record.write({field["mimetype"]: content_type})
+            if field["filename"]:
+                record.write({field["filename"]: filename})
+            if field["type"]:
+                record.write({field["type"]: target_field_type})
 
     # --- Main Orchestrator Method --- 
 
-    def _http_retrieve(self, llm_resource):
+    def _http_retrieve(self, retrieval_details, record):
         """
         Retrieves content from an external URL, handling redirects and meta refreshes.
         Orchestrates fetching, processing, and storing the content.
 
-        :param llm_resource: The llm.resource record being processed
+        :param retrieval_details: The retrieval details dictionary
         :return: Dictionary with state or Boolean indicating success
         """
         self.ensure_one()
-        initial_url = self.url
+        _logger.info(f"Retrieving HTTP resource: {record.name}")
+        field = retrieval_details["field"]
+
+        initial_url = record[field]
         max_refreshes = 1  # Limit meta refreshes
 
         if not initial_url:
-            llm_resource._post_styled_message(
-                f"No URL found for attachment {self.name}", "error"
+            self._post_styled_message(
+                f"No URL found for this resource {record.name}", "error"
             )
             return False
 
-        _logger.info(f"Starting HTTP retrieval for attachment {self.name} from initial URL: {initial_url}")
+        _logger.info(f"Starting HTTP retrieval for {record.name} from initial URL: {initial_url}")
         headers = {"User-Agent": "Mozilla/5.0 (compatible; Odoo LLM Resource/1.0)"}
 
         try:
@@ -298,37 +304,32 @@ class IrAttachmentExtension(models.Model):
 
                 if processing_result['decoded_successfully']:
                     markdown_content = processing_result['markdown_content']
-                    llm_resource.write({"content": markdown_content})
-                    self._http_update_attachment(content, content_type, filename)
-                    llm_resource._post_styled_message(
+                    self.write({"content": markdown_content})
+                    self._http_store_content(content, content_type, filename, retrieval_details, record)
+                    self._post_styled_message(
                         f"Successfully retrieved and processed text content from URL: {final_url}({len(markdown_content)} characters) (original: {initial_url})",
                         "success",
                     )
                     return {"state": "parsed"}
                 else:
                     # Decoding failed, store raw data
-                    llm_resource.write({"content": ""}) # Clear content
-                    self._http_update_attachment(content, content_type, filename) # Store raw
-                    llm_resource._post_styled_message(
+                    self.write({"content": ""}) # Clear content
+                    self._http_store_content(content, content_type, filename, retrieval_details, record) # Store raw
+                    self._post_styled_message(
                         f"Failed to decode text content from URL: {final_url}. Storing raw data.",
                         "warning",
                     )
                     return {"state": "parsed"}
             else:
-                self._http_update_attachment(content, content_type, filename)
-                llm_resource._post_styled_message(
+                self._http_store_content(content, content_type, filename, retrieval_details, record)
+                self._post_styled_message(
                     f"Successfully retrieved binary content from URL: {final_url} (original: {initial_url})",
                     "success",
                 )
                 return {"state": "retrieved"}
 
-        except requests.exceptions.RequestException as e:
-            llm_resource._post_styled_message(
-                f"HTTP request failed for URL {initial_url}: {e}", "error"
-            )
-            return False
         except Exception as e:
-            llm_resource._post_styled_message(
+            self._post_styled_message(
                 f"An unexpected error occurred during HTTP retrieval process from {initial_url}: {e}",
                 "error",
             )

@@ -17,3 +17,31 @@ class IrAttachment(models.Model):
                 "rawcontent": self.raw,
             }
         ]
+    
+    def llm_get_retrieval_details(self):
+        """Provides details needed by llm.resource to retrieve content.
+        Returns:
+            List of dictionaries containing details about how to retrieve content
+            The dictionaries should contain the following elements:
+                type: str - type of retrieval, either "url" or "binary"
+                field: str - name of the field to retrieve the content from
+                target_fields: list of dictionaries containing details about how to store the content
+                    The dictionaries should contain the following elements:
+                        content(required): str - name of the field to store the content in
+                        mimetype: str - mimetype of the content
+                        filename: str - name of the field to store the filename in
+                        type: str - type of the field to store the type in
+        """
+        self.ensure_one()
+        data_type = "url" if self.type == "url" else "binary"
+        details = {
+            "type": data_type,
+            "field": "datas" if data_type == "binary" else "url",
+            "target_fields": [{
+                "content": "datas",
+                "mimetype": "mimetype",
+                "filename": "name",
+                "type": "type",
+            }],
+        }        
+        return details
