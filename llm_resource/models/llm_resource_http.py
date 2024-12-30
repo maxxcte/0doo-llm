@@ -251,17 +251,17 @@ class LLMResourceHTTPRetriever(models.Model):
         """
 
         target_fields = retrieval_details["target_fields"]
-        
+
         target_field_type = record._fields[target_fields["content"]].type
         if target_fields["content"]:
             if target_field_type == "binary":
                 content = base64.b64encode(content)
             record.write({target_fields["content"]: content})
-        if target_fields["mimetype"]:
+        if target_fields.get("mimetype", None):
             record.write({target_fields["mimetype"]: content_type})
-        if target_fields["filename"]:
+        if target_fields.get("filename", None):
             record.write({target_fields["filename"]: filename})
-        if target_fields["type"]:
+        if target_fields.get("type", None):
             record.write({target_fields["type"]: target_field_type})
 
     # --- Main Orchestrator Method --- 

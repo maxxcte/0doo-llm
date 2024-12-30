@@ -195,11 +195,11 @@ class UploadResourceWizard(models.TransientModel):
                     resource.process_resource() # Calls retriever, parser, embedder
                 except Exception as e:
                     _logger.error(f"Error processing resource {resource.id} ({resource.name}): {e}", exc_info=True)
-                    # Mark resource as failed
-                    try:
-                        resource.write({'state': 'failed', 'error_message': str(e)})
-                    except Exception as write_e:
-                         _logger.error(f"Failed to write error state to resource {resource.id}: {write_e}")
+                    resource._post_styled_message(
+                        f"Processing failed: {str(e)}",
+                        "error"
+                    )
+                    
 
 
         # Update wizard state
