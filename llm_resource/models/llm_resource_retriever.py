@@ -56,6 +56,9 @@ class LLMResourceRetriever(models.Model):
                             result = getattr(resource, f"retrieve_{resource.retriever}")(retrieval_details, record)
                     
                     if not result:
+                        resource._post_styled_message(
+                            "Retrieving with default retriever", "info"
+                        )
                         result = self.retrieve_default(retrieval_details, record)
 
                     # Mark as retrieved

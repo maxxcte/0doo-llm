@@ -37,11 +37,11 @@ class IrAttachment(models.Model):
         details = {
             "type": data_type,
             "field": "datas" if data_type == "binary" else "url",
-            "target_fields": [{
+            "target_fields": {
                 "content": "datas",
                 "mimetype": "mimetype",
                 "filename": "name",
                 "type": "type",
-            }],
+            },
         }        
         return details

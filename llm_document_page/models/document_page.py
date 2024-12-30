@@ -1,12 +1,48 @@
 from markdownify import markdownify as md
 
-from odoo import models
+from odoo import fields, models
 
 
 class DocumentPage(models.Model):
     """Extend document.page to add integration with LLM RAG module."""
 
     _inherit = "document.page"
+
+    # == Fields added for LLM Integration ==
+    source_url = fields.Char(
+        string="Source URL",
+        readonly=True,
+        index=True,
+        copy=False,
+        help="The original URL from which this page content was retrieved, if applicable."
+    )
+
+    def llm_get_retrieval_details(self):
+        """Provides details needed by llm.resource to retrieve content.
+        Returns:
+            List of dictionaries containing details about how to retrieve content
+            The dictionaries should contain the following elements:
+                type: str - type of retrieval, either "url" or "binary"
+                field: str - name of the field to retrieve the content from
+                target_fields: list of dictionaries containing details about how to store the content
+                    The dictionaries should contain the following elements:
+                        content(required): str - name of the field to store the content in
+                        mimetype: str - mimetype of the content
+                        filename: str - name of the field to store the filename in
+                        type: str - type of the field to store the type in
+        """
+        self.ensure_one()
+        if self.source_url:
+            return {
+                "type": "url",
+                "field": "source_url",
+                "target_fields": {
+                    "content": "content",
+                },
+            }
+        else:
+            return None
+        
 
     def llm_get_fields(self, _):
         """

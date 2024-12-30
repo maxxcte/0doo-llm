@@ -7,7 +7,8 @@ from urllib.parse import urljoin, urlparse
 import requests
 from markdownify import markdownify as md
 
-from odoo import api, models
+from odoo import _, api, models
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -99,6 +100,7 @@ class LLMResourceHTTPRetriever(models.Model):
         :return: Tuple (final_response, final_url)
         :raises: requests.exceptions.RequestException on request failures
         """
+        _logger.info(f"Fetching final response for URL: {initial_url}")
         response = requests.get(
             initial_url, timeout=30, headers=headers, allow_redirects=True
         )
@@ -248,19 +250,19 @@ class LLMResourceHTTPRetriever(models.Model):
         :param filename: Determined filename
         """
 
-        fields_to_update = retrieval_details["target_fields"]
-        for field in fields_to_update:
-            target_field_type = record._fields[field["content"]].type
-            if field["content"]:
-                if target_field_type == "binary":
-                    content = base64.b64encode(content)
-                record.write({field["content"]: content})
-            if field["mimetype"]:
-                record.write({field["mimetype"]: content_type})
-            if field["filename"]:
-                record.write({field["filename"]: filename})
-            if field["type"]:
-                record.write({field["type"]: target_field_type})
+        target_fields = retrieval_details["target_fields"]
+        
+        target_field_type = record._fields[target_fields["content"]].type
+        if target_fields["content"]:
+            if target_field_type == "binary":
+                content = base64.b64encode(content)
+            record.write({target_fields["content"]: content})
+        if target_fields["mimetype"]:
+            record.write({target_fields["mimetype"]: content_type})
+        if target_fields["filename"]:
+            record.write({target_fields["filename"]: filename})
+        if target_fields["type"]:
+            record.write({target_fields["type"]: target_field_type})
 
     # --- Main Orchestrator Method --- 
 
@@ -321,11 +323,22 @@ class LLMResourceHTTPRetriever(models.Model):
                     )
                     return {"state": "parsed"}
             else:
-                self._http_store_content(content, content_type, filename, retrieval_details, record)
-                self._post_styled_message(
-                    f"Successfully retrieved binary content from URL: {final_url} (original: {initial_url})",
-                    "success",
-                )
+                target_fields = retrieval_details["target_fields"]
+                target_field_type = None
+                content_key = None
+                target_field_type = record._fields[target_fields["content"]].type
+                content_key = target_fields["content"]
+                if content_key and target_field_type == "binary":
+                    self._http_store_content(content, content_type, filename, retrieval_details, record)
+                    self._post_styled_message(
+                        f"Successfully retrieved binary content from URL: {final_url} (original: {initial_url})",
+                        "success",
+                    )
+                else:
+                    raise UserError(
+                        _("Can not store binary data in field %s for model %s from URL: %s (original: %s)") % (content_key, record._name, final_url, initial_url)
+                    )
+
                 return {"state": "retrieved"}
 
         except Exception as e:

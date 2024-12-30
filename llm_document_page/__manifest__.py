@@ -25,4 +25,8 @@
     "images": [
         "static/description/banner.jpeg",
     ],
+    "data": [
+        "views/document_page_views.xml",
+        "wizards/upload_resource_wizard_views.xml",
+    ],
 }
