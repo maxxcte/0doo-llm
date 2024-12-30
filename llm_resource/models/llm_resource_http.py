@@ -88,9 +88,9 @@ class LLMResourceHTTPRetriever(models.Model):
         main_type = content_type.split(";")[0].strip()
         return any(main_type.startswith(t) for t in text_types)
 
-    # --- Refactored Helper Methods --- 
+    # --- Refactored Helper Methods ---
 
-    def _http_fetch_final_response(self, initial_url, headers, max_refreshes = 1):
+    def _http_fetch_final_response(self, initial_url, headers, max_refreshes=1):
         """
         Fetches the final response after handling standard and meta redirects.
 
@@ -156,9 +156,9 @@ class LLMResourceHTTPRetriever(models.Model):
                     )
                     break
             else:
-                break # Not text content, cannot contain meta refresh
+                break  # Not text content, cannot contain meta refresh
 
-        return response, current_url # Return the latest response and URL
+        return response, current_url  # Return the latest response and URL
 
     def _http_determine_file_details(self, response, final_url):
         """
@@ -175,7 +175,9 @@ class LLMResourceHTTPRetriever(models.Model):
         if not content_type:
             content_type, _ = mimetypes.guess_type(final_url)
         if not content_type:
-            _logger.warning(f"Could not determine mime type for {final_url}. Defaulting to octet-stream.")
+            _logger.warning(
+                f"Could not determine mime type for {final_url}. Defaulting to octet-stream."
+            )
             content_type = "application/octet-stream"
 
         parsed_url = urlparse(final_url)
@@ -186,7 +188,7 @@ class LLMResourceHTTPRetriever(models.Model):
             if ext:
                 filename += ext
 
-        return {'content_type': content_type, 'filename': filename}
+        return {"content_type": content_type, "filename": filename}
 
     def _http_process_text(self, response, content, final_url):
         """
@@ -213,7 +215,9 @@ class LLMResourceHTTPRetriever(models.Model):
                 except UnicodeDecodeError:
                     continue
             if text_content is None:
-                _logger.error(f"Failed to decode content from {final_url} with any supported encoding.")
+                _logger.error(
+                    f"Failed to decode content from {final_url} with any supported encoding."
+                )
                 decoded_successfully = False
 
         if decoded_successfully:
@@ -225,14 +229,14 @@ class LLMResourceHTTPRetriever(models.Model):
                     markdown_content = md(text_content)
                 except Exception as e:
                     _logger.error(f"Markdownify conversion failed for {final_url}: {e}")
-                    markdown_content = text_content # Fallback to original text
+                    markdown_content = text_content  # Fallback to original text
             else:
                 markdown_content = text_content
 
             markdown_content = self._ensure_full_urls(markdown_content, final_url)
-            return {'markdown_content': markdown_content, 'decoded_successfully': True}
+            return {"markdown_content": markdown_content, "decoded_successfully": True}
         else:
-            return {'markdown_content': None, 'decoded_successfully': False}
+            return {"markdown_content": None, "decoded_successfully": False}
 
     def _http_store_content(
         self,
@@ -264,7 +268,7 @@ class LLMResourceHTTPRetriever(models.Model):
         if target_fields.get("type", None):
             record.write({target_fields["type"]: target_field_type})
 
-    # --- Main Orchestrator Method --- 
+    # --- Main Orchestrator Method ---
 
     def _http_retrieve(self, retrieval_details, record):
         """
@@ -286,27 +290,32 @@ class LLMResourceHTTPRetriever(models.Model):
             )
             return False
 
-        _logger.info(f"Starting HTTP retrieval for {record.name} from initial URL: {initial_url}")
+        _logger.info(
+            f"Starting HTTP retrieval for {record.name} from initial URL: {initial_url}"
+        )
         headers = {"User-Agent": "Mozilla/5.0 (compatible; Odoo LLM Resource/1.0)"}
 
-        
         final_response, final_url = self._http_fetch_final_response(
             initial_url, headers
         )
 
         file_details = self._http_determine_file_details(final_response, final_url)
-        content_type = file_details['content_type']
-        filename = file_details['filename']
+        content_type = file_details["content_type"]
+        filename = file_details["filename"]
 
         content = final_response.content
 
         if self._is_text_content_type(content_type):
-            processing_result = self._http_process_text(final_response, content, final_url)
+            processing_result = self._http_process_text(
+                final_response, content, final_url
+            )
 
-            if processing_result['decoded_successfully']:
-                markdown_content = processing_result['markdown_content']
+            if processing_result["decoded_successfully"]:
+                markdown_content = processing_result["markdown_content"]
                 self.write({"content": markdown_content})
-                self._http_store_content(content, content_type, filename, retrieval_details, record)
+                self._http_store_content(
+                    content, content_type, filename, retrieval_details, record
+                )
                 self._post_styled_message(
                     f"Successfully retrieved and processed text content from URL: {final_url}({len(markdown_content)} characters) (original: {initial_url})",
                     "success",
@@ -314,8 +323,10 @@ class LLMResourceHTTPRetriever(models.Model):
                 return {"state": "parsed"}
             else:
                 # Decoding failed, store raw data
-                self.write({"content": ""}) # Clear content
-                self._http_store_content(content, content_type, filename, retrieval_details, record) # Store raw
+                self.write({"content": ""})  # Clear content
+                self._http_store_content(
+                    content, content_type, filename, retrieval_details, record
+                )  # Store raw
                 self._post_styled_message(
                     f"Failed to decode text content from URL: {final_url}. Storing raw data.",
                     "warning",
@@ -328,16 +339,19 @@ class LLMResourceHTTPRetriever(models.Model):
             target_field_type = record._fields[target_fields["content"]].type
             content_key = target_fields["content"]
             if content_key and target_field_type == "binary":
-                self._http_store_content(content, content_type, filename, retrieval_details, record)
+                self._http_store_content(
+                    content, content_type, filename, retrieval_details, record
+                )
                 self._post_styled_message(
                     f"Successfully retrieved binary content from URL: {final_url} (original: {initial_url})",
                     "success",
                 )
             else:
                 raise UserError(
-                    _("Can not store binary data in field %s for model %s from URL: %s (original: %s)") % (content_key, record._name, final_url, initial_url)
+                    _(
+                        "Can not store binary data in field %s for model %s from URL: %s (original: %s)"
+                    )
+                    % (content_key, record._name, final_url, initial_url)
                 )
 
             return {"state": "retrieved"}
-
-        

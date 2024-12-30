@@ -53,14 +53,17 @@ class LLMResourceRetriever(models.Model):
                     if hasattr(record, "llm_get_retrieval_details"):
                         retrieval_details = record.llm_get_retrieval_details()
                     _logger.info("Retrieval details: %s", retrieval_details)
-                    
+
                     if retrieval_details:
                         if hasattr(resource, f"retrieve_{resource.retriever}"):
-                            result = getattr(resource, f"retrieve_{resource.retriever}")(retrieval_details, record)
-                    
+                            result = getattr(
+                                resource, f"retrieve_{resource.retriever}"
+                            )(retrieval_details, record)
+
                     if not result or not retrieval_details:
                         resource._post_styled_message(
-                            f"Failed with {resource.retriever} retriever. Retrieving with default retriever", "info"
+                            f"Failed with {resource.retriever} retriever. Retrieving with default retriever",
+                            "info",
                         )
                         result = self.retrieve_default(retrieval_details, record)
 
@@ -102,7 +105,7 @@ class LLMResourceRetriever(models.Model):
             )
             raise UserError(_("Error in batch retrieval: %s") % str(e)) from e
 
-    def retrieve_default(self,retrieval_details, record):
+    def retrieve_default(self, retrieval_details, record):
         return {
             "state": "retrieved",
         }

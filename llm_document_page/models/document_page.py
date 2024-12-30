@@ -14,7 +14,7 @@ class DocumentPage(models.Model):
         readonly=True,
         index=True,
         copy=False,
-        help="The original URL from which this page content was retrieved, if applicable."
+        help="The original URL from which this page content was retrieved, if applicable.",
     )
 
     def llm_get_retrieval_details(self):
@@ -42,7 +42,6 @@ class DocumentPage(models.Model):
             }
         else:
             return None
-        
 
     def llm_get_fields(self, _):
         """

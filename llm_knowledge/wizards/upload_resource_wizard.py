@@ -67,7 +67,11 @@ class UploadResourceWizard(models.TransientModel):
         """
         parsed_url = urlparse(url)
         # Get the last part of the path
-        filename = os.path.basename(parsed_url.path) if parsed_url.path else "resource_from_url"
+        filename = (
+            os.path.basename(parsed_url.path)
+            if parsed_url.path
+            else "resource_from_url"
+        )
         # Remove potential query parameters or fragments if they got stuck
         filename = re.sub(r"[?#].*", "", filename)
         # Basic sanitization (replace common problematic chars)
@@ -120,7 +124,7 @@ class UploadResourceWizard(models.TransientModel):
             resource_name = self.resource_name_template.format(
                 filename=filename,
                 collection=collection.name,
-                index=file_count + index + 1, # Continue index from files
+                index=file_count + index + 1,  # Continue index from files
             )
 
             # Create attachment for URL
@@ -133,8 +137,10 @@ class UploadResourceWizard(models.TransientModel):
                     }
                 )
             except Exception as e:
-                _logger.error(f"Failed to create attachment for URL {url}: {e}", exc_info=True)
-                continue # Skip this URL
+                _logger.error(
+                    f"Failed to create attachment for URL {url}: {e}", exc_info=True
+                )
+                continue  # Skip this URL
 
             # Create RAG resource using model_id
             try:
@@ -149,7 +155,10 @@ class UploadResourceWizard(models.TransientModel):
                 )
                 created_resources |= resource
             except Exception as e:
-                _logger.error(f"Failed to create llm.resource for URL {url} (attachment: {attachment.id}): {e}", exc_info=True)
+                _logger.error(
+                    f"Failed to create llm.resource for URL {url} (attachment: {attachment.id}): {e}",
+                    exc_info=True,
+                )
                 # Optionally delete the created attachment if resource fails
                 # attachment.exists().unlink()
 
@@ -173,7 +182,9 @@ class UploadResourceWizard(models.TransientModel):
             raise UserError(_("Please provide at least one file or URL"))
 
         # Get ir.attachment model ID (needed for both files and default URL handling)
-        attachment_model_id_rec = IrModel.search([("model", "=", "ir.attachment")], limit=1)
+        attachment_model_id_rec = IrModel.search(
+            [("model", "=", "ir.attachment")], limit=1
+        )
         if not attachment_model_id_rec:
             raise UserError(_("Could not find ir.attachment model"))
         attachment_model_id = attachment_model_id_rec.id
@@ -182,7 +193,9 @@ class UploadResourceWizard(models.TransientModel):
         file_resources = self._process_file_uploads(collection, attachment_model_id)
 
         # Process URLs
-        url_resources = self._process_external_urls(collection, attachment_model_id, len(self.file_ids))
+        url_resources = self._process_external_urls(
+            collection, attachment_model_id, len(self.file_ids)
+        )
 
         # Combine results
         created_resources = file_resources | url_resources
@@ -192,15 +205,15 @@ class UploadResourceWizard(models.TransientModel):
             _logger.info(f"Processing {len(created_resources)} resources immediately.")
             for resource in created_resources:
                 try:
-                    resource.process_resource() # Calls retriever, parser, embedder
+                    resource.process_resource()  # Calls retriever, parser, embedder
                 except Exception as e:
-                    _logger.error(f"Error processing resource {resource.id} ({resource.name}): {e}", exc_info=True)
-                    resource._post_styled_message(
-                        f"Processing failed: {str(e)}",
-                        "error"
+                    _logger.error(
+                        f"Error processing resource {resource.id} ({resource.name}): {e}",
+                        exc_info=True,
                     )
-                    
-
+                    resource._post_styled_message(
+                        f"Processing failed: {str(e)}", "error"
+                    )
 
         # Update wizard state
         self.write(

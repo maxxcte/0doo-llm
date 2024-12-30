@@ -208,7 +208,7 @@ class LLMKnowledgeChunker(models.Model):
         resources = self.browse(active_ids)
         # Process all selected resources
         result = resources.process_resource()
-        
+
         if result:
             return {
                 "type": "ir.actions.client",

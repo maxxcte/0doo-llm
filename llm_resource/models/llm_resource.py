@@ -88,14 +88,16 @@ class LLMResource(models.Model):
             if not resource.res_model or not resource.res_id:
                 continue
 
-            resource.external_url = self._get_record_external_url(resource.res_model, resource.res_id)
+            resource.external_url = self._get_record_external_url(
+                resource.res_model, resource.res_id
+            )
 
     def _get_record_external_url(self, res_model, res_id):
         """
         Get the external URL for a record based on its model and ID.
-        
+
         This method can be extended by other modules to support additional models.
-        
+
         :param res_model: The model name
         :param res_id: The record ID
         :return: The external URL or False
@@ -109,9 +111,7 @@ class LLMResource(models.Model):
                     return False
 
                 # Case 1: Handle ir.attachment with type 'url'
-                if res_model == "ir.attachment" and hasattr(
-                    record, "type"
-                ):
+                if res_model == "ir.attachment" and hasattr(record, "type"):
                     if record.type == "url" and hasattr(record, "url"):
                         return record.url
 
@@ -126,7 +126,7 @@ class LLMResource(models.Model):
                 res_id,
                 str(e),
             )
-        
+
         return False
 
     @api.depends("lock_date")

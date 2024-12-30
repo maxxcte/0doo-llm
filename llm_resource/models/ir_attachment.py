@@ -17,7 +17,7 @@ class IrAttachment(models.Model):
                 "rawcontent": self.raw,
             }
         ]
-    
+
     def llm_get_retrieval_details(self):
         """Provides details needed by llm.resource to retrieve content.
         Returns:
@@ -43,5 +43,5 @@ class IrAttachment(models.Model):
                 "filename": "name",
                 "type": "type",
             },
-        }        
+        }
         return details
