@@ -121,15 +121,4 @@ https://example.com/document2.html"
             </form>
         </field>
     </record>
-
-    <!-- Optional: Action definition if you need to call the wizard directly (already defined in server actions) -->
-    <!--
-    <record id="action_upload_rag_resources_wizard" model="ir.actions.act_window">
-        <field name="name">Upload RAG Resources</field>
-        <field name="res_model">llm.upload.resource.wizard</field>
-        <field name="view_mode">form</field>
-        <field name="target">new</field>
-        <field name="context">{'default_resource_name_template': '{filename}'}</field>
-    </record>
-    -->
 </odoo>
