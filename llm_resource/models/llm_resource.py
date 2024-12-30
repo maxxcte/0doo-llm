@@ -199,18 +199,24 @@ class LLMResource(models.Model):
 
         resources = self.browse(active_ids)
         # Process all selected resources
-        resources.process_resource()
+        result = resources.process_resource()
+        if result:
+            return {
+                "type": "ir.actions.client",
+                "tag": "reload",
+            }
 
-        return {
-            "type": "ir.actions.client",
-            "tag": "display_notification",
-            "params": {
-                "title": _("Resource Processing"),
-                "message": _("%s resources processing started") % len(resources),
-                "sticky": False,
-                "type": "success",
-            },
-        }
+        else:
+            return {
+                "type": "ir.actions.client",
+                "tag": "display_notification",
+                "params": {
+                    "title": _("Processing Failed"),
+                    "message": _("Mass processing resources failed"),
+                    "sticky": False,
+                    "type": "danger",
+                },
+            }
 
     def action_mass_unlock(self):
         """

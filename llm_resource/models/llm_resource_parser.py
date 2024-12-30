@@ -48,7 +48,12 @@ class LLMResourceParser(models.Model):
                     raise UserError(_("Referenced record not found"))
 
                 # If the record has a specific rag_parse method, call it
-                fields = getattr(record, "llm_get_fields", self.get_fields)(record)
+                if hasattr(record, "llm_get_fields"):
+                    fields = record.llm_get_fields(record)
+                else:
+                    # Call get_fields on the individual resource to ensure singleton
+                    fields = resource.get_fields(record)
+
                 for field in fields:
                     # TODO: Should it be self._parse_field?
                     success = resource._parse_field(record, field)

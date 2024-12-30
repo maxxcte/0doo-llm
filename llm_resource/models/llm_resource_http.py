@@ -39,7 +39,7 @@ class LLMResourceHTTPRetriever(models.Model):
         if retrieval_details["type"] == "url":
             return self._http_retrieve(retrieval_details, record)
         else:
-            raise ValueError("Unsupported retrieval type: " + retrieval_details["type"])
+            return False
 
     def _ensure_full_urls(self, markdown_content, base_url):
         """
@@ -90,7 +90,7 @@ class LLMResourceHTTPRetriever(models.Model):
 
     # --- Refactored Helper Methods --- 
 
-    def _http_fetch_final_response(self, initial_url, headers, max_refreshes):
+    def _http_fetch_final_response(self, initial_url, headers, max_refreshes = 1):
         """
         Fetches the final response after handling standard and meta redirects.
 
@@ -279,7 +279,6 @@ class LLMResourceHTTPRetriever(models.Model):
         field = retrieval_details["field"]
 
         initial_url = record[field]
-        max_refreshes = 1  # Limit meta refreshes
 
         if not initial_url:
             self._post_styled_message(
@@ -290,63 +289,55 @@ class LLMResourceHTTPRetriever(models.Model):
         _logger.info(f"Starting HTTP retrieval for {record.name} from initial URL: {initial_url}")
         headers = {"User-Agent": "Mozilla/5.0 (compatible; Odoo LLM Resource/1.0)"}
 
-        try:
-            final_response, final_url = self._http_fetch_final_response(
-                initial_url, headers, max_refreshes
-            )
+        
+        final_response, final_url = self._http_fetch_final_response(
+            initial_url, headers
+        )
 
-            file_details = self._http_determine_file_details(final_response, final_url)
-            content_type = file_details['content_type']
-            filename = file_details['filename']
+        file_details = self._http_determine_file_details(final_response, final_url)
+        content_type = file_details['content_type']
+        filename = file_details['filename']
 
-            content = final_response.content
+        content = final_response.content
 
-            if self._is_text_content_type(content_type):
-                processing_result = self._http_process_text(final_response, content, final_url)
+        if self._is_text_content_type(content_type):
+            processing_result = self._http_process_text(final_response, content, final_url)
 
-                if processing_result['decoded_successfully']:
-                    markdown_content = processing_result['markdown_content']
-                    self.write({"content": markdown_content})
-                    self._http_store_content(content, content_type, filename, retrieval_details, record)
-                    self._post_styled_message(
-                        f"Successfully retrieved and processed text content from URL: {final_url}({len(markdown_content)} characters) (original: {initial_url})",
-                        "success",
-                    )
-                    return {"state": "parsed"}
-                else:
-                    # Decoding failed, store raw data
-                    self.write({"content": ""}) # Clear content
-                    self._http_store_content(content, content_type, filename, retrieval_details, record) # Store raw
-                    self._post_styled_message(
-                        f"Failed to decode text content from URL: {final_url}. Storing raw data.",
-                        "warning",
-                    )
-                    return {"state": "parsed"}
+            if processing_result['decoded_successfully']:
+                markdown_content = processing_result['markdown_content']
+                self.write({"content": markdown_content})
+                self._http_store_content(content, content_type, filename, retrieval_details, record)
+                self._post_styled_message(
+                    f"Successfully retrieved and processed text content from URL: {final_url}({len(markdown_content)} characters) (original: {initial_url})",
+                    "success",
+                )
+                return {"state": "parsed"}
             else:
-                target_fields = retrieval_details["target_fields"]
-                target_field_type = None
-                content_key = None
-                target_field_type = record._fields[target_fields["content"]].type
-                content_key = target_fields["content"]
-                if content_key and target_field_type == "binary":
-                    self._http_store_content(content, content_type, filename, retrieval_details, record)
-                    self._post_styled_message(
-                        f"Successfully retrieved binary content from URL: {final_url} (original: {initial_url})",
-                        "success",
-                    )
-                else:
-                    raise UserError(
-                        _("Can not store binary data in field %s for model %s from URL: %s (original: %s)") % (content_key, record._name, final_url, initial_url)
-                    )
+                # Decoding failed, store raw data
+                self.write({"content": ""}) # Clear content
+                self._http_store_content(content, content_type, filename, retrieval_details, record) # Store raw
+                self._post_styled_message(
+                    f"Failed to decode text content from URL: {final_url}. Storing raw data.",
+                    "warning",
+                )
+                return {"state": "parsed"}
+        else:
+            target_fields = retrieval_details["target_fields"]
+            target_field_type = None
+            content_key = None
+            target_field_type = record._fields[target_fields["content"]].type
+            content_key = target_fields["content"]
+            if content_key and target_field_type == "binary":
+                self._http_store_content(content, content_type, filename, retrieval_details, record)
+                self._post_styled_message(
+                    f"Successfully retrieved binary content from URL: {final_url} (original: {initial_url})",
+                    "success",
+                )
+            else:
+                raise UserError(
+                    _("Can not store binary data in field %s for model %s from URL: %s (original: %s)") % (content_key, record._name, final_url, initial_url)
+                )
 
-                return {"state": "retrieved"}
+            return {"state": "retrieved"}
 
-        except Exception as e:
-            self._post_styled_message(
-                f"An unexpected error occurred during HTTP retrieval process from {initial_url}: {e}",
-                "error",
-            )
-            _logger.exception(
-                f"Unexpected error during HTTP retrieval process from {initial_url}"
-            )
-            return False
+        
