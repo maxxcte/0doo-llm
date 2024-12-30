@@ -21,12 +21,12 @@ class IrAttachment(models.Model):
     def llm_get_retrieval_details(self):
         """Provides details needed by llm.resource to retrieve content.
         Returns:
-            List of dictionaries containing details about how to retrieve content
-            The dictionaries should contain the following elements:
+            Dictionary containing details about how to retrieve content
+            The dictionary should contain the following elements:
                 type: str - type of retrieval, either "url" or "binary"
                 field: str - name of the field to retrieve the content from
-                target_fields: list of dictionaries containing details about how to store the content
-                    The dictionaries should contain the following elements:
+                target_fields: dictionary containing details about how to store the content
+                    The dictionary should contain the following elements:
                         content(required): str - name of the field to store the content in
                         mimetype: str - mimetype of the content
                         filename: str - name of the field to store the filename in
