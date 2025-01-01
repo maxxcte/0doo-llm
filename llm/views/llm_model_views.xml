@@ -6,6 +6,16 @@
         <field name="model">llm.model</field>
         <field name="arch" type="xml">
             <form>
+                <header>
+                    <button
+                        name="action_open_fetch_this_model_wizard"
+                        string="Fetch This Model Update"
+                        type="object"
+                        class="oe_highlight"
+                        attrs="{'invisible': [('id', '=', False)]}"
+                        help="Fetch the latest information for this specific model from the provider."
+                    />
+                </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button

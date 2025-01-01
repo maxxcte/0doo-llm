@@ -305,26 +305,31 @@ class LLMProvider(models.Model):
         response = self.client.embeddings.create(model=model.name, input=texts)
         return [r.embedding for r in response.data]
 
-    def openai_models(self):
+    def openai_models(self, model_id=None):
         """List available OpenAI models"""
-        models = self.client.models.list()
+        if model_id:
+            model = self.client.models.retrieve(model_id)
+            yield self._openai_parse_model(model)
+        else:
+            models = self.client.models.list()
+            for model in models.data:
+                yield self._openai_parse_model(model)
 
-        for model in models.data:
-            # Map model capabilities based on model ID patterns
-            capabilities = ["chat"]  # default
-            if "text-embedding" in model.id:
-                capabilities = ["embedding"]
-            elif "gpt-4-vision" in model.id:
-                capabilities = ["chat", "multimodal"]
+    def _openai_parse_model(self, model):
+        capabilities = ["chat"]  # default
+        if "text-embedding" in model.id:
+            capabilities = ["embedding"]
+        elif "gpt-4-vision" in model.id:
+            capabilities = ["chat", "multimodal"]
 
-            yield {
-                "name": model.id,
-                "details": {
-                    "id": model.id,
-                    "capabilities": capabilities,
-                    **model.model_dump(),
-                },
-            }
+        return {
+            "name": model.id,
+            "details": {
+                "id": model.id,
+                "capabilities": capabilities,
+                **model.model_dump(),
+            },
+        }
 
     def _validate_and_clean_messages(self, messages):
         """

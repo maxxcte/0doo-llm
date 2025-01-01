@@ -51,36 +51,44 @@ class LLMProvider(models.Model):
             return [response] if not isinstance(response, list) else response
         return response
 
-    def replicate_models(self):
+    def replicate_models(self, model_id=None):
         self.ensure_one()
         """List available Replicate models with pagination support"""
-        cursor = ...
+        
+        # If a specific model ID is requested, fetch just that model
+        if model_id:
+            model = self.client.models.get(model_id)
+            yield self._replicate_parse_model(model)
+        else:
+            # If no specific model requested, fetch all models with pagination
+            cursor = ...
 
-        while cursor:
-            # Get page of results
-            page = self.client.models.list(cursor=cursor)
+            while cursor:
+                # Get page of results
+                page = self.client.models.list(cursor=cursor)
 
-            # Process models in current page
-            for model in page.results:
-                details = self.serialize_model_data(model.dict())
-                capabilities = []
+                # Process models in current page
+                for model in page.results:
+                    yield self._replicate_parse_model(model)
 
-                # Infer capabilities from model metadata
-                if "chat" in model.id.lower() or "llm" in model.id.lower():
-                    capabilities.append("chat")
-                if "embedding" in model.id.lower():
-                    capabilities.append("embedding")
-                if any(
-                    kw in model.id.lower() for kw in ["vision", "image", "multimodal"]
-                ):
-                    capabilities.append("multimodal")
+                cursor = page.next
+                if cursor is None:
+                    break
 
-                if not capabilities:
-                    capabilities = ["chat"]  # Default capability
-
-                details["capabilities"] = capabilities
-
-                yield {"name": model.id, "details": details}
-
-            # Check if there are more pages
-            cursor = page.next
+    def _replicate_parse_model(self, model):
+        details = self.serialize_model_data(model.dict())
+        capabilities = []
+        if "chat" in model.id.lower() or "llm" in model.id.lower():
+            capabilities.append("chat")
+        if "embedding" in model.id.lower():
+            capabilities.append("embedding")
+        if any(
+            kw in model.id.lower() for kw in ["vision", "image", "multimodal"]
+        ):
+            capabilities.append("multimodal")
+        return {
+            "id": model.id,
+            "name": model.id,
+            "details": details,
+            "capabilities": capabilities
+        }

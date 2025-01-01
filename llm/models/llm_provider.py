@@ -80,9 +80,9 @@ class LLMProvider(models.Model):
         """Generate embeddings using this provider"""
         return self._dispatch("embedding", texts, model=model)
 
-    def list_models(self):
+    def list_models(self, model_id=None):
         """List available models from the provider"""
-        return self._dispatch("models")
+        return self._dispatch("models", model_id=model_id)
 
     def get_model(self, model=None, model_use="chat"):
         """Get a model to use for the given purpose

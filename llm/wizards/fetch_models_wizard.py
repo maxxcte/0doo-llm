@@ -95,27 +95,40 @@ class FetchModelsWizard(models.TransientModel):
         """Fetch models and prepare wizard data"""
         res = super().default_get(fields_list)
 
-        if not self._context.get("active_id"):
+        # Check for provider_id in context first (from model form)
+        default_provider_id = self._context.get("default_provider_id")
+        if default_provider_id:
+            provider = self.env["llm.provider"].browse(default_provider_id)
+            if not provider.exists():
+                raise UserError(_("Provider not found."))
+            res["provider_id"] = provider.id
+        # If no default_provider_id, try active_id (from provider form)
+        elif self._context.get("active_id"):
+            provider = self.env["llm.provider"].browse(self._context["active_id"])
+            if not provider.exists():
+                raise UserError(_("Provider not found."))
+            res["provider_id"] = provider.id
+        else:
             return res
-
-        # Get provider and validate
-        provider = self.env["llm.provider"].browse(self._context["active_id"])
-        if not provider.exists():
-            raise UserError(_("Provider not found."))
-
-        res["provider_id"] = provider.id
 
         # Prepare model lines
         lines = []
         existing_models = {
             model.name: model
             for model in self.env["llm.model"].search(
-                [("provider_id", "=", provider.id)]
+                [("provider_id", "=", res["provider_id"])]
             )
         }
 
         # Fetch and process models
-        for model_data in provider.list_models():
+        model_to_fetch = self._context.get('default_model_to_fetch')
+        models_data = []
+        if model_to_fetch:
+            models_data = provider.list_models(model_id=model_to_fetch)
+        else:
+            models_data = provider.list_models()
+            
+        for model_data in models_data:
             details = model_data.get("details", {})
             name = model_data.get("name") or details.get("id")
 

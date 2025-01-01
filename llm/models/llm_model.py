@@ -62,3 +62,18 @@ class LLMModel(models.Model):
     def embedding(self, texts):
         """Generate embeddings using this model"""
         return self.provider_id.embedding(texts, model=self)
+
+    
+    def action_open_fetch_this_model_wizard(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': f'Fetch Update for {self.name}',
+            'res_model': 'llm.fetch.models.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_provider_id': self.provider_id.id,
+                'default_model_to_fetch': self.name,
+            },
+        }
