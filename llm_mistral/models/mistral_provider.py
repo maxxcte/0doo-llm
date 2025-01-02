@@ -37,36 +37,34 @@ class LLMProvider(models.Model):
             return getattr(record, service_method)(*args, **kwargs)
         else:
             return super()._dispatch(method, *args, record=record, **kwargs)
-
-    def openai_models(self):
-        models = self.client.models.list()
+    
+    def _openai_parse_model(self, model):
         if self.service == "mistral":
-            for model in models.data:
-                model_json_dump = model.model_dump()
-                capabilities = []
-                model_caps = model_json_dump["capabilities"]
-                if model_caps["vision"]:
-                    capabilities.append("multimodal")
-                elif model_caps["completion_chat"]:
-                    capabilities.append("chat")
-                elif "ocr" in model.id:
-                    capabilities.append("ocr")
-                elif "embed" in model.id:
-                    capabilities.append("embedding")
-                else:
-                    capabilities.append("chat")
+            model_json_dump = model.model_dump()
+            capabilities = []
+            model_caps = model_json_dump["capabilities"]
+            if model_caps["vision"]:
+                capabilities.append("multimodal")
+            elif model_caps["completion_chat"]:
+                capabilities.append("chat")
+            elif "ocr" in model.id:
+                capabilities.append("ocr")
+            elif "embed" in model.id:
+                capabilities.append("embedding")
+            else:
+                capabilities.append("chat")
 
-                model_json_dump.pop("capabilities", None)
-                yield {
-                    "name": model.id,
-                    "details": {
-                        "id": model.id,
-                        "capabilities": capabilities,
-                        **model_json_dump,
-                    },
-                }
+            model_json_dump.pop("capabilities", None)
+            return {
+                "name": model.id,
+                "details": {
+                    "id": model.id,
+                    "capabilities": capabilities,
+                    **model_json_dump,
+                },
+            }
         else:
-            yield from super().openai_models()
+            return super()._openai_parse_model(model)
 
     def _get_mistral_client(self):
         self.ensure_one()
