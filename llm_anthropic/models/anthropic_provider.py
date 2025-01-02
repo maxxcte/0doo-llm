@@ -54,22 +54,28 @@ class LLMProvider(models.Model):
                 if chunk.type == "content_block_delta":
                     yield {"role": "assistant", "content": chunk.delta.text}
 
-    def anthropic_models(self):
+    def anthropic_models(self, model_id=None):
         """List available Anthropic models using API endpoint"""
-        response = self.client.models.list()
+        if model_id:
+            model = self.client.models.retrieve(model_id)
+            yield self._anthropic_parse_model(model)
+        else:
+            response = self.client.models.list()
 
-        for model in response.data:
-            # Determine capabilities based on model properties
-            capabilities = ["chat"]  # All models support chat
-            if "multimodal" in model.id.lower() or "claude-3" in model.id.lower():
-                capabilities.append("multimodal")
+            for model in response.data:
+                yield self._anthropic_parse_model(model)
+    
+    def _anthropic_parse_model(self, model):
+        capabilities = ["chat"]  # All models support chat
+        if "multimodal" in model.id.lower() or "claude-3" in model.id.lower():
+            capabilities.append("multimodal")
 
-            yield {
-                "name": model.id,
-                "details": {
-                    "id": model.id,
-                    "display_name": model.display_name,
-                    "capabilities": capabilities,
-                    "created_at": str(model.created_at),
-                },
-            }
+        return {
+            "name": model.id,
+            "details": {
+                "id": model.id,
+                "display_name": model.display_name,
+                "capabilities": capabilities,
+                "created_at": str(model.created_at),
+            },
+        }

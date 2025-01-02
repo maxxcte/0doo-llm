@@ -60,7 +60,7 @@ class LLMProvider(models.Model):
         response = self.client.create_embeddings(texts=texts, model=model.name)
         return [data["embedding"] for data in response["data"]]
 
-    def litellm_models(self):
+    def litellm_models(self, model_id=None):
         """List available LiteLLM models"""
         response = self.client.list_models()
 
