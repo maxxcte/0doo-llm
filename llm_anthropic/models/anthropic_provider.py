@@ -64,7 +64,7 @@ class LLMProvider(models.Model):
 
             for model in response.data:
                 yield self._anthropic_parse_model(model)
-    
+
     def _anthropic_parse_model(self, model):
         capabilities = ["chat"]  # All models support chat
         if "multimodal" in model.id.lower() or "claude-3" in model.id.lower():

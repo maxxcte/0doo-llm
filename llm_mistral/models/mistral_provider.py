@@ -37,7 +37,7 @@ class LLMProvider(models.Model):
             return getattr(record, service_method)(*args, **kwargs)
         else:
             return super()._dispatch(method, *args, record=record, **kwargs)
-    
+
     def _openai_parse_model(self, model):
         if self.service == "mistral":
             model_json_dump = model.model_dump()

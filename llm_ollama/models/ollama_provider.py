@@ -311,8 +311,6 @@ class LLMProvider(models.Model):
             for model in models:
                 yield self._ollama_parse_model(model)
 
-        
-
     def _ollama_parse_model(self, model, model_name=None):
         model_name = model_name or model.model
 

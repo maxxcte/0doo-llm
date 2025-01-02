@@ -121,13 +121,13 @@ class FetchModelsWizard(models.TransientModel):
         }
 
         # Fetch and process models
-        model_to_fetch = self._context.get('default_model_to_fetch')
+        model_to_fetch = self._context.get("default_model_to_fetch")
         models_data = []
         if model_to_fetch:
             models_data = provider.list_models(model_id=model_to_fetch)
         else:
             models_data = provider.list_models()
-            
+
         for model_data in models_data:
             details = model_data.get("details", {})
             name = model_data.get("name") or details.get("id")

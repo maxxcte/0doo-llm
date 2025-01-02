@@ -54,7 +54,7 @@ class LLMProvider(models.Model):
     def replicate_models(self, model_id=None):
         self.ensure_one()
         """List available Replicate models with pagination support"""
-        
+
         # If a specific model ID is requested, fetch just that model
         if model_id:
             model = self.client.models.get(model_id)
@@ -82,13 +82,11 @@ class LLMProvider(models.Model):
             capabilities.append("chat")
         if "embedding" in model.id.lower():
             capabilities.append("embedding")
-        if any(
-            kw in model.id.lower() for kw in ["vision", "image", "multimodal"]
-        ):
+        if any(kw in model.id.lower() for kw in ["vision", "image", "multimodal"]):
             capabilities.append("multimodal")
         return {
             "id": model.id,
             "name": model.id,
             "details": details,
-            "capabilities": capabilities
+            "capabilities": capabilities,
         }
