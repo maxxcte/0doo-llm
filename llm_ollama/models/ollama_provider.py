@@ -293,39 +293,47 @@ class LLMProvider(models.Model):
             embeddings.append(response["embeddings"][0])
         return embeddings
 
-    def ollama_models(self):
+    def ollama_models(self, model_id=None):
         """List available Ollama models"""
-        models_response = self.client.list()
-
-        # Get models from the response
-        if hasattr(models_response, "models"):
-            models = models_response.models
+        if model_id:
+            model = self.client.show(model_id)
+            yield self._ollama_parse_model(model, model_name=model_id)
         else:
-            error_msg = f"Unexpected Ollama API response format: {models_response}"
-            _logger.error(error_msg)
-            raise ValueError(error_msg)
+            models_response = self.client.list()
+            # Get models from the response
+            if hasattr(models_response, "models"):
+                models = models_response.models
+            else:
+                error_msg = f"Unexpected Ollama API response format: {models_response}"
+                _logger.error(error_msg)
+                raise ValueError(error_msg)
 
-        for model in models:
-            model_name = model.model
+            for model in models:
+                yield self._ollama_parse_model(model)
 
-            model_info = {
-                "name": model_name,
-                "details": {
-                    "id": model_name,
-                    "capabilities": ["chat"],  # Default capability
-                    "modified_at": str(model.modified_at)
-                    if hasattr(model, "modified_at")
-                    else None,
-                    "size": model.size if hasattr(model, "size") else None,
-                    "digest": model.digest if hasattr(model, "digest") else None,
-                },
-            }
+        
 
-            # Add embedding capability if model name suggests it
-            if "embedding" in model_name.lower():
-                model_info["details"]["capabilities"].append("embedding")
+    def _ollama_parse_model(self, model, model_name=None):
+        model_name = model_name or model.model
 
-            yield model_info
+        model_info = {
+            "name": model_name,
+            "details": {
+                "id": model_name,
+                "capabilities": ["chat"],  # Default capability
+                "modified_at": str(model.modified_at)
+                if hasattr(model, "modified_at")
+                else None,
+                "size": model.size if hasattr(model, "size") else None,
+                "digest": model.digest if hasattr(model, "digest") else None,
+            },
+        }
+
+        # Add embedding capability if model name suggests it
+        if "embedding" in model_name.lower():
+            model_info["details"]["capabilities"].append("embedding")
+
+        return model_info
 
     def ollama_format_messages(self, messages, system_prompt=None):
         """Format messages for Ollama API
