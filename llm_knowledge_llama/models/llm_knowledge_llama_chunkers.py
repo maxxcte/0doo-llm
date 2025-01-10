@@ -51,95 +51,65 @@ class LLMResourceLlamaChunker(models.Model):
 
         return res
 
+    def _create_chunks_from_nodes(self, nodes, get_extra_metadata=None):
+        """Create chunks from LlamaIndex nodes"""
+        created_chunks = []
+        for idx, node in enumerate(nodes, 1):
+            metadata = {
+                **node.metadata,
+                "start_char_idx": getattr(node, "start_char_idx", None),
+                "end_char_idx": getattr(node, "end_char_idx", None),
+            } if hasattr(node, "metadata") else {}
+            
+            # Add extra metadata if provided
+            if get_extra_metadata:
+                extra_metadata = get_extra_metadata(node)
+                if extra_metadata:
+                    metadata.update(extra_metadata)
+            
+            chunk = self.env["llm.knowledge.chunk"].create({
+                "resource_id": self.id,
+                "sequence": idx,
+                "content": node.text,
+                "metadata": metadata,
+            })
+            created_chunks.append(chunk)
+        
+        return created_chunks
+
+    def _finalize_chunking(self, created_chunks, chunker_name, extra_info=""):
+        """Finalize chunking process with success message"""
+        message = f"Created {len(created_chunks)} chunks using LlamaIndex {chunker_name}"
+        if extra_info:
+            message += f" {extra_info}"
+        
+        self._post_styled_message(message, "success")
+        return len(created_chunks) > 0
+
     def _chunk_llama_markdown(self):
         """
         LlamaIndex Markdown-aware chunker that respects markdown structure.
         This is particularly useful since llm.document content is always in markdown format.
         """
-        self.ensure_one()
-
-        if not HAS_LLAMA_INDEX:
-            raise UserError(
-                _(
-                    "LlamaIndex is not installed. Please install it with pip: pip install llama_index"
-                )
-            )
-
-        if not self.content:
-            raise UserError(_("No content to chunk"))
-
-        # Delete existing chunks
-        self.chunk_ids.unlink()
-
-        # Create a LlamaIndex document from the content
-        llama_doc = LlamaDocument(
-            text=self.content,
-            metadata={
-                "name": self.name,
-                "res_model": self.res_model,
-                "res_id": self.res_id,
-            },
-        )
+        
+        llama_doc = self._prepare_llama_chunking()
 
         # Use the MarkdownNodeParser
         parser = MarkdownNodeParser()
         nodes = parser.get_nodes_from_documents([llama_doc])
 
         # Create chunks from the parsed nodes
-        created_chunks = []
-        for idx, node in enumerate(nodes, 1):
-            chunk = self.env["llm.knowledge.chunk"].create(
-                {
-                    "resource_id": self.id,
-                    "sequence": idx,
-                    "content": node.text,
-                    "metadata": {
-                        **node.metadata,
-                        "start_char_idx": node.start_char_idx,
-                        "end_char_idx": node.end_char_idx,
-                    }
-                    if hasattr(node, "metadata")
-                    else {},
-                }
-            )
-            created_chunks.append(chunk)
+        created_chunks = self._create_chunks_from_nodes(nodes)
 
         # Post success message
-        self._post_styled_message(
-            f"Created {len(created_chunks)} chunks using LlamaIndex MarkdownNodeParser",
-            "success",
-        )
-
-        return len(created_chunks) > 0
+        return self._finalize_chunking(created_chunks, "MarkdownNodeParser")
 
     def _chunk_llama_sentence(self):
         """
         LlamaIndex sentence-based chunker with customizable chunk size and overlap.
         """
-        self.ensure_one()
-
-        if not HAS_LLAMA_INDEX:
-            raise UserError(
-                _(
-                    "LlamaIndex is not installed. Please install it with pip: pip install llama_index"
-                )
-            )
-
-        if not self.content:
-            raise UserError(_("No content to chunk"))
-
-        # Delete existing chunks
-        self.chunk_ids.unlink()
-
-        # Create a LlamaIndex document
-        llama_doc = LlamaDocument(
-            text=self.content,
-            metadata={
-                "name": self.name,
-                "res_model": self.res_model,
-                "res_id": self.res_id,
-            },
-        )
+        
+        llama_doc = self._prepare_llama_chunking()
 
         # Use SentenceSplitter with the configured chunk sizes
         splitter = SentenceSplitter(
@@ -149,61 +119,21 @@ class LLMResourceLlamaChunker(models.Model):
         nodes = splitter.get_nodes_from_documents([llama_doc])
 
         # Create chunks
-        created_chunks = []
-        for idx, node in enumerate(nodes, 1):
-            chunk = self.env["llm.knowledge.chunk"].create(
-                {
-                    "resource_id": self.id,
-                    "sequence": idx,
-                    "content": node.text,
-                    "metadata": {
-                        **node.metadata,
-                        "start_char_idx": getattr(node, "start_char_idx", None),
-                        "end_char_idx": getattr(node, "end_char_idx", None),
-                    }
-                    if hasattr(node, "metadata")
-                    else {},
-                }
-            )
-            created_chunks.append(chunk)
+        created_chunks = self._create_chunks_from_nodes(nodes)
 
         # Post success message
-        self._post_styled_message(
-            f"Created {len(created_chunks)} chunks using LlamaIndex SentenceSplitter "
-            f"(size: {self.target_chunk_size}, overlap: {self.target_chunk_overlap})",
-            "success",
+        return self._finalize_chunking(
+            created_chunks, 
+            "SentenceSplitter",
+            f"(size: {self.target_chunk_size}, overlap: {self.target_chunk_overlap})"
         )
-
-        return len(created_chunks) > 0
 
     def _chunk_llama_token(self):
         """
         LlamaIndex token-based chunker for precise token-count chunking.
         """
-        self.ensure_one()
-
-        if not HAS_LLAMA_INDEX:
-            raise UserError(
-                _(
-                    "LlamaIndex is not installed. Please install it with pip: pip install llama_index"
-                )
-            )
-
-        if not self.content:
-            raise UserError(_("No content to chunk"))
-
-        # Delete existing chunks
-        self.chunk_ids.unlink()
-
-        # Create a LlamaIndex document
-        llama_doc = LlamaDocument(
-            text=self.content,
-            metadata={
-                "name": self.name,
-                "res_model": self.res_model,
-                "res_id": self.res_id,
-            },
-        )
+        
+        llama_doc = self._prepare_llama_chunking()
 
         # Use TokenTextSplitter with the configured chunk sizes
         splitter = TokenTextSplitter(
@@ -213,45 +143,46 @@ class LLMResourceLlamaChunker(models.Model):
         nodes = splitter.get_nodes_from_documents([llama_doc])
 
         # Create chunks
-        created_chunks = []
-        for idx, node in enumerate(nodes, 1):
-            chunk = self.env["llm.knowledge.chunk"].create(
-                {
-                    "resource_id": self.id,
-                    "sequence": idx,
-                    "content": node.text,
-                    "metadata": {
-                        **node.metadata,
-                        "start_char_idx": getattr(node, "start_char_idx", None),
-                        "end_char_idx": getattr(node, "end_char_idx", None),
-                    }
-                    if hasattr(node, "metadata")
-                    else {},
-                }
-            )
-            created_chunks.append(chunk)
+        created_chunks = self._create_chunks_from_nodes(nodes)
 
         # Post success message
-        self._post_styled_message(
-            f"Created {len(created_chunks)} chunks using LlamaIndex TokenTextSplitter "
-            f"(size: {self.target_chunk_size}, overlap: {self.target_chunk_overlap})",
-            "success",
+        return self._finalize_chunking(
+            created_chunks, 
+            "TokenTextSplitter",
+            f"(size: {self.target_chunk_size}, overlap: {self.target_chunk_overlap})"
         )
-
-        return len(created_chunks) > 0
 
     def _chunk_llama_hierarchical(self):
         """
         LlamaIndex hierarchical chunker that creates nested chunks at multiple levels of granularity.
         """
+        
+        llama_doc = self._prepare_llama_chunking()
+        # Use HierarchicalNodeParser
+        # We'll use chunk sizes of 2048, 512, and 128 tokens
+        chunk_sizes = [2048, 512, 128]
+        parser = HierarchicalNodeParser.from_defaults(chunk_sizes=chunk_sizes)
+        nodes = parser.get_nodes_from_documents([llama_doc])
+
+        # Create chunks with hierarchical level metadata
+        created_chunks = self._create_chunks_from_nodes(
+            nodes, 
+            lambda node: {"hierarchical_level": getattr(node, "level", 0)}
+        )
+
+        # Post success message
+        return self._finalize_chunking(
+            created_chunks, 
+            "HierarchicalNodeParser",
+            f"with sizes {chunk_sizes}"
+        )
+
+    def _prepare_llama_chunking(self):
+        """Common preparation for LlamaIndex chunking"""
         self.ensure_one()
 
         if not HAS_LLAMA_INDEX:
-            raise UserError(
-                _(
-                    "LlamaIndex is not installed. Please install it with pip: pip install llama_index"
-                )
-            )
+            raise UserError(_("LlamaIndex is not installed. Please install it with pip: pip install llama_index"))
 
         if not self.content:
             raise UserError(_("No content to chunk"))
@@ -260,7 +191,7 @@ class LLMResourceLlamaChunker(models.Model):
         self.chunk_ids.unlink()
 
         # Create a LlamaIndex document
-        llama_doc = LlamaDocument(
+        return LlamaDocument(
             text=self.content,
             metadata={
                 "name": self.name,
@@ -268,41 +199,6 @@ class LLMResourceLlamaChunker(models.Model):
                 "res_id": self.res_id,
             },
         )
-
-        # Use HierarchicalNodeParser
-        # We'll use chunk sizes of 2048, 512, and 128 tokens
-        chunk_sizes = [2048, 512, 128]
-        parser = HierarchicalNodeParser.from_defaults(chunk_sizes=chunk_sizes)
-        nodes = parser.get_nodes_from_documents([llama_doc])
-
-        # Create chunks
-        created_chunks = []
-        for idx, node in enumerate(nodes, 1):
-            chunk = self.env["llm.knowledge.chunk"].create(
-                {
-                    "resource_id": self.id,
-                    "sequence": idx,
-                    "content": node.text,
-                    "metadata": {
-                        **node.metadata,
-                        "start_char_idx": getattr(node, "start_char_idx", None),
-                        "end_char_idx": getattr(node, "end_char_idx", None),
-                        "hierarchical_level": getattr(node, "level", 0),
-                    }
-                    if hasattr(node, "metadata")
-                    else {},
-                }
-            )
-            created_chunks.append(chunk)
-
-        # Post success message
-        self._post_styled_message(
-            f"Created {len(created_chunks)} hierarchical chunks using LlamaIndex "
-            f"HierarchicalNodeParser with sizes {chunk_sizes}",
-            "success",
-        )
-
-        return len(created_chunks) > 0
 
     def chunk(self):
         """Override to add LlamaIndex chunking methods"""
