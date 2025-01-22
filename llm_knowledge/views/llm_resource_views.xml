@@ -294,7 +294,7 @@
 
             <!-- Add collection_ids display in the UI -->
             <xpath
-        expr="//div[@class='o_kanban_record_body']/div[1]"
+        expr="//div[hasclass('o_kanban_record_body')]/div[1]"
         position="after"
       >
                 <div
