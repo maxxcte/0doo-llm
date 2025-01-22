@@ -186,6 +186,29 @@ class LLMKnowledgeChunker(models.Model):
         # Return True only if resources were actually embedded
         return any_embedded
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Override create to handle collection_ids and apply chunking settings"""
+        # Create the resources first
+        resources = super().create(vals_list)
+        
+        # Process each resource that has collections
+        for resource in resources:
+            if resource.collection_ids and resource.state not in ['chunked', 'ready']:
+                # Get the first collection's settings
+                collection = resource.collection_ids[0]
+                _logger.info("Collection: %s", collection.name)
+                _logger.info("Updating values target_chunk_size: %s, target_chunk_overlap: %s, chunker: %s", collection.default_chunk_size, collection.default_chunk_overlap, collection.default_chunker)
+                # Update the resource with the collection's settings
+                update_vals = {
+                    "target_chunk_size": collection.default_chunk_size,
+                    "target_chunk_overlap": collection.default_chunk_overlap,
+                    "chunker": collection.default_chunker,
+                }
+                resource.write(update_vals)
+        
+        return resources
+
     @api.model
     def action_mass_process_resources(self):
         """
