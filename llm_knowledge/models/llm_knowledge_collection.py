@@ -519,9 +519,6 @@ class LLMKnowledgeCollection(models.Model):
                     message += _(" for the specified resource IDs")
                 collection._post_styled_message(message, message_type="info")
                 continue
-            _logger.info(
-                f"Collection '{collection.name}': Starting embedding for {len(chunks_to_process)} chunks from {len(chunks_to_process.mapped('resource_id'))} resources."
-            )
 
             # Map resource ID to the set of its chunk IDs we intend to process
             resource_target_chunks = {}
