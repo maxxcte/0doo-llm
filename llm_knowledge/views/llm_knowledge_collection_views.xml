@@ -28,7 +28,7 @@
             confirm="This will process resources through the RAG pipeline until chunked state. Continue?"
           />
                     <button
-            name="embed_resources"
+            name="action_embed_resources"
             string="Embed Resources"
             type="object"
             class="btn-primary"

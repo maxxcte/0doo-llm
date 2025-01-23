@@ -469,6 +469,34 @@ class LLMKnowledgeCollection(models.Model):
                 "default_resource_name_template": "{filename}",
             },
         }
+    
+    def action_embed_resources(self, specific_resource_ids=None):
+        """
+        Action handler for embedding resources in the UI.
+        Wraps the embed_resources method and returns a proper action dictionary.
+        
+        Args:
+            specific_resource_ids: Optional list of resource IDs to process.
+        """
+        self.ensure_one()
+        result = self.embed_resources(specific_resource_ids=specific_resource_ids)
+        
+        # Return a proper action dictionary with the result in context
+        if result and result.get("success"):
+            return True
+        else:
+            return {
+                "type": "ir.actions.client",
+                "tag": "display_notification",
+                "params": {
+                    "title": _("Embedding Failed"),
+                    "message": _(
+                        "Failed to embed resources. Check the logs for details."
+                    ),
+                    "type": "warning",
+                    "sticky": False,
+                },
+            }
 
     def embed_resources(self, specific_resource_ids=None, batch_size=50):
         """
