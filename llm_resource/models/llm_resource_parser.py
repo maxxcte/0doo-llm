@@ -182,25 +182,31 @@ class LLMResourceParser(models.Model):
         # Create a dictionary with record data
         record_data = {}
         for field_name, field in record._fields.items():
-            # Skip binary fields and internal fields
-            if field.type == "binary" or field_name.startswith("_"):
+            try:
+                # Skip binary fields and internal fields
+                if field.type == "binary" or field_name.startswith("_"):
+                    continue
+
+                # Handle many2one fields
+                if field.type == "many2one" and record[field_name]:
+                    record_data[field_name] = {
+                        "id": record[field_name].id,
+                        "name": record[field_name].display_name,
+                    }
+                # Handle many2many and one2many fields
+                elif field.type in ["many2many", "one2many"]:
+                    record_data[field_name] = [
+                        {"id": r.id, "name": r.display_name} for r in record[field_name]
+                    ]
+                # Handle other fields
+                else:
+                    record_data[field_name] = record[field_name]
+            except Exception as e:
+                _logger.error(f"Skipping field {field_name}: {str(e)}")
+                self._post_styled_message(
+                    f"Skipping field {field_name}: {str(e)}", "warning"
+                )
                 continue
-
-            # Handle many2one fields
-            if field.type == "many2one" and record[field_name]:
-                record_data[field_name] = {
-                    "id": record[field_name].id,
-                    "name": record[field_name].display_name,
-                }
-            # Handle many2many and one2many fields
-            elif field.type in ["many2many", "one2many"]:
-                record_data[field_name] = [
-                    {"id": r.id, "name": r.display_name} for r in record[field_name]
-                ]
-            # Handle other fields
-            else:
-                record_data[field_name] = record[field_name]
-
         # Format as markdown
         content = [f"# {record_name}"]
         content.append("\n## JSON Data\n")
