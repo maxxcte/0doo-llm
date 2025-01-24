@@ -102,7 +102,6 @@ class LLMResource(models.Model):
         :param res_id: The record ID
         :return: The external URL or False
         """
-        self.ensure_one()
         try:
             # Get the related record
             if res_model in self.env:
