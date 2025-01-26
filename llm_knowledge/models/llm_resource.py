@@ -197,13 +197,12 @@ class LLMKnowledgeChunker(models.Model):
             if resource.collection_ids and resource.state not in ['chunked', 'ready']:
                 # Get the first collection's settings
                 collection = resource.collection_ids[0]
-                _logger.info("Collection: %s", collection.name)
-                _logger.info("Updating values target_chunk_size: %s, target_chunk_overlap: %s, chunker: %s", collection.default_chunk_size, collection.default_chunk_overlap, collection.default_chunker)
                 # Update the resource with the collection's settings
                 update_vals = {
                     "target_chunk_size": collection.default_chunk_size,
                     "target_chunk_overlap": collection.default_chunk_overlap,
                     "chunker": collection.default_chunker,
+                    "parser": collection.default_parser,
                 }
                 resource.write(update_vals)
         

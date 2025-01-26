@@ -92,6 +92,19 @@ class LLMKnowledgeCollection(models.Model):
         tracking=True,
     )
 
+    default_parser = fields.Selection(
+        selection="_get_available_parsers",
+        string="Default Parser",
+        default="default",
+        required=True,
+        help="Default parser to use for resources in this collection",
+        tracking=True,
+    )
+
+    @api.model
+    def _get_available_parsers(self):
+        return self.env["llm.resource"]._get_available_parsers()
+
     @api.model
     def _get_available_chunkers(self):
         return self.env["llm.resource"]._get_available_chunkers()
@@ -121,10 +134,11 @@ class LLMKnowledgeCollection(models.Model):
                 collection._initialize_store()
             # Apply default chunk settings to resources if they exist
             if collection.resource_ids:
-                collection._apply_chunk_settings_to_resources(
+                collection._apply_default_settings_to_resources(
                     update_size=True,
                     update_overlap=True,
                     update_chunker=True,
+                    update_parser=True,
                 )
         return collections
 
@@ -180,11 +194,13 @@ class LLMKnowledgeCollection(models.Model):
             "default_chunk_size" in vals
             or "default_chunk_overlap" in vals
             or "default_chunker" in vals
+            or "default_parser" in vals
         ):
-            self._apply_chunk_settings_to_resources(
+            self._apply_default_settings_to_resources(
                 update_size="default_chunk_size" in vals,
                 update_overlap="default_chunk_overlap" in vals,
                 update_chunker="default_chunker" in vals,
+                update_parser="default_parser" in vals,
             )
 
         return result
@@ -365,6 +381,7 @@ class LLMKnowledgeCollection(models.Model):
                             "name": name,
                             "model_id": model_id,
                             "res_id": record_id,
+                            "parser": "json",
                             "collection_ids": [(4, collection.id)],
                         }
                     )
@@ -712,8 +729,8 @@ class LLMKnowledgeCollection(models.Model):
                 "processed_resources": 0,
             }
 
-    def _apply_chunk_settings_to_resources(
-        self, update_size=True, update_overlap=True, update_chunker=True
+    def _apply_default_settings_to_resources(
+        self, update_size=True, update_overlap=True, update_chunker=True, update_parser=True
     ):
         """Apply collection chunk settings to all resources in this collection"""
         for collection in self:
@@ -728,5 +745,7 @@ class LLMKnowledgeCollection(models.Model):
                 update_vals["target_chunk_overlap"] = collection.default_chunk_overlap
             if update_chunker:
                 update_vals["chunker"] = collection.default_chunker
+            if update_parser:
+                update_vals["parser"] = collection.default_parser
             if update_vals:
                 collection.resource_ids.write(update_vals)
