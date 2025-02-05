@@ -177,6 +177,17 @@ class LLMResource(models.Model):
 
         return True
 
+    def action_open_resource(self):
+        """Open the resource in form view."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'llm.resource',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+
     @api.model
     def action_mass_process_resources(self):
         """

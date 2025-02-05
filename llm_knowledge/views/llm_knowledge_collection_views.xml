@@ -104,13 +104,20 @@
                             <field
                 name="resource_ids"
                 nolabel="1"
-              > <!-- Reference llm.resource -->
-                                <tree>
+                options="{'reload_on_button': true}"
+              >
+                                <tree editable="bottom">
                                     <field name="name" />
-                                    <field name="res_model" />
-                                    <field name="res_id" />
-                                    <field name="state" />
-                                    <field name="chunk_count" />
+                                    <field name="parser" />
+                                    <field name="chunker" />
+                                    <field name="target_chunk_size" />
+                                    <field name="target_chunk_overlap" />
+                                    <field name="res_model" readonly="1" optional="hide" />
+                                    <field name="res_id" readonly="1" optional="hide" />
+                                    <field name="state" readonly="1" />
+                                    <field name="chunk_count" readonly="1" sum="Total Chunks" />
+                                    <button name="process_resource" string="Process" type="object" icon="fa-cogs" />
+                                    <button string="View" type="object" name="action_open_resource" icon="fa-external-link" />
                                 </tree>
                             </field>
                         </page>
