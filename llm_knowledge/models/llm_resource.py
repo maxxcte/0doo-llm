@@ -248,3 +248,54 @@ class LLMKnowledgeChunker(models.Model):
                     "type": "danger",
                 },
             }
+
+    def _reset_state_if_needed(self):
+        """Reset resource state to 'chunked' if it's in 'ready' state and not in any collection."""
+        self.ensure_one()
+        if self.state == 'ready' and not self.collection_ids:
+            self.write({'state': 'chunked'})
+            _logger.info(f"Reset resource {self.id} to 'chunked' state after removal from all collections")
+            self._post_styled_message(
+                _("Reset to 'chunked' state after removal from all collections"),
+                "info",
+            )
+        return True
+
+    def _handle_collection_ids_change(self, old_collections_by_resource):
+        """Handle changes to collection_ids field.
+        
+        Args:
+            old_collections_by_resource: Dictionary mapping resource IDs to their previous collection IDs
+        """
+        for resource in self:
+            old_collection_ids = old_collections_by_resource.get(resource.id, [])
+            current_collection_ids = resource.collection_ids.ids
+            
+            # Find collections that the resource was removed from
+            removed_collection_ids = [cid for cid in old_collection_ids if cid not in current_collection_ids]
+            
+            # Clean up vectors in those collections' stores
+            if removed_collection_ids:
+                collections = self.env['llm.knowledge.collection'].browse(removed_collection_ids)
+                for collection in collections:
+                    # Use the collection's method to handle resource removal
+                    collection._handle_removed_resources([resource.id])
+        
+        return True
+
+    def write(self, vals):
+        """Override write to handle collection_ids changes and cleanup vectors if needed"""
+        # Track collections before the write
+        resources_collections = {}
+        if 'collection_ids' in vals:
+            for resource in self:
+                resources_collections[resource.id] = resource.collection_ids.ids
+        
+        # Perform the write operation
+        result = super().write(vals)
+        
+        # Handle collection changes
+        if 'collection_ids' in vals:
+            self._handle_collection_ids_change(resources_collections)
+        
+        return result
