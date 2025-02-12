@@ -53,6 +53,9 @@ class LLMKnowledgeChunker(models.Model):
     def action_embed(self):
         """Action handler for embedding document chunks"""
         result = self.embed()
+        message = _("Document embedding process completed.")
+        if not result:
+            message = _("Document embedding process did not complete properly, check logs on resources.")
 
         # Return appropriate notification
         return {
@@ -60,7 +63,7 @@ class LLMKnowledgeChunker(models.Model):
             "tag": "display_notification",
             "params": {
                 "title": _("Embedding"),
-                "message": _("Document embedding process completed."),
+                "message": message,
                 "type": "success" if result else "warning",
                 "sticky": False,
             },
