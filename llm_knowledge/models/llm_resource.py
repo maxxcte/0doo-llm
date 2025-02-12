@@ -53,21 +53,26 @@ class LLMKnowledgeChunker(models.Model):
     def action_embed(self):
         """Action handler for embedding document chunks"""
         result = self.embed()
-        message = _("Document embedding process completed.")
-        if not result:
-            message = _("Document embedding process did not complete properly, check logs on resources.")
-
         # Return appropriate notification
-        return {
-            "type": "ir.actions.client",
-            "tag": "display_notification",
-            "params": {
-                "title": _("Embedding"),
-                "message": message,
-                "type": "success" if result else "warning",
-                "sticky": False,
-            },
-        }
+        if result:
+            self._post_styled_message(
+                _("Document embedding process completed successfully."),
+                "success",
+            )
+            return True
+        else:
+            message = _("Document embedding process did not complete properly, check logs on resources."),
+                
+            return {
+                "type": "ir.actions.client",
+                "tag": "display_notification",
+                "params": {
+                    "title": _("Embedding"),
+                    "message": message,
+                    "type": "warning",
+                    "sticky": False,
+                },
+            }
 
     def action_reindex(self):
         """Reindex a single resource's chunks"""
@@ -161,6 +166,10 @@ class LLMKnowledgeChunker(models.Model):
         chunked_docs = self.filtered(lambda d: d.state == "chunked")
 
         if not chunked_docs:
+            self._post_styled_message(
+                _("No resources in 'chunked' state to embed."),
+                "warning",
+            )
             return False
 
         # Get all collections for these resources
@@ -170,6 +179,10 @@ class LLMKnowledgeChunker(models.Model):
 
         # If no collections, resources can't be embedded
         if not collections:
+            self._post_styled_message(
+                _("No collections found for the selected resources."),
+                "warning",
+            )
             return False
 
         # Track if any resources were embedded
@@ -186,6 +199,11 @@ class LLMKnowledgeChunker(models.Model):
             ):
                 any_embedded = True
 
+        if not any_embedded:
+            self._post_styled_message(
+                _("No resources could be embedded. Check that resources have correct collections and collections have valid embedding models and stores."),
+                "warning",
+            )
         # Return True only if resources were actually embedded
         return any_embedded
 
