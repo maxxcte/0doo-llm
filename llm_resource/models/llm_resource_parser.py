@@ -79,6 +79,10 @@ class LLMResourceParser(models.Model):
                 resource._post_styled_message(
                     f"Error parsing resource: {str(e)}", "error"
                 )
+                if resource.collection_ids:
+                    resource.collection_ids._post_styled_message(
+                        f"Error parsing resource: {str(e)}", "error"
+                    )
             finally:
                 resource._unlock()
         resources._unlock()
