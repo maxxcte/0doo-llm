@@ -112,12 +112,34 @@
                                     <field name="chunker" />
                                     <field name="target_chunk_size" />
                                     <field name="target_chunk_overlap" />
-                                    <field name="res_model" readonly="1" optional="hide" />
-                                    <field name="res_id" readonly="1" optional="hide" />
+                                    <field
+                    name="res_model"
+                    readonly="1"
+                    optional="hide"
+                  />
+                                    <field
+                    name="res_id"
+                    readonly="1"
+                    optional="hide"
+                  />
                                     <field name="state" readonly="1" />
-                                    <field name="chunk_count" readonly="1" sum="Total Chunks" />
-                                    <button name="process_resource" string="Process" type="object" icon="fa-cogs" />
-                                    <button string="View" type="object" name="action_open_resource" icon="fa-external-link" />
+                                    <field
+                    name="chunk_count"
+                    readonly="1"
+                    sum="Total Chunks"
+                  />
+                                    <button
+                    name="process_resource"
+                    string="Process"
+                    type="object"
+                    icon="fa-cogs"
+                  />
+                                    <button
+                    string="View"
+                    type="object"
+                    name="action_open_resource"
+                    icon="fa-external-link"
+                  />
                                 </tree>
                             </field>
                         </page>

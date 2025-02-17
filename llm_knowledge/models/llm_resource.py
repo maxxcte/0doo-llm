@@ -61,8 +61,12 @@ class LLMKnowledgeChunker(models.Model):
             )
             return True
         else:
-            message = _("Document embedding process did not complete properly, check logs on resources."),
-                
+            message = (
+                _(
+                    "Document embedding process did not complete properly, check logs on resources."
+                ),
+            )
+
             return {
                 "type": "ir.actions.client",
                 "tag": "display_notification",
@@ -201,7 +205,9 @@ class LLMKnowledgeChunker(models.Model):
 
         if not any_embedded:
             self._post_styled_message(
-                _("No resources could be embedded. Check that resources have correct collections and collections have valid embedding models and stores."),
+                _(
+                    "No resources could be embedded. Check that resources have correct collections and collections have valid embedding models and stores."
+                ),
                 "warning",
             )
         # Return True only if resources were actually embedded
@@ -212,10 +218,10 @@ class LLMKnowledgeChunker(models.Model):
         """Override create to handle collection_ids and apply chunking settings"""
         # Create the resources first
         resources = super().create(vals_list)
-        
+
         # Process each resource that has collections
         for resource in resources:
-            if resource.collection_ids and resource.state not in ['chunked', 'ready']:
+            if resource.collection_ids and resource.state not in ["chunked", "ready"]:
                 # Get the first collection's settings
                 collection = resource.collection_ids[0]
                 # Update the resource with the collection's settings
@@ -226,7 +232,7 @@ class LLMKnowledgeChunker(models.Model):
                     "parser": collection.default_parser,
                 }
                 resource.write(update_vals)
-        
+
         return resources
 
     @api.model
@@ -273,9 +279,11 @@ class LLMKnowledgeChunker(models.Model):
     def _reset_state_if_needed(self):
         """Reset resource state to 'chunked' if it's in 'ready' state and not in any collection."""
         self.ensure_one()
-        if self.state == 'ready' and not self.collection_ids:
-            self.write({'state': 'chunked'})
-            _logger.info(f"Reset resource {self.id} to 'chunked' state after removal from all collections")
+        if self.state == "ready" and not self.collection_ids:
+            self.write({"state": "chunked"})
+            _logger.info(
+                f"Reset resource {self.id} to 'chunked' state after removal from all collections"
+            )
             self._post_styled_message(
                 _("Reset to 'chunked' state after removal from all collections"),
                 "info",
@@ -284,39 +292,43 @@ class LLMKnowledgeChunker(models.Model):
 
     def _handle_collection_ids_change(self, old_collections_by_resource):
         """Handle changes to collection_ids field.
-        
+
         Args:
             old_collections_by_resource: Dictionary mapping resource IDs to their previous collection IDs
         """
         for resource in self:
             old_collection_ids = old_collections_by_resource.get(resource.id, [])
             current_collection_ids = resource.collection_ids.ids
-            
+
             # Find collections that the resource was removed from
-            removed_collection_ids = [cid for cid in old_collection_ids if cid not in current_collection_ids]
-            
+            removed_collection_ids = [
+                cid for cid in old_collection_ids if cid not in current_collection_ids
+            ]
+
             # Clean up vectors in those collections' stores
             if removed_collection_ids:
-                collections = self.env['llm.knowledge.collection'].browse(removed_collection_ids)
+                collections = self.env["llm.knowledge.collection"].browse(
+                    removed_collection_ids
+                )
                 for collection in collections:
                     # Use the collection's method to handle resource removal
                     collection._handle_removed_resources([resource.id])
-        
+
         return True
 
     def write(self, vals):
         """Override write to handle collection_ids changes and cleanup vectors if needed"""
         # Track collections before the write
         resources_collections = {}
-        if 'collection_ids' in vals:
+        if "collection_ids" in vals:
             for resource in self:
                 resources_collections[resource.id] = resource.collection_ids.ids
-        
+
         # Perform the write operation
         result = super().write(vals)
-        
+
         # Handle collection changes
-        if 'collection_ids' in vals:
+        if "collection_ids" in vals:
             self._handle_collection_ids_change(resources_collections)
-        
+
         return result
