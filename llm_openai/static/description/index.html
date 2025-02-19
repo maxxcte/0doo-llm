@@ -29,6 +29,15 @@
             padding: 2rem 0;
         }
 
+        .banner-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
         h1, h2, h3, h4 {
             color: var(--primary-color);
         }
@@ -121,7 +130,7 @@
                 <h1 class="fw-bold">OpenAI Provider for Odoo LLM</h1>
                 <p class="lead mb-4">Connect your Odoo instance with OpenAI's powerful models like GPT-4, GPT-3.5, and more.</p>
                 <div class="d-flex mb-3 align-items-center">
-                    <span class="badge bg-primary me-2">v16.0.1.1.0</span>
+                    <span class="badge bg-primary me-2">v16.0.1.1.2</span>
                     <span class="badge bg-secondary me-2">LGPL-3</span>
                     <a href="https://github.com/apexive/odoo-llm" class="github-link ms-auto">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-github me-1" viewBox="0 0 16 16">
@@ -133,13 +142,16 @@
                 <p>This module provides a seamless integration with OpenAI API and supports OpenAI-compatible endpoints from various providers.</p>
             </div>
             <div class="col-md-4 text-center">
-                <img src="../llm/static/description/icon.svg" alt="OpenAI Provider Logo" class="img-fluid" style="max-width: 200px;">
+                <img src="icon.png" alt="OpenAI Provider Logo" class="img-fluid" style="max-width: 200px;">
             </div>
         </div>
     </div>
 </div>
 
 <div class="container py-5">
+    <!-- Banner Image -->
+    <img src="banner.jpeg" alt="OpenAI Integration Banner" class="banner-image">
+
     <!-- Overview Section -->
     <section class="mb-5">
         <h2 class="mb-4">Overview</h2>
@@ -279,7 +291,7 @@
                     </tr>
                     <tr>
                         <th scope="row">Version</th>
-                        <td>16.0.1.1.0</td>
+                        <td>16.0.1.1.2</td>
                     </tr>
                     <tr>
                         <th scope="row">Category</th>
@@ -291,7 +303,11 @@
                     </tr>
                     <tr>
                         <th scope="row">Dependencies</th>
-                        <td>llm</td>
+                        <td>llm, llm_tool, llm_mail_message_subtypes</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">External Dependencies</th>
+                        <td>openai (Python package)</td>
                     </tr>
                     <tr>
                         <th scope="row">Author</th>
@@ -323,7 +339,7 @@
             </div>
         </div>
         <div class="mt-4 pt-3 border-top text-center">
-            <p class="mb-0">© 2025 Apexive Solutions LLC. All rights reserved.</p>
+            <p class="mb-0"> 2025 Apexive Solutions LLC. All rights reserved.</p>
         </div>
     </div>
 </footer>
