@@ -16,6 +16,9 @@
     "data": [
         "data/llm_publisher.xml",
     ],
+    "images": [
+        "static/description/banner.jpeg",
+    ],
     "license": "LGPL-3",
     "installable": True,
 }
