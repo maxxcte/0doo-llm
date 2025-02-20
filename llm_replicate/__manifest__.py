@@ -14,6 +14,9 @@
     "data": [
         "data/llm_publisher.xml",
     ],
+    "images": [
+        "static/description/banner.jpeg",
+    ],
     "website": "https://github.com/apexive/odoo-llm",
     "author": "Apexive Solutions LLC",
     "license": "LGPL-3",
