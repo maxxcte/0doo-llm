@@ -6,25 +6,109 @@
     <title>LLM Prompt Templates</title>
 </head>
 <body>
-    <div class="container">
-        <div class="row">
-            <div class="col-12">
+    <div class="container mt-4">
+        <!-- Banner -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
                 <img src="banner.jpeg" class="img-fluid" alt="LLM Prompt Templates Banner" />
+            </div>
+        </div>
+        
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
                 <h1>LLM Prompt Templates</h1>
-                <p>Create and manage reusable prompt templates for LLM interactions</p>
-                
-                <h2>Key Features</h2>
-                <ul>
-                    <li>Reusable prompt templates</li>
-                    <li>Dynamic arguments with placeholders</li>
-                    <li>Categories and tags for organization</li>
-                    <li>Prompt testing functionality</li>
-                    <li>API integration</li>
-                    <li>Multi-step prompt workflows</li>
-                </ul>
-                
-                <h2>Configuration</h2>
-                <p>Navigate to <strong>LLM → Prompts</strong> to create and manage your prompt templates.</p>
+                <p class="lead">Create and manage reusable prompt templates for LLM interactions</p>
+            </div>
+        </div>
+        
+        <!-- Key Features -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-3">Key Features</h2>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Reusable Templates</h4>
+                            <p>Create prompt templates once and reuse them across your LLM interactions</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Dynamic Arguments</h4>
+                            <p>Use placeholders for dynamic content insertion in your prompts</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Categorization</h4>
+                            <p>Organize prompts with categories and tags for easy discovery</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Prompt Testing</h4>
+                            <p>Test prompts directly from the interface to verify they work as expected</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>API Integration</h4>
+                            <p>Use prompts programmatically through the provided API endpoints</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Multi-step Workflows</h4>
+                            <p>Create complex prompt sequences with different roles</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Configuration -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="bg-light p-4 rounded">
+                    <h2 class="text-center mb-3">Configuration</h2>
+                    <div class="row">
+                        <div class="col-md-8 offset-md-2">
+                            <ol class="mb-0">
+                                <li class="mb-2">Navigate to <strong>LLM → Prompts</strong> in your Odoo menu</li>
+                                <li class="mb-2">Click on <strong>Create</strong> to create a new prompt template</li>
+                                <li class="mb-2">Define the prompt name, description, and category</li>
+                                <li class="mb-2">Add templates with different roles (system, user, assistant)</li>
+                                <li>Test your prompt with sample arguments</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Technical Requirements -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-3">Technical Requirements</h2>
+                <div class="row">
+                    <div class="col-md-6 offset-md-3">
+                        <ul class="list-group">
+                            <li class="list-group-item">Odoo 16.0 or later</li>
+                            <li class="list-group-item">Python 3.8 or later</li>
+                            <li class="list-group-item">Base LLM module (<code>llm</code>)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <p>For more information, visit our <a href="https://github.com/apexive/odoo-llm">GitHub repository</a></p>
             </div>
         </div>
     </div>
