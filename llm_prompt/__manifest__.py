@@ -26,6 +26,9 @@
         "views/menu.xml",
         "wizards/llm_prompt_test_views.xml",
     ],
+    "images": [
+        "static/description/banner.jpeg",
+    ],
     "license": "LGPL-3",
     "installable": True,
     "application": False,
