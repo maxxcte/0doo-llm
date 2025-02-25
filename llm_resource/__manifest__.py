@@ -24,6 +24,9 @@
         "views/llm_resource_views.xml",
         "views/menu.xml",
     ],
+    "images": [
+        "static/description/banner.jpeg",
+    ],
     "license": "LGPL-3",
     "installable": True,
     "application": False,

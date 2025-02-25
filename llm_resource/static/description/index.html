@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LLM Resource</title>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- Banner -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <img src="banner.jpeg" class="img-fluid" alt="LLM Resource Banner" />
+            </div>
+        </div>
+        
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <h1>LLM Resource</h1>
+                <p class="lead">Base document resource management for LLM modules</p>
+            </div>
+        </div>
+        
+        <!-- Key Features -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-3">Key Features</h2>
+                <div class="row">
+                    <!-- Feature 1 -->
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Resource Management</h4>
+                            <p>Track and manage various document types with a unified resource model</p>
+                        </div>
+                    </div>
+                    <!-- Feature 2 -->
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Flexible Retrieval</h4>
+                            <p>Extensible retrieval interfaces for different content sources</p>
+                        </div>
+                    </div>
+                    <!-- Feature 3 -->
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Content Parsing</h4>
+                            <p>Intelligent parsing of various content types into markdown format</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- User Interface -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-3">User Interface</h2>
+                <div class="bg-light p-4 rounded">
+                    <p>Access and manage resources through a simple, intuitive interface:</p>
+                    <div class="row">
+                        <div class="col-md-8 offset-md-2">
+                            <ol class="mb-0">
+                                <li class="mb-2"><strong>Access Resources</strong>: Navigate to LLM > Configuration > Resources to view and manage all resources</li>
+                                <li class="mb-2"><strong>Kanban View</strong>: Resources are organized by state (Draft, Retrieved, Parsed) for easy workflow management</li>
+                                <li class="mb-2"><strong>List View</strong>: View all resources in a sortable, filterable list format</li>
+                                <li class="mb-2"><strong>Form View</strong>: Detailed view of each resource with all available actions</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Supported Content Types -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-3">Supported Content Types</h2>
+                <div class="row">
+                    <div class="col-md-6 offset-md-3">
+                        <ul class="list-group">
+                            <li class="list-group-item">Plain text documents</li>
+                            <li class="list-group-item">HTML web pages (via HTTP retriever)</li>
+                            <li class="list-group-item">PDF documents</li>
+                            <li class="list-group-item">Markdown files</li>
+                            <li class="list-group-item">JSON data</li>
+                            <li class="list-group-item">Odoo record fields</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resource Workflow -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-3">Resource Workflow</h2>
+                <div class="bg-light p-4 rounded">
+                    <p>Process resources through a simple, intuitive workflow:</p>
+                    <div class="row">
+                        <div class="col-md-8 offset-md-2">
+                            <ol class="mb-0">
+                                <li class="mb-2"><strong>Create Resource</strong>: Click "Create" button to add a new resource, specifying the related model and record ID</li>
+                                <li class="mb-2"><strong>Retrieve Content</strong>: Click the "Retrieve" button to fetch content from the source (moves from Draft to Retrieved state)</li>
+                                <li class="mb-2"><strong>Parse Content</strong>: Click the "Parse" button to convert content to markdown format (moves from Retrieved to Parsed state)</li>
+                                <li class="mb-2"><strong>Process All</strong>: Alternatively, click "Process (Base)" to perform both retrieval and parsing in one step</li>
+                                <li class="mb-2"><strong>Batch Processing</strong>: Select multiple resources in list view and use the "Process Resources" action from the Action menu</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resource States -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-3">Resource States</h2>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Draft</h4>
+                            <p>Initial state when a resource is created. Content needs to be retrieved from the source.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Retrieved</h4>
+                            <p>Content has been successfully retrieved from the source and is ready for parsing.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Parsed</h4>
+                            <p>Content has been parsed into markdown format and is ready for LLM consumption.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Management Actions -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-3">Management Actions</h2>
+                <div class="bg-light p-4 rounded">
+                    <p>Additional actions available for resource management:</p>
+                    <div class="row">
+                        <div class="col-md-8 offset-md-2">
+                            <ul class="list-group">
+                                <li class="list-group-item"><strong>Force Unlock</strong>: Release locked resources that may be stuck in processing</li>
+                                <li class="list-group-item"><strong>Reset Resources</strong>: Return resources to draft state for reprocessing</li>
+                                <li class="list-group-item"><strong>Filter by State</strong>: Use search filters to focus on resources in specific states</li>
+                                <li class="list-group-item"><strong>Group by Model</strong>: Organize resources by their source model</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <p>For more information, visit our <a href="https://github.com/apexive/odoo-llm">GitHub repository</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
