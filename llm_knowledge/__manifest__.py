@@ -34,6 +34,9 @@
         # Menus must come last
         "views/menu.xml",
     ],
+    "images": [
+        "static/description/banner.jpeg",
+    ],
     "license": "LGPL-3",
     "installable": True,
     "application": False,

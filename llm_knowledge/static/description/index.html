@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LLM Knowledge</title>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- Banner -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <img src="banner.jpeg" class="img-fluid" alt="LLM Knowledge Banner" />
+            </div>
+        </div>
+        
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <h1>LLM Knowledge</h1>
+                <p class="lead">Retrieval Augmented Generation for LLM with Vector Search</p>
+            </div>
+        </div>
+        
+        <!-- Key Features -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-3">Key Features</h2>
+                <div class="row">
+                    <!-- Feature 1 -->
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Document Collections</h4>
+                            <p>Organize resources into collections for targeted knowledge retrieval</p>
+                        </div>
+                    </div>
+                    <!-- Feature 2 -->
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Document Chunking</h4>
+                            <p>Split documents into manageable chunks for more precise retrieval</p>
+                        </div>
+                    </div>
+                    <!-- Feature 3 -->
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Vector Embeddings</h4>
+                            <p>Generate embeddings for semantic search capabilities</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Vector Store Integration -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-3">Vector Store Integration</h2>
+                <div class="bg-light p-4 rounded">
+                    <p>Seamless integration with multiple vector database options:</p>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="border rounded p-3 h-100 text-center">
+                                <h4>PgVector</h4>
+                                <p>Native PostgreSQL vector storage and search with high performance</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="border rounded p-3 h-100 text-center">
+                                <h4>Chroma</h4>
+                                <p>Integration with Chroma vector database for flexible deployment</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="border rounded p-3 h-100 text-center">
+                                <h4>Qdrant</h4>
+                                <p>Support for Qdrant vector search engine with advanced filtering</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- User Interface -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-3">User Interface</h2>
+                <div class="bg-light p-4 rounded">
+                    <p>Access and manage knowledge collections through a simple, intuitive interface:</p>
+                    <div class="row">
+                        <div class="col-md-8 offset-md-2">
+                            <ol class="mb-0">
+                                <li class="mb-2"><strong>Access Collections</strong>: Navigate to LLM > Knowledge > Collections to view and manage all collections</li>
+                                <li class="mb-2"><strong>View Resources</strong>: Access LLM > Knowledge > Resources to manage document resources</li>
+                                <li class="mb-2"><strong>Explore Chunks</strong>: Browse LLM > Knowledge > Chunks to see individual document chunks</li>
+                                <li class="mb-2"><strong>Upload Documents</strong>: Use the "Upload Resource" wizard to easily add new documents</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Collection Workflow -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-3">Collection Workflow</h2>
+                <div class="bg-light p-4 rounded">
+                    <p>Create and manage knowledge collections with a streamlined workflow:</p>
+                    <div class="row">
+                        <div class="col-md-8 offset-md-2">
+                            <ol class="mb-0">
+                                <li class="mb-2"><strong>Create Collection</strong>: Click "Create" button to add a new collection, specifying the embedding model</li>
+                                <li class="mb-2"><strong>Add Resources</strong>: Add resources manually or configure domain filters for automatic inclusion</li>
+                                <li class="mb-2"><strong>Process Resources</strong>: Click "Process Resources" to retrieve, parse, chunk, and embed documents</li>
+                                <li class="mb-2"><strong>Configure RAG</strong>: Enable the collection for use in LLM threads for knowledge retrieval</li>
+                                <li class="mb-2"><strong>Manage Chunks</strong>: View and manage individual chunks through the Chunks menu</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- RAG Process -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-3">RAG Process</h2>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Document Processing</h4>
+                            <p>Documents are retrieved, parsed, and split into manageable chunks</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Embedding Generation</h4>
+                            <p>Chunks are converted to vector embeddings using the specified model</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100 text-center">
+                            <h4>Semantic Retrieval</h4>
+                            <p>LLM queries retrieve the most relevant chunks for enhanced responses</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <p>For more information, visit our <a href="https://github.com/apexive/odoo-llm">GitHub repository</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
