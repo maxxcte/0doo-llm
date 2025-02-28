@@ -24,14 +24,14 @@ Many AI providers offer OpenAI-compatible endpoints, allowing you to use the sam
 
 ### Supported OpenAI-Compatible Endpoints
 
-| Provider | Base URL | Models | Notes |
-|----------|----------|--------|-------|
-| OpenAI | https://api.openai.com/v1/ | GPT-4o, GPT-4, GPT-3.5 Turbo, etc. | Official OpenAI API |
-| Anthropic | https://api.anthropic.com/v1/ | Claude 3 Opus, Sonnet, Haiku | Requires Anthropic API key |
-| DeepSeek | https://api.deepseek.com/v1/ | DeepSeek-Coder, DeepSeek-Chat | Requires DeepSeek API key |
-| Ollama | http://localhost:11434/v1/ | Llama, Mistral, Vicuna, etc. | Local deployment, no API key needed |
-| Google AI | https://generativelanguage.googleapis.com/v1beta/openai/ | Gemini models | Requires Google API key |
-| Mistral AI | https://api.mistral.ai/v1/ | Mistral-7B, Mixtral-8x7B, etc. | Requires Mistral AI API key |
+| Provider   | Base URL                                                 | Models                             | Notes                               |
+| ---------- | -------------------------------------------------------- | ---------------------------------- | ----------------------------------- |
+| OpenAI     | https://api.openai.com/v1/                               | GPT-4o, GPT-4, GPT-3.5 Turbo, etc. | Official OpenAI API                 |
+| Anthropic  | https://api.anthropic.com/v1/                            | Claude 3 Opus, Sonnet, Haiku       | Requires Anthropic API key          |
+| DeepSeek   | https://api.deepseek.com/v1/                             | DeepSeek-Coder, DeepSeek-Chat      | Requires DeepSeek API key           |
+| Ollama     | http://localhost:11434/v1/                               | Llama, Mistral, Vicuna, etc.       | Local deployment, no API key needed |
+| Google AI  | https://generativelanguage.googleapis.com/v1beta/openai/ | Gemini models                      | Requires Google API key             |
+| Mistral AI | https://api.mistral.ai/v1/                               | Mistral-7B, Mixtral-8x7B, etc.     | Requires Mistral AI API key         |
 
 ### Using OpenAI-Compatible Endpoints
 

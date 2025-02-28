@@ -77,6 +77,7 @@ response = env['llm.provider'].get_default().generate_text(messages=messages)
 ## Security
 
 The module follows Odoo's standard security model:
+
 - Regular users can view and use prompts
 - LLM Managers have full access to create, edit, and delete prompts and their configurations
 

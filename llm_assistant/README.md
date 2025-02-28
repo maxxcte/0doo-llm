@@ -35,6 +35,7 @@ This Odoo module provides AI assistant capabilities for the LLM integration, all
 ### Prompt Template for Assistants
 
 The module uses a structured prompt template with the following variables:
+
 - **role**: Defines the assistant's specific role (e.g., "Assistant Creator")
 - **goal**: Describes the primary objective of the assistant
 - **background**: Provides context and knowledge the assistant should have

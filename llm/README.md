@@ -69,6 +69,7 @@ The LLM Integration Base is part of a comprehensive AI ecosystem for Odoo. Explo
 ## Technical Specifications
 
 ### Module Information
+
 - **Name**: LLM Integration Base
 - **Version**: 16.0.1.1.0
 - **Category**: Technical
@@ -77,6 +78,7 @@ The LLM Integration Base is part of a comprehensive AI ecosystem for Odoo. Explo
 - **Author**: Apexive Solutions LLC
 
 ### Key Models
+
 - **llm.provider**: Manages connections to AI providers
 - **llm.model**: Represents individual AI models
 - **llm.publisher**: Tracks organizations that publish models
@@ -95,4 +97,4 @@ This module is licensed under [LGPL-3](https://www.gnu.org/licenses/lgpl-3.0.htm
 
 ---
 
- 2025 Apexive Solutions LLC. All rights reserved.
+2025 Apexive Solutions LLC. All rights reserved.
