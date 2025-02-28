@@ -1,6 +1,5 @@
 # Odoo LLM Integration
 
-![Banner](llm/static/description/banner.jpeg)
 
 This repository provides a comprehensive framework for integrating Large Language Models (LLMs) into Odoo. It allows seamless interaction with various AI providers including OpenAI, Anthropic, Ollama, and Replicate, enabling chat completions, text embeddings, and more within your Odoo environment.
 
