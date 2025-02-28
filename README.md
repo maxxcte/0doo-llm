@@ -49,17 +49,48 @@ This repository provides a comprehensive framework for integrating Large Languag
 
 ## 🛠️ Installation
 
-1. Clone this repository into your Odoo addons directory:
+You can install these modules by cloning the repository and making them available in your Odoo addons path:
+
+1. Clone this repository to your preferred location:
    ```bash
    git clone https://github.com/apexive/odoo-llm
    ```
 
-2. Install required dependencies:
+2. Make the modules available to Odoo by either:
+   - Cloning directly into your Odoo addons directory, or
+   - Copying the module subdirectories to your Odoo extra-addons directory:
+     ```bash
+     cp -r /path/to/odoo-llm/* /path/to/your/odoo/extra-addons/
+     ```
+
+3. Install required dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Install the base module and desired provider modules through the Odoo Apps menu
+4. Restart your Odoo server to detect the new modules
+
+5. Install the modules through the Odoo Apps menu
+
+## 🚀 Quick Start Guide
+
+Thanks to Odoo's dependency management, you only need to install the end modules to get started quickly:
+
+1. **Basic Chat with AI Assistants**:
+   - Install `llm_openai` (or another provider like `llm_anthropic` or `llm_mistral`)
+   - Install `llm_assistant` for specialized AI assistants
+   
+   This will automatically install all required dependencies including `llm`, `llm_thread`, `llm_prompt`, and `llm_tool`.
+
+2. **Knowledge Base (RAG) Setup**:
+   - Install one of the vector store integrations:
+     - `llm_pgvector` (requires PostgreSQL with pgvector extension)
+     - `llm_chroma` (requires Chroma DB)
+     - `llm_qdrant` (requires Qdrant vector database)
+   
+   This will automatically install all required dependencies including `llm_knowledge`, `llm_store`, and `llm_resource`.
+
+With just these two steps, you'll have a complete LLM integration with chat capabilities, assistants, and knowledge retrieval.
 
 ## ⚙️ Configuration
 
