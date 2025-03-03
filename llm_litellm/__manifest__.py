@@ -26,8 +26,8 @@
     "images": [
         "static/description/banner.jpeg",
     ],
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "license": "LGPL-3",
     "installable": True,
 }

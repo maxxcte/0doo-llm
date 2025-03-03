@@ -16,8 +16,8 @@
     "external_dependencies": {
         "python": ["requests", "markdownify"],
     },
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "data": [
         "security/ir.model.access.csv",
         "data/server_actions.xml",

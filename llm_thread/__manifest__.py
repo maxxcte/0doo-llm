@@ -22,13 +22,13 @@ Getting Started:
 
 Use cases include customer support automation, data analysis, training assistance, custom AI workflows, and automated tool execution for your business.
 
-Contact: support@apexive.com
+Contact: support@Mpve.com
     """,
     "category": "Productivity, Discuss",
     "version": "16.0.1.1.1",
     "depends": ["base", "mail", "web", "llm", "llm_tool", "llm_mail_message_subtypes"],
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "external_dependencies": {"python": ["emoji", "markdown2"]},
     "data": [
         "security/llm_thread_security.xml",

@@ -5,8 +5,8 @@
         Implements Mistral AI provider service for the LLM integration module.
         Supports Mistral models for chat and embedding capabilities.
     """,
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "category": "Technical",
     "version": "16.0.1.0.0",
     "depends": ["base", "llm_openai"],

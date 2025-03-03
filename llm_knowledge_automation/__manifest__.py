@@ -17,8 +17,8 @@
     "external_dependencies": {
         "python": [],
     },
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "data": [
         "views/llm_knowledge_collection_views.xml",
     ],

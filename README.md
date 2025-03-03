@@ -52,7 +52,7 @@ You can install these modules by cloning the repository and making them availabl
 
 1. Clone this repository to your preferred location:
    ```bash
-   git clone https://github.com/apexive/odoo-llm
+   git clone https://github.com/maxxcte
    ```
 
 2. Make the modules available to Odoo by either:

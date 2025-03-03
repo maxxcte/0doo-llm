@@ -26,7 +26,7 @@ LLM Integration Base provides a unified framework for connecting various AI prov
 
 ### Installation
 
-1. Download the module from [GitHub](https://github.com/apexive/odoo-llm)
+1. Download the module from [GitHub](https://github.com/maxxcte)
 2. Install the module in your Odoo instance
 3. Verify the dependencies are satisfied (`mail`, `web`)
 
@@ -55,7 +55,7 @@ Additional provider modules may be available in the repository. The modular arch
 
 Many providers offer OpenAI-compatible endpoints, making it easy to switch between different AI services without changing your code. The module supports these standardized endpoints, allowing you to use the same integration patterns across different providers.
 
-The modular architecture makes it easy to add support for additional providers. Check our [GitHub repository](https://github.com/apexive/odoo-llm) for the latest provider implementations.
+The modular architecture makes it easy to add support for additional providers. Check our [GitHub repository](https://github.com/maxxcte) for the latest provider implementations.
 
 ## Related Modules
 
@@ -75,7 +75,7 @@ The LLM Integration Base is part of a comprehensive AI ecosystem for Odoo. Explo
 - **Category**: Technical
 - **License**: LGPL-3
 - **Dependencies**: mail, web
-- **Author**: Apexive Solutions LLC
+- **Author**: Mpve Solutions LLC
 
 ### Key Models
 
@@ -86,10 +86,10 @@ The LLM Integration Base is part of a comprehensive AI ecosystem for Odoo. Explo
 
 ## Support & Resources
 
-- **Documentation**: Find detailed documentation, examples, and integration guides in our [GitHub repository](https://github.com/apexive/odoo-llm)
+- **Documentation**: Find detailed documentation, examples, and integration guides in our [GitHub repository](https://github.com/maxxcte)
 - **Community & Support**: Join our community to get help, share ideas, and contribute to the development of the LLM integration ecosystem for Odoo
-  - [Report Issues](https://github.com/apexive/odoo-llm/issues)
-  - [Feature Requests](https://github.com/apexive/odoo-llm)
+  - [Report Issues](https://github.com/maxxcte/issues)
+  - [Feature Requests](https://github.com/maxxcte)
 
 ## License
 
@@ -97,4 +97,4 @@ This module is licensed under [LGPL-3](https://www.gnu.org/licenses/lgpl-3.0.htm
 
 ---
 
-2025 Apexive Solutions LLC. All rights reserved.
+2025 Mpve Solutions LLC. All rights reserved.

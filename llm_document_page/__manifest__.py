@@ -16,8 +16,8 @@
     "external_dependencies": {
         "python": ["markdownify"],
     },
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "license": "LGPL-3",
     "installable": True,
     "application": False,

@@ -5,8 +5,8 @@
         Implements Ollama provider service for the LLM integration module.
         Supports local deployment of various open source models.
     """,
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "category": "Technical",
     "version": "16.0.1.1.0",
     "depends": ["llm", "llm_tool", "llm_mail_message_subtypes"],

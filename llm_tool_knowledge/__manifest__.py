@@ -2,8 +2,8 @@
     "name": "LLM Tool RAG",
     "version": "16.0.1.0.1",
     "category": "Productivity/Tools",
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "summary": "Tools for LLMs to interact with RAG functionality",
     "description": """
 LLM Tool RAG
@@ -29,5 +29,5 @@ Features:
     "application": False,
     "auto_install": False,
     "license": "LGPL-3",
-    "maintainer": "Apexive Solutions LLC",
+    "maintainer": "Mpve Solutions LLC",
 }

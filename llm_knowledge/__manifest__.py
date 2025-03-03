@@ -17,8 +17,8 @@
     "external_dependencies": {
         "python": ["PyMuPDF", "numpy"],
     },
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "data": [
         # Security must come first
         "security/ir.model.access.csv",

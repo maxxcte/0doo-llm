@@ -12,8 +12,8 @@
     "category": "Technical",
     "version": "16.0.1.0.0",
     "depends": ["llm_knowledge", "llm_mistral"],
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "data": [
         "views/llm_resource_views.xml",
     ],

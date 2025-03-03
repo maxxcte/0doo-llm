@@ -10,8 +10,8 @@
         - Prompt discovery and retrieval
         - Categories and tags for organization
     """,
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "category": "Technical",
     "version": "16.0.1.0.0",
     "depends": ["llm"],

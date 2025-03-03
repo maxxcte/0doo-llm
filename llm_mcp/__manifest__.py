@@ -15,8 +15,8 @@
         - Support for the JSON-RPC 2.0 based Model Context Protocol standard
         - Simple management interface for MCP server connections
     """,
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "license": "LGPL-3",
     "depends": ["base", "mail", "llm", "llm_tool"],
     "external_dependencies": {

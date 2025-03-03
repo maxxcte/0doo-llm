@@ -7,8 +7,8 @@
 Provides an llm.store implementation using the Qdrant vector database.
 Requires the qdrant-client Python package.
     """,
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "depends": ["llm_knowledge", "llm_store"],
     "installable": True,
     "application": False,

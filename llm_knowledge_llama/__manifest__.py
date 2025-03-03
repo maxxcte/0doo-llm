@@ -16,8 +16,8 @@
     "external_dependencies": {
         "python": ["llama_index", "nltk"],
     },
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "data": [],
     "license": "LGPL-3",
     "installable": True,

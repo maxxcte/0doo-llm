@@ -22,8 +22,8 @@
         configure, and customize LLM tools, supporting intelligent Odoo assistants that automate workflows and enhance business
         automation.
     """,
-    "author": "Apexive Solutions LLC",
-    "website": "https://github.com/apexive/odoo-llm",
+    "author": "Mpve Solutions LLC",
+    "website": "https://github.com/maxxcte",
     "license": "LGPL-3",
     "depends": ["base", "mail", "llm"],
     "external_dependencies": {
