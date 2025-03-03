@@ -23,11 +23,11 @@ class LLMProvider(models.Model):
 
         # Convert messages to Anthropic format
         formatted_messages = []
-        system_content = None
+        system_metadata = None
 
         for msg in messages:
             if msg["role"] == "system":
-                system_content = msg["content"]
+                system_metadata = msg["content"]
             elif msg["role"] in ["user", "assistant"]:
                 formatted_messages.append(
                     {"role": msg["role"], "content": msg["content"]}
@@ -41,8 +41,8 @@ class LLMProvider(models.Model):
             # Defaults to 1024 tokens if not explicitly provided
             "max_tokens": kwargs.get("max_tokens", 1024),
         }
-        if system_content:
-            params["system"] = system_content
+        if system_metadata:
+            params["system"] = system_metadata
 
         # Send chat request
         response = self.client.messages.create(**params)
