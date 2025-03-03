@@ -151,6 +151,5 @@ This project is licensed under LGPL-3 - see the LICENSE file for details.
 
 ## 🌐 About
 
-Developed by [Apexive](https://apexive.com) - We're passionate about bringing advanced AI capabilities to the Odoo ecosystem.
 
 For questions, support, or collaboration opportunities, please open an issue or discussion in this repository.
