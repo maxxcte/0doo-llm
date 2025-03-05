@@ -27,10 +27,10 @@ class LLMProvider(models.Model):
 
         for msg in messages:
             if msg["role"] == "system":
-                system_metadata = msg["content"]
+                system_metadata = msg["metadata"]
             elif msg["role"] in ["user", "assistant"]:
                 formatted_messages.append(
-                    {"role": msg["role"], "content": msg["content"]}
+                    {"role": msg["role"], "metadata": msg["metadata"]}
                 )
 
         # Add system message as a parameter if present
@@ -48,11 +48,11 @@ class LLMProvider(models.Model):
         response = self.client.messages.create(**params)
 
         if not stream:
-            yield {"role": "assistant", "content": response.content[0].text}
+            yield {"role": "assistant", "metadata": response.content[0].text}
         else:
             for chunk in response:
                 if chunk.type == "content_block_delta":
-                    yield {"role": "assistant", "content": chunk.delta.text}
+                    yield {"role": "assistant", "metadata": chunk.delta.text}
 
     def anthropic_models(self, model_id=None):
         """List available Anthropic models using API endpoint"""
