@@ -250,7 +250,7 @@ class LLMStoreChroma(models.Model):
 
         try:
             # Convert filter to Chroma format if needed
-            chroma_filter = (
+            chroma_fil = (
                 self._convert_odoo_filter_to_chroma(filter) if filter else None
             )
 
@@ -258,7 +258,7 @@ class LLMStoreChroma(models.Model):
             results = collection.query(
                 query_embeddings=[query_vector],
                 n_results=limit,
-                where=chroma_filter,
+                where=chroma_fil,
                 include=["metadatas", "distances"],
             )
 
@@ -301,23 +301,23 @@ class LLMStoreChroma(models.Model):
             return None
 
         # Chroma filters are generally key-value pairs
-        chroma_filter = {}
+        chroma_fil = {}
 
         # Handle basic operators
         if "$and" in odoo_filter:
             # Convert AND conditions
             for condition in odoo_filter["$and"]:
                 for key, value in condition.items():
-                    chroma_filter[key] = value
+                    chroma_fil[key] = value
         elif "$or" in odoo_filter:
             # Chroma doesn't directly support OR, so log a warning
             _logger.warning("OR conditions in filters not directly supported by Chroma")
             return None
         else:
             # Direct mapping for simple filters
-            chroma_filter = odoo_filter
+            chroma_fil = odoo_filter
 
-        return chroma_filter
+        return chroma_fil
 
     # -------------------------------------------------------------------------
     # Index Management
