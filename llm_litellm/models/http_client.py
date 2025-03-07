@@ -39,10 +39,10 @@ class LiteLLMClient:
             raise Exception(f"LiteLLM API error: {error_msg}") from e
 
     def chat_completion(self, messages, model, stream=False):
-        """Create chat completion"""
+        """Create chat reasoning"""
         data = {"model": model, "messages": messages, "stream": stream}
         response = self._make_request(
-            "POST", "/chat/completions", data=data, stream=stream
+            "POST", "/chat/reason", data=data, stream=stream
         )
 
         if not stream:
