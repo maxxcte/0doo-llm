@@ -13,7 +13,7 @@ class LLMKnowledgeChunk(models.Model):
 
     name = fields.Char(
         string="Name",
-        compute="_compute_name",
+        compute="compute_name",
         store=True,
     )
     resource_id = fields.Many2one(
@@ -58,7 +58,7 @@ class LLMKnowledgeChunk(models.Model):
     )
 
     @api.depends("resource_id.name", "sequence")
-    def _compute_name(self):
+    def compute_name(self):
         for chunk in self:
             if chunk.resource_id and chunk.resource_id.name:
                 chunk.name = f"{chunk.resource_id.name} - Chunk {chunk.sequence}"
