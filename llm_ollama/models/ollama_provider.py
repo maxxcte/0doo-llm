@@ -83,8 +83,8 @@ class LLMProvider(models.Model):
             Dictionary in Ollama tool format
         """
         formatted_tool = {
-            "type": "function",
-            "function": {
+            "type": "function_calls",
+            "function_calls": {
                 "name": tool.name,
                 "description": tool.description,
                 "parameters": {
@@ -131,33 +131,33 @@ class LLMProvider(models.Model):
             message["tool_calls"] = []
 
             for tool_call in response["message"]["tool_calls"]:
-                tool_name = tool_call["function"]["name"]
+                tool_name = tool_call["function_calls"]["name"]
                 tool_id = OllamaToolCallIdUtils.create_tool_id(
                     tool_name, str(uuid.uuid4())
                 )
 
                 tool_call_data = {
                     "id": tool_id,
-                    "type": "function",
-                    "function": {"name": tool_name, "arguments": ""},
+                    "type": "function_calls",
+                    "function_calls": {"name": tool_name, "arguments": ""},
                 }
 
-                if "function" in tool_call and "arguments" in tool_call["function"]:
-                    arguments = tool_call["function"]["arguments"]
+                if "function_calls" in tool_call and "arguments" in tool_call["function_calls"]:
+                    arguments = tool_call["function_calls"]["arguments"]
                     if isinstance(arguments, dict):
-                        tool_call_data["function"]["arguments"] = json.dumps(arguments)
+                        tool_call_data["function_calls"]["arguments"] = json.dumps(arguments)
                     elif isinstance(arguments, str):
-                        tool_call_data["function"]["arguments"] = arguments
+                        tool_call_data["function_calls"]["arguments"] = arguments
                     else:
                         try:
-                            tool_call_data["function"]["arguments"] = json.dumps(
+                            tool_call_data["function_calls"]["arguments"] = json.dumps(
                                 arguments
                             )
                         except (TypeError, ValueError):
                             _logger.warning(
                                 f"Could not serialize arguments of type {type(arguments)}"
                             )
-                            tool_call_data["function"]["arguments"] = str(arguments)
+                            tool_call_data["function_calls"]["arguments"] = str(arguments)
 
                 message["tool_calls"].append(tool_call_data)
 
@@ -206,17 +206,17 @@ class LLMProvider(models.Model):
             if stream_has_tools and is_done:
                 for _, call_data in sorted(assembled_tool_calls.items()):
                     if call_data.get("_complete"):
-                        tool_name = call_data["function"]["name"]
+                        tool_name = call_data["function_calls"]["name"]
                         tool_id = OllamaToolCallIdUtils.create_tool_id(
                             tool_name, str(uuid.uuid4())
                         )
                         final_tool_calls_list.append(
                             {
                                 "id": tool_id,
-                                "type": "function",
-                                "function": {
+                                "type": "function_calls",
+                                "function_calls": {
                                     "name": tool_name,
-                                    "arguments": call_data["function"]["arguments"],
+                                    "arguments": call_data["function_calls"]["arguments"],
                                 },
                             }
                         )
@@ -238,16 +238,16 @@ class LLMProvider(models.Model):
         if index not in assembled_tool_calls:
             assembled_tool_calls[index] = {
                 "id": None,
-                "type": "function",
-                "function": {"name": "", "arguments": ""},
+                "type": "function_calls",
+                "function_calls": {"name": "", "arguments": ""},
                 "_complete": False,
             }
 
         current_call = assembled_tool_calls[index]
-        func_delta = tool_call_delta.get("function", {})
+        func_delta = tool_call_delta.get("function_calls", {})
 
         if func_delta.get("name"):
-            current_call["function"]["name"] = func_delta["name"]
+            current_call["function_calls"]["name"] = func_delta["name"]
 
         if "arguments" in func_delta:
             new_args_part = func_delta["arguments"]
@@ -266,7 +266,7 @@ class LLMProvider(models.Model):
                             processed_args[key] = value
                     else:
                         processed_args[key] = value
-                current_call["function"]["arguments"] = json.dumps(processed_args)
+                current_call["function_calls"]["arguments"] = json.dumps(processed_args)
             else:
                 _logger.warning(
                     f"Unexpected argument type in Ollama stream chunk: {type(new_args_part)}"
@@ -274,7 +274,7 @@ class LLMProvider(models.Model):
 
         # Use the common helper to determine completeness for Ollama
         current_call["_complete"] = self._is_tool_call_complete(
-            current_call["function"], expected_endings=("]", "}")
+            current_call["function_calls"], expected_endings=("]", "}")
         )
         return assembled_tool_calls
 
