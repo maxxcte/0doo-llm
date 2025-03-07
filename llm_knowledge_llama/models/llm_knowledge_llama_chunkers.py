@@ -35,6 +35,7 @@ class LLMResourceLlamaChunker(models.Model):
                 ("llama_sentence", "LlamaIndex Sentence Splitter"),
                 ("llama_token", "LlamaIndex Token Splitter"),
                 ("llama_hierarchical", "LlamaIndex Hierarchical Chunker"),
+                ("llama_rag", "Rag system"),
             ]
         )
         return chunkers
