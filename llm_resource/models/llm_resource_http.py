@@ -95,7 +95,7 @@ class LLMResourceHTTPRetriever(models.Model):
         Fetches the final response after handling standard and meta redirects.
 
         :param initial_url: The starting URL
-        :param headers: HTTP headers for the request
+        :param headers: HTTP headers for the request, authentication require
         :param max_refreshes: Maximum number of meta refreshes to follow
         :return: Tuple (final_response, final_url)
         :raises: requests.exceptions.RequestException on request failures
