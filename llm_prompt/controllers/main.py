@@ -11,7 +11,7 @@ class LLMPromptController(http.Controller):
     """Controller for LLM Prompt API endpoints"""
 
     @http.route(
-        "/api/llm/prompts/list", type="json", auth="user", csrf=False, methods=["POST"]
+        "/api-2/llm/prompts/list", type="json", auth="user", csrf=False, methods=["POST"]
     )
     def list_prompts(self, provider_id=None, **kwargs):
         """
@@ -48,7 +48,7 @@ class LLMPromptController(http.Controller):
             return {"error": str(e)}
 
     @http.route(
-        "/api/llm/prompts/get", type="json", auth="user", csrf=False, methods=["POST"]
+        "/api-2/llm/prompts/get", type="json", auth="user", csrf=False, methods=["POST"]
     )
     def get_prompt(self, name, provider_id=None, arguments=None, **kwargs):
         """
