@@ -32,10 +32,10 @@ def execute_with_new_cursor(func_to_decorate):
 
 
 class LLMThread(models.Model):
-    _name = "llm.thread"
-    _description = "LLM Chat Thread"
-    _inherit = ["mail.thread"]
-    _order = "write_date DESC"
+    name = "llm.thread"
+    description = "LLM Chat Thread"
+    inherit = ["mail.thread"]
+    order = "write_date DESC"
 
     name = fields.Char(
         string="Title",
