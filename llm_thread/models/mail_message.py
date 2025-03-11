@@ -43,7 +43,7 @@ class MailMessage(models.Model):
         )
         return fields_list
 
-    def set_user_vote(self, message_id, vote_value):  # Add message_id argument
+    def set_user_gov(self, message_id, vote_value):  # Add message_id argument
         """
         Finds a message by ID and sets the user vote, performing validation checks.
         Raises MissingError, ValidationError, or UserError if checks fail.

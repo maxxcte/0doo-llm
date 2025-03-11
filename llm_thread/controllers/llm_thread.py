@@ -101,7 +101,7 @@ class LLMThreadController(http.Controller):
         try:
             msg_id = int(message_id)
             vote_val = int(vote_value)
-            request.env["mail.message"].set_user_vote(msg_id, vote_val)
+            request.env["mail.message"].set_user_gov(msg_id, vote_val)
             return {"success": True}
 
         except (ValueError, TypeError):
