@@ -13,8 +13,8 @@
     "author": "Mpve Solutions LLC",
     "website": "https://github.com/maxxcte",
     "category": "Technical",
-    "version": "16.0.1.0.0",
-    "depends": ["llm"],
+    "version": "16.0.1.0",
+    "depends": ["llm", "benchmark"],
     "data": [
         "security/ir.model.access.csv",
         "views/llm_store_views.xml",
