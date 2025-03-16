@@ -40,7 +40,7 @@ class LLMToolKnowledgeRetriever(models.Model):
             )
         return schema
 
-    def knowledge_retriever_execute(
+    def knowledge_retriever(
         self,
         query: str,
         collection_id: int,
