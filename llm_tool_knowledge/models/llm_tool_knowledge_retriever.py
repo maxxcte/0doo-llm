@@ -59,8 +59,8 @@ class LLMToolKnowledgeRetriever(models.Model):
         The tool returns chunks of text from resources ranked by relevance to your query.
 
         Parameters:
-            query: REQUIRED The search query text used to find relevant information. Be specific and focused in your query to get the most relevant results.
-            collection_id: REQUIRED The ID (as a string) of the 'llm.knowledge.collection' record to search within.
+            query: The search query text used to find relevant information. Be specific and focused in your query to get the most relevant results.
+            collection_id: The ID (as a string) of the 'llm.knowledge.collection' record to search within.
             top_k: Maximum number of chunks to retrieve per resource. Higher values return more context from each resource but may include less relevant passages.
             top_n: Maximum number of distinct resources to retrieve results from. Increase this value to get information from more diverse sources.
             similarity_cutoff: Minimum semantic similarity threshold (0.0-1.0) for including results. Higher values (e.g., 0.7) return only highly relevant results.
